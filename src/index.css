@@ -1,0 +1,286 @@
+/*
+ * OPNduck — local-first media processing suite.
+ * Copyright (C) 2026 Aaron Jonsson
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+
+@import 'tailwindcss';
+@import './themes/tokens.css';
+
+/* ============================================================
+   OPNduck — Global Design System
+   Liquid Glass primitives + fluid gradient background layer
+   ============================================================ */
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Interactive affordance: every button (sliders, theme, categories,
+     socials…) shows a pointer cursor, not the default arrow. */
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* NOTE: body colors are intentionally UNLAYERED so they win over the
+   unlayered startup-splash <style> in index.html (unlayered author CSS
+   outranks layered CSS). This lets the theme's --bg-base actually apply. */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  color: var(--text);
+  background-color: var(--bg-base);
+  transition:
+    background-color 650ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 650ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ------------------------------------------------------------
+   The Fluid Gradient Background Layer
+   A fixed, full-viewport animated canvas of warm blobs. Only
+   active in Glass mode (--glass-on). Flat/Monochrome show a
+   solid base color and disable the animation for performance.
+   ------------------------------------------------------------ */
+@layer components {
+  .fluid-background {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    overflow: hidden;
+    background:
+      var(--bg-grad-c),
+      var(--bg-grad-b),
+      var(--bg-grad-a),
+      var(--bg-base);
+    opacity: var(--glass-on);
+    pointer-events: none;
+    transition: opacity 600ms ease;
+  }
+  .fluid-background::before {
+    /* A soft continuous wash so the whole viewport is gradiented — no dark
+       bands, flat solids or harsh seams. Colours come from the Glass palette. */
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(130% 110% at 18% 12%, rgba(179, 90, 45, 0.2), transparent 62%),
+      radial-gradient(140% 120% at 55% 45%, rgba(69, 39, 42, 0.34), transparent 60%),
+      radial-gradient(130% 130% at 88% 88%, rgba(179, 90, 45, 0.22), transparent 62%);
+  }
+
+  .fluid-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: var(--bg-scrim);
+    pointer-events: none;
+  }
+
+  .fluid-blob {
+    position: absolute;
+    border-radius: 48% 52% 60% 40% / 45% 45% 55% 55%;
+    filter: blur(86px);
+    opacity: var(--fluid-opacity, 0.23);
+    mix-blend-mode: screen;
+    will-change: transform, border-radius;
+    animation: fluid-morph 26s ease-in-out infinite alternate;
+  }
+
+  .fluid-blob-1 {
+    width: 56vmax;
+    height: 56vmax;
+    top: -16vmax;
+    left: -12vmax;
+    background: radial-gradient(circle at 30% 30%, var(--fluid-3), var(--fluid-2) 55%, transparent 80%);
+  }
+
+  .fluid-blob-2 {
+    width: 52vmax;
+    height: 52vmax;
+    bottom: -16vmax;
+    right: -12vmax;
+    background: radial-gradient(circle at 60% 60%, var(--fluid-5), var(--fluid-4) 48%, transparent 78%);
+    animation-delay: -6s;
+    animation-duration: 30s;
+  }
+
+  .fluid-blob-3 {
+    width: 46vmax;
+    height: 46vmax;
+    top: 30%;
+    left: 36%;
+    background: radial-gradient(circle at 50% 50%, var(--fluid-6), var(--fluid-2) 46%, transparent 76%);
+    animation-delay: -12s;
+    animation-duration: 34s;
+  }
+
+  .fluid-blob-4 {
+    width: 38vmax;
+    height: 38vmax;
+    top: -6vmax;
+    left: 30%;
+    background: radial-gradient(circle at 50% 50%, var(--fluid-4), var(--fluid-6) 55%, transparent 78%);
+    animation-delay: -20s;
+    animation-duration: 28s;
+  }
+
+  .fluid-blob-5 {
+    width: 34vmax;
+    height: 34vmax;
+    bottom: 8vmax;
+    left: 2vmax;
+    background: radial-gradient(circle at 50% 50%, var(--fluid-5), var(--fluid-3) 50%, transparent 74%);
+    animation-delay: -9s;
+    animation-duration: 24s;
+  }
+
+  .fluid-blob-6 {
+    width: 42vmax;
+    height: 42vmax;
+    top: 52%;
+    right: 0;
+    background: radial-gradient(circle at 50% 50%, var(--fluid-2), var(--fluid-4) 50%, transparent 76%);
+    animation-delay: -16s;
+    animation-duration: 30s;
+  }
+
+  @keyframes fluid-morph {
+    0%   { border-radius: 46% 54% 58% 42% / 44% 46% 54% 56%; transform: translate(0, 0) rotate(0deg) scale(1); }
+    33%  { border-radius: 56% 44% 40% 60% / 60% 44% 56% 40%; transform: translate(4vmax, -3vmax) rotate(45deg) scale(1.08); }
+    66%  { border-radius: 42% 58% 60% 40% / 46% 56% 44% 54%; transform: translate(-3vmax, 4vmax) rotate(90deg) scale(0.94); }
+    100% { border-radius: 50% 50% 44% 56% / 54% 42% 58% 46%; transform: translate(2vmax, 1vmax) rotate(135deg) scale(1.06); }
+  }
+
+  /* Reduce motion: freeze the fluid layer into a static gradient */
+  @media (prefers-reduced-motion: reduce) {
+    .fluid-blob { animation: none !important; }
+  }
+}
+
+/* ------------------------------------------------------------
+   Liquid Glass — the core reusable primitive
+   Frosted blur + translucent tint + 1px inner light-catch edge
+   + soft lift shadow. Disabled (blur/tint off) in flat themes.
+   ------------------------------------------------------------ */
+@layer components {
+  .glass {
+    position: relative;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      var(--glass-shadow),
+      inset 0 0 0 1px var(--glass-border-inner),
+      inset 0 1px 0 0 var(--glass-tint);
+    color: var(--text);
+    transition:
+      background-color 500ms cubic-bezier(0.22, 1, 0.36, 1),
+      backdrop-filter 500ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 500ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .glass-strong {
+    background: var(--glass-bg-strong);
+  }
+
+  /* --- Interactive inputs: slightly darker & inset ---------------------- */
+  .glass-input {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 0.75rem;
+    padding: 0.6rem 0.9rem;
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 150ms ease, background-color 150ms ease;
+  }
+  .glass-input::placeholder { color: var(--text-faint); }
+  .glass-input:hover { background: var(--input-bg-hover); }
+  .glass-input:focus { border-color: var(--input-border-focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--input-border-focus) 22%, transparent); }
+
+  select.glass-input option { background: var(--bg-base); color: var(--text); }
+
+  /* --- Action button ----------------------------------------------------- */
+  .glass-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--btn-bg);
+    color: var(--btn-text);
+    border: 1px solid var(--glass-border);
+    border-radius: 0.8rem;
+    padding: 0.6rem 1.25rem;
+    font-weight: 650;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 150ms ease, transform 80ms ease, box-shadow 150ms ease;
+  }
+  .glass-btn:hover { background: var(--btn-bg-hover); }
+  .glass-btn:active { transform: translateY(1px); }
+  .glass-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* --- Drag region for the frameless shell ------------------------------- */
+  .titlebar-drag { -webkit-app-region: drag; }
+  .titlebar-no-drag, .titlebar-drag a, .titlebar-drag button, .titlebar-drag input { -webkit-app-region: no-drag; }
+}
+
+/* --- A subtle focus ring for keyboard accessibility ---------------------- */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------
+   Accessibility — respect system contrast preferences
+   When the user requests more contrast, the Monochrome theme's
+   already-grayscale palette is pushed to true black/white and
+   Flat/Glass dim text is nudged brighter.
+   ------------------------------------------------------------ */
+@media (prefers-contrast: more) {
+  [data-theme='monochrome'] {
+    --text-dim: #e0e0e0;
+    --text-faint: #b0b0b0;
+    --btn-bg: #ffffff;
+    --btn-text: #000000;
+    --input-bg: #000000;
+    --glass-border: #4d4d4d;
+  }
+  [data-theme='flat'] {
+    --text-dim: #d8ccc4;
+    --text-faint: #9a8d85;
+  }
+  [data-theme='glass'] {
+    --text-dim: rgba(255, 247, 240, 0.78);
+    --text-faint: rgba(255, 247, 240, 0.55);
+  }
+}

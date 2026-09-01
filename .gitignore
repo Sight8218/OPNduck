@@ -1,0 +1,45 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Desktop shell builds (Electron phase, then Tauri)
+desktop/release
+desktop/out
+desktop/dist
+src-tauri/target
+**/target
+
+# Build artifacts
+*.app
+*.deb
+*.rpm
+*.AppImage
+*.msi
+*.exe
+*.dmg
+
+# Python sidecar (Master Engine) — wired in Alpha phase
+sidecar/venv
+sidecar/__pycache__
+*.pyc
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

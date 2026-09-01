@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OPNduck</title>
+    <style>
+      /* Prevent the white/transparent startup flash at the root level.
+         The palette (Glass: #1f0508 base + animated gradient) supplies the
+         canvas once React mounts; nothing opaque is forced here. */
+      html, body {
+        margin: 0;
+        padding: 0;
+        background-color: #1f0508;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Static Splash Loading Screen — scoped to itself so it never locks
+         page scroll once React mounts and hides it. */
+      #startup-splash {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #08030a;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 99999;
+        transition: opacity 0.4s ease, visibility 0.4s;
+      }
+
+      .splash-logo {
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: 3px;
+        background: linear-gradient(90deg, #fef08a, #f97316, #ef4444);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 24px;
+      }
+
+      .splash-loader-bar {
+        width: 240px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .splash-progress {
+        width: 60%;
+        height: 100%;
+        background: linear-gradient(90deg, #f97316, #ef4444);
+        border-radius: 4px;
+        animation: loading-animation 1.6s infinite ease-in-out;
+      }
+
+      @keyframes loading-animation {
+        0% { transform: translateX(-100%); }
+        50% { transform: translateX(100%); }
+        100% { transform: translateX(-100%); }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Splash Screen shown before React mounts -->
+    <div id="startup-splash">
+      <div class="splash-logo">OPNDUCK</div>
+      <div class="splash-loader-bar">
+        <div class="splash-progress"></div>
+      </div>
+    </div>
+
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
