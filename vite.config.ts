@@ -8,6 +8,10 @@ const host = process.env.TAURI_DEV_HOST
 export default defineConfig({
   plugins: [react(), tailwindcss()],
 
+  // Relative asset base so the built app loads under `file://` in Electron
+  // (absolute `/assets/...` would resolve to the filesystem root and 404).
+  base: './',
+
   // Vite options tailored for desktop shell development (Electron now, Tauri later).
   // These keep the dev server portable and prevent it from obscuring host-side errors.
   clearScreen: false,

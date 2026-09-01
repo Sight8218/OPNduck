@@ -65,12 +65,15 @@ export default function Settings() {
         </p>
       </div>
 
-      <div className="mt-2 flex gap-8">
-        {/* Category rail pinned near the left edge with breathing room */}
+      <div className="relative mt-2">
+      {/* Category rail pinned to the left edge (absolute, doesn't push content) */}
+      <div className="absolute left-0 top-0">
         <SettingsNav categories={CATEGORIES} activeId={activeId} onSelect={select} />
+      </div>
 
-        {/* Right-aligned settings column */}
-        <div className="ml-auto flex w-full max-w-2xl flex-col gap-6">
+      {/* Settings column: centered on the viewport (matches the OPNDuck wordmark) */}
+      <div className="flex w-full flex-col items-center">
+        <div className="flex w-full max-w-3xl flex-col gap-6">
           <section
             id="settings-appearance"
             ref={(el) => {
@@ -124,6 +127,7 @@ export default function Settings() {
           >
             <InfoCard />
           </section>
+          </div>
         </div>
       </div>
     </div>

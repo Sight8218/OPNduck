@@ -1,6 +1,8 @@
 import HamburgerMenu from './HamburgerMenu'
 import NavMenuCards from './NavMenuCards'
 import SocialLinks from './SocialLinks'
+import WindowControls from './WindowControls'
+import { useNavDisplay } from '../lib/navContext'
 
 /**
  * Unified top navigation bar.
@@ -10,14 +12,20 @@ import SocialLinks from './SocialLinks'
  * The strip is a frameless draggable region; interactive children are no-drag.
  */
 export default function NavBar() {
+  const { navDisplay } = useNavDisplay()
+  // In text/icon modes the left cluster sits closer together so the strip
+  // doesn't feel sparse on the left; hybrid keeps the airy spacing.
+  const divider = navDisplay === 'hybrid' ? 'mx-7' : navDisplay === 'text' ? 'mx-4' : 'mx-3'
+  const socials = navDisplay === 'hybrid' ? 'gap-11' : navDisplay === 'text' ? 'gap-5' : 'gap-4'
+
   return (
     <header className="titlebar-drag sticky top-0 z-40 glass glass-strong">
-      <div className="relative mx-auto flex h-16 max-w-[110rem] items-center justify-between px-3 sm:px-5">
+      <div className="relative flex h-16 items-center justify-between pl-1 pr-0 sm:pl-1.5 sm:pr-1">
         {/* Left: hamburger (utmost) then socials, no boxes */}
-        <div className="titlebar-no-drag flex items-center gap-1">
+        <div className="titlebar-no-drag flex items-center">
           <HamburgerMenu />
-          <span className="mx-1 hidden h-6 w-px bg-[var(--glass-border)] sm:block" />
-          <SocialLinks />
+          <span className={`hidden h-6 w-px bg-[var(--glass-border)] sm:block ${divider}`} />
+          <SocialLinks spacing={socials} />
         </div>
 
         {/* Centered wordmark — reads visually as "OPNDUCK" with "DUCK" a touch
@@ -54,9 +62,10 @@ export default function NavBar() {
           </span>
         </div>
 
-        {/* Right: the menu cards */}
-        <div className="titlebar-no-drag">
+        {/* Right: the menu cards, then OS window controls when in the shell */}
+        <div className="titlebar-no-drag flex items-center gap-4 pr-0">
           <NavMenuCards />
+          <WindowControls />
         </div>
       </div>
     </header>

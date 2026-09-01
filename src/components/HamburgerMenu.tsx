@@ -33,7 +33,7 @@ export default function HamburgerMenu() {
   }, [open])
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative pl-4">
       {/* No box — outlined three-line glyph, colored by currentColor */}
       <button
         type="button"
@@ -41,7 +41,7 @@ export default function HamburgerMenu() {
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((o) => !o)}
-        className="grid h-10 w-10 place-items-center rounded-lg text-[var(--text-dim)] transition-all duration-150 hover:scale-110 hover:text-[var(--text)]"
+        className="grid h-9 w-9 place-items-center rounded-lg text-[var(--text-dim)] transition-all duration-150 hover:scale-110 hover:text-[var(--text)]"
         style={{ filter: 'drop-shadow(0 0 9px rgba(179, 90, 45, 0.18))' }}
       >
         <MenuIcon size={30} stroke={1.7} aria-hidden="true" />

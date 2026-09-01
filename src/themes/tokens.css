@@ -40,9 +40,9 @@
     --glass-tint: rgba(179, 90, 45, 0.12);
     --glass-blur: 16px;
     --glass-saturate: 1.25;
-    --glass-border: rgba(31, 5, 8, 0.55);
+    --glass-border: rgba(0, 0, 0, 0.55);
     --glass-border-inner: rgba(179, 90, 45, 0.28);
-    --glass-shadow: 0 16px 40px -18px rgba(31, 5, 8, 0.7);
+    --glass-shadow: 0 16px 40px -18px rgba(0, 0, 0, 0.7);
     --card-glow: rgba(179, 90, 45, 0.55);
 
     /* --- Interactive (solid darker inset) ------------------------------ */
@@ -68,7 +68,12 @@
     /* Layered radial washes cover the whole viewport so the gradient is smooth
        and continuous — no flat-solids or harsh seams anywhere. */
     --bg-base: linear-gradient(180deg, #1d0c0f 0%, #150305 48%, #230e11 78%, #150305 100%);
+    --bg-solid: #150305;
     --bg-scrim: rgba(0, 0, 0, 0.2);
+    --bg-wash:
+      radial-gradient(130% 110% at 18% 12%, rgba(179, 90, 45, 0.2), transparent 62%),
+      radial-gradient(140% 120% at 55% 45%, rgba(69, 39, 42, 0.34), transparent 60%),
+      radial-gradient(130% 130% at 88% 88%, rgba(179, 90, 45, 0.22), transparent 62%);
     --fluid-opacity: 0.23;
     --bg-grad-a: radial-gradient(130% 110% at 8% 6%,  rgba(179, 90, 45, 0.34) 0%, transparent 60%);
     --bg-grad-b: radial-gradient(120% 120% at 92% 12%, rgba(69, 39, 42, 0.55) 0%, transparent 58%);
@@ -81,6 +86,8 @@
     --fluid-5: rgba(69, 39, 42, 0.9);
     --fluid-6: rgba(179, 90, 45, 0.8);
     --glass-on: 1;
+    --fluid-on: 1;
+    --grain-on: 0;
     --flat-on: 0;
   }
 
@@ -113,17 +120,22 @@
     --accent-soft: #fdba74;
 
     --bg-base: #0d0806;
-    --bg-grad-a: #0d0806;
-    --bg-grad-b: #0d0806;
-    --bg-grad-c: #0d0806;
-    --bg-grad-d: #0d0806;
-    --fluid-1: #0d0806;
-    --fluid-2: #0d0806;
-    --fluid-3: #0d0806;
-    --fluid-4: #0d0806;
-    --fluid-5: #0d0806;
-    --fluid-6: #0d0806;
+    --bg-solid: #0d0806;
+    --bg-scrim: transparent;
+    --bg-wash: transparent;
+    --bg-grad-a: linear-gradient(transparent, transparent);
+    --bg-grad-b: linear-gradient(transparent, transparent);
+    --bg-grad-c: linear-gradient(transparent, transparent);
+    --bg-grad-d: linear-gradient(transparent, transparent);
+    --fluid-1: transparent;
+    --fluid-2: transparent;
+    --fluid-3: transparent;
+    --fluid-4: transparent;
+    --fluid-5: transparent;
+    --fluid-6: transparent;
     --glass-on: 0;
+    --fluid-on: 0;
+    --grain-on: 0;
     --flat-on: 1;
   }
 
@@ -155,18 +167,26 @@
     --accent-strong: #ffffff;
     --accent-soft: #9f9f9f;
 
-    --bg-base: #000;
-    --bg-grad-a: #000;
-    --bg-grad-b: #000;
-    --bg-grad-c: #000;
-    --bg-grad-d: #000;
-    --fluid-1: #000;
-    --fluid-2: #000;
-    --fluid-3: #000;
-    --fluid-4: #000;
-    --fluid-5: #000;
-    --fluid-6: #000;
-    --glass-on: 0;
-    --flat-on: 1;
+    /* Monochrome gradient background — a cool silver-to-charcoal depth that is
+       distinct from the warm Glass wash. No blobs (--fluid-on: 0); the gentle
+       depth stays subtle so the drifting film grain is clearly visible. */
+    --bg-base: linear-gradient(180deg, #222222 0%, #141414 42%, #0a0a0a 72%, #030303 100%);
+    --bg-solid: #141414;
+    --bg-scrim: transparent;
+    --bg-wash: transparent;
+    --bg-grad-a: linear-gradient(transparent, transparent);
+    --bg-grad-b: linear-gradient(transparent, transparent);
+    --bg-grad-c: linear-gradient(transparent, transparent);
+    --bg-grad-d: linear-gradient(transparent, transparent);
+    --fluid-1: transparent;
+    --fluid-2: transparent;
+    --fluid-3: transparent;
+    --fluid-4: transparent;
+    --fluid-5: transparent;
+    --fluid-6: transparent;
+    --glass-on: 1;
+    --fluid-on: 0;
+    --grain-on: 1;
+    --flat-on: 0;
   }
 }

@@ -10,7 +10,10 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "desktop:dev": "concurrently -k \"vite\" \"wait-on http://localhost:1420 && electron .\"",
+    "desktop:build": "npm run build && electron .",
+    "desktop:start": "electron ."
   },
   "dependencies": {
     "@tabler/icons-react": "^3.46.0",
@@ -25,9 +28,13 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
+    "concurrently": "^10.0.5",
+    "electron": "^44.1.0",
     "oxlint": "^1.79.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
-    "vite": "^8.2.2"
-  }
+    "vite": "^8.2.2",
+    "wait-on": "^9.1.0"
+  },
+  "main": "electron/main.cjs"
 }

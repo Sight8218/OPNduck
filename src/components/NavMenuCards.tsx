@@ -18,7 +18,7 @@ export default function NavMenuCards({ layoutId = 'nav-active' }: { layoutId?: s
   })()
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-0.5">
       {NAV_ITEMS.map((item) => {
         const isActive = item.index === activeIndex
         const showIcon = navDisplay !== 'text'

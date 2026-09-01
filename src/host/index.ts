@@ -28,6 +28,8 @@
  * adapters (Electron IPC / Tauri commands) are added when that phase lands.
  */
 
+import { detectElectronHost } from './electron'
+
 export interface HostWindowControls {
   minimize(): void
   maximize(): void
@@ -57,5 +59,16 @@ const browserHost: Host = {
   pickFile: async () => null,
 }
 
-/** Runtime host. Electron/Tauri adapters will replace this in `shell/`. */
-export const host: Host = browserHost
+/**
+ * Runtime host. Electron adapter is used when the preload bridge is present
+ * (running inside the desktop shell); otherwise fall back to browser no-ops.
+ * The Tauri adapter will join later behind the same `Host` interface.
+ */
+export const host: Host = (() => {
+  if (typeof window !== 'undefined' && window.opnduckHost) {
+    // Sync adapter: the bridge is already on window (set by preload). Tiny and
+    // only activated when the bridge exists.
+    return detectElectronHost() ?? browserHost
+  }
+  return browserHost
+})()

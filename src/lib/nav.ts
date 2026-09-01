@@ -42,6 +42,8 @@ export const SOCIALS: SocialItem[] = [
   { label: 'X (Twitter)', url: 'https://x.com/Ducky_swe', icon: '/icons/x.png' },
   { label: 'YouTube', url: 'https://www.youtube.com/@Ducky_Swe', icon: '/icons/youtube.png' },
   { label: 'TikTok', url: 'https://www.tiktok.com/@mr.ducky.editz', icon: '/icons/tiktok.png' },
+  { label: 'GitHub', url: 'https://github.com/Sight8218', icon: '/icons/github.png' },
+  { label: 'Discord', url: 'https://discord.gg/B2uqWRNykm', icon: '/icons/discord.png' },
 ]
 
 /** Icon used for the hamburger menu toggle (classic three lines). */

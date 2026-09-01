@@ -119,6 +119,63 @@ Screenshots: `/tmp/opnduck-{glass,flat,monochrome}.png`. Git repo initialized on
   opacity 0.23, scrim 0.2), GlassTune hidden by default, `Ctrl+Shift+D` toggles on/off,
   4 nav categories render, no visible Developer toggle.
 
+### 10. Scrollbar theme leak + menu-swipe flicker (current session)
+- **Scrollbar red `#1f0508` (all themes)**: definitive pixel-scan (x=W−6 col) found a solid
+  `31,5,8` band in glass (y0–737), flat (y1000–1737), monochrome (y0–737) regardless of
+  theme. **Root cause: `index.html` `<style>` sets `html, body { background-color: #1f0508 }`**
+  — the doc root never theme-corrects. **Fix**: added unlayered `html { background-color:
+  var(--bg-base) }` in `src/index.css` (same unlayered-over-unlayered technique the `body`
+  already used). Scan then clean in all themes.
+- **Scrollbar "gray `#121212`" channel in Glass/Monochrome (not flat)**: transparent track
+  exposed the `--bg-base` *gradient* at the far-right column, reading as a flat gray slab.
+  **Fix**: `::-webkit-scrollbar-track { background: var(--bg-base) }` so the channel draws
+  the theme surface itself (seamless: glass 39,20,22 vs page 40,21,23; mono 33 vs 34; flat
+  solid). Thumb changed to use `--glass-bg-strong` + `--glass-border` (+ `--glass-border-inner`
+  inset/hover) so it matches panel material, no more `color-mix(--text-faint)`.
+  NOTE: `::-webkit-scrollbar` can't do real `backdrop-filter` blur — the "glass" thumb is the
+  glass-colored surface, not a literal blur.
+- **Menu swipe flicker (appear→disappear→appear)**: `PageTransition` passed a **live
+  `<Routes>`** as children; on nav the exiting `AnimatePresence` layer re-resolved to the NEW
+  page, flashing it inside the outgoing fade. **Fix**: replaced `<Routes>` child with a
+  **stable top-level `PAGES` map** (`'/'→<Home/>`, etc., created once at module scope) and
+  `PageTransition` renders `PAGES[pathname] ?? PAGES['/']` directly; `App.tsx` drops
+  `<Routes>`/unused imports. Verified headless: clean single 0→1 enter, no premature content
+  swap, all 4 routes + unknown→Home fallback render.
+- **Gray `#353535` border on left/right/bottom edges (all themes)** — user report + screenshot
+  (`/home/ducky/OPNduck-plans-and-things/screenshot/`). Pixel scan (1920×1080) found a
+  **~4px neutral-gray frame**: x0=`72,72,72`, x1–3=`40,40,40`, right/L/B mirrored; warm glass
+  only begins at x4. **Root cause**: a **duplicate `--bg-base` GRADIENT** painted at document
+  level on `html`/`body` alongside the fixed viewport `.fluid-background` — the two gradients
+  scale differently (full document vs viewport) and the document-scaled one showed a flat gray
+  frame at the window edges. **Fix**: `html { background-color: transparent }` (kills the
+  duplicate), `body` uses a **new `--bg-solid` flat token** (`glass #150305`, `flat #0d0806`,
+  `mono #141414`) as a solid underlay (needed because Flat's `.fluid-background` is `opacity:0`),
+  and `.fluid-background` remains the SINGLE themed backdrop canvas. Scrollbar track back to
+  transparent. Verified: edges = glass `64,30,19` / flat `13,8,6` / mono `20,20,20`, and the
+  original solid `#1f0508` red wall stays gone.
+
+### 11. Definitive gray-frame root cause (parked) (current session)
+- User insisted the ~`#353535` gray frame was neither Hyprland nor the earlier duplicate-gradient
+  fix (session #10) — to prove it, switched Omarchy to Tokyo Night (blue active border `#7aa2f7`)
+  and captured two windows side by side.
+- **Proven not Hyprland**: `reference.png` (other app) shows the blue active border `121,159,245`
+  = `#779ef5`; `opnduck.png` shows only gray `41,40,41`/`53,53,53`. Added
+  `o.window("opnduck-desktop", { border_size = 0 })` in `~/.config/hypr/hyprland.lua` (valid Lua
+  rule name `border_size`, = `WINDOW_RULE_EFFECT_BORDER_SIZE`). Reload clean. Focused OPNduck then
+  shows NO blue active border, and the gray persists even fullscreen (Hyprland draws no border on
+  fullscreen). **So Hyprland's border is gone; the gray is not Hyprland.**
+- **Proven not app CSS**: live `computedStyle` + `capturePage()` of the running app show warm glass
+  edge-to-edge with **zero gray**; every theme token is warm (`--bg-solid #150305`, etc.), no CSS
+  value is `#282828`. The 3-4px `40,40,40` frame appears ONLY in OS-level (grim) screenshots, at
+  the window surface's left/right/bottom.
+- **Conclusion (user approved "Accept & park it")**: the gray frame is a **compositor/GPU surface
+  edge around the frameless Electron window on X11** (known Electron-on-Linux behavior for frameless
+  transparent windows). It is not fixable in CSS or Hyprland; the correct fix (if revisited) is in
+  `electron/main.cjs` window flags (e.g. `backgroundColor` handling / compositing switch). **Parked.**
+- **Housekeeping**: investigation left OPNduck relaunched windowed+focused (windowed, `fullscreen:0`);
+  the `border_size = 0` Hyprland rule is benign and left in place (it correctly disables Hyprland's
+  own border, leaving only the parked compositor edge).
+
 ---
 
 ## Agreed roadmap (from the user + me)

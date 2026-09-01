@@ -5,9 +5,9 @@ import { SOCIALS } from '../lib/nav'
  * window. Uses the brand PNGs the user provided — deliberately shown without a
  * surrounding box so they sit cleanly next to the hamburger menu.
  */
-export default function SocialLinks() {
+export default function SocialLinks({ spacing = 'gap-11' }: { spacing?: string }) {
   return (
-    <div className="flex items-center gap-4">
+    <div className={`flex items-center ${spacing}`}>
       {SOCIALS.map((s) => (
         <button
           key={s.url}
