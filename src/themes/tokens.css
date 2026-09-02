@@ -20,9 +20,8 @@
 /* ============================================================
    OPNduck Design System — "Liquid Glass" Theme Engine
    ------------------------------------------------------------
-   Three themes are driven by a `data-theme` attribute on <html>:
+   Two themes are driven by a `data-theme` attribute on <html>:
      - glass      (default) — translucent frosted glass over a fluid gradient
-     - flat       — high-performance: no blur/gradient/transparency, solid dark
      - monochrome — strict high-contrast black & white
    Every visual token is a CSS custom property so a single switch
    retints the whole app without touching component styles.
@@ -88,55 +87,6 @@
     --glass-on: 1;
     --fluid-on: 1;
     --grain-on: 0;
-    --flat-on: 0;
-  }
-
-  [data-theme='flat'] {
-    /* Solid, opaque, no blur/gradient — resource-saving */
-    --glass-bg: #1c1210;
-    --glass-bg-strong: #241a16;
-    --glass-tint: transparent;
-    --glass-blur: 0px;
-    --glass-saturate: 1;
-    --glass-border: #3a2c26;
-    --glass-border-inner: #3a2c26;
-    --glass-shadow: 0 14px 34px -18px rgba(0, 0, 0, 0.8);
-    --card-glow: rgba(249, 115, 22, 0.5);
-
-    --input-bg: #120c0a;
-    --input-bg-hover: #181010;
-    --input-border: #3a2c26;
-    --input-border-focus: #f97316;
-    --btn-bg: #f97316;
-    --btn-bg-hover: #fb923c;
-    --btn-text: #160600;
-
-    --text: #faf5f0;
-    --text-dim: #b8aaa0;
-    --text-faint: #7d6f66;
-
-    --accent: #f97316;
-    --accent-strong: #ea580c;
-    --accent-soft: #fdba74;
-
-    --bg-base: #0d0806;
-    --bg-solid: #0d0806;
-    --bg-scrim: transparent;
-    --bg-wash: transparent;
-    --bg-grad-a: linear-gradient(transparent, transparent);
-    --bg-grad-b: linear-gradient(transparent, transparent);
-    --bg-grad-c: linear-gradient(transparent, transparent);
-    --bg-grad-d: linear-gradient(transparent, transparent);
-    --fluid-1: transparent;
-    --fluid-2: transparent;
-    --fluid-3: transparent;
-    --fluid-4: transparent;
-    --fluid-5: transparent;
-    --fluid-6: transparent;
-    --glass-on: 0;
-    --fluid-on: 0;
-    --grain-on: 0;
-    --flat-on: 1;
   }
 
   [data-theme='monochrome'] {
@@ -187,6 +137,5 @@
     --glass-on: 1;
     --fluid-on: 0;
     --grain-on: 1;
-    --flat-on: 0;
   }
 }

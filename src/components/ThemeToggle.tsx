@@ -21,7 +21,6 @@ import { THEMES, type Theme } from '../themes/theme'
 
 const THEME_LABELS: Record<Theme, { label: string; hint: string }> = {
   glass: { label: 'Glass', hint: 'Premium frosted look over the fluid gradient. Default.' },
-  flat: { label: 'Flat', hint: 'Solid, fast, no transparency — saves resources.' },
   monochrome: { label: 'Monochrome', hint: 'High-contrast black & white for readability.' },
 }
 
@@ -36,9 +35,9 @@ export default function ThemeToggle({
     <div className="glass rounded-3xl p-5">
       <h2 className="mb-1 text-base font-bold">UI Theme</h2>
       <p className="mb-4 text-xs text-[var(--text-dim)]">
-        Switch the whole interface between the three visual modes.
+        Switch the whole interface between the two visual modes.
       </p>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {THEMES.map((t) => {
           const active = theme === t
           return (

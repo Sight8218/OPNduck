@@ -11,7 +11,7 @@ function cpuInfo(): string {
   const parts: string[] = []
   if (nav.hardwareConcurrency) parts.push(`${nav.hardwareConcurrency} logical CPUs`)
   if (nav.deviceMemory) parts.push(`${nav.deviceMemory} GB RAM`)
-  return parts.join(' · ') || 'Detected by the desktop shell'
+  return parts.join(', ') || 'Detected by the desktop shell'
 }
 
 function gpuInfo(): string {
@@ -61,15 +61,15 @@ export default function InfoCard() {
       <p className="mb-4 text-xs text-[var(--text-dim)]">
         Your system and bundled tool versions.
       </p>
-      <dl className="flex flex-col gap-2">
-        {specs.map((s) => (
+      <dl className="flex flex-col">
+        {specs.map((s, i) => (
           <div
             key={s.label}
-            className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-3"
+            className={`flex items-center justify-between gap-4 py-2.5 ${
+              i > 0 ? 'border-t border-[var(--glass-border)]' : ''
+            }`}
           >
-            <dt className="text-xs font-semibold uppercase tracking-wider text-[var(--text-dim)]">
-              {s.label}
-            </dt>
+            <dt className="text-sm text-[var(--text-dim)]">{s.label}</dt>
             <dd className="text-right text-sm font-medium text-[var(--text)]">{s.value}</dd>
           </div>
         ))}

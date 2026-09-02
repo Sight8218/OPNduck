@@ -44,11 +44,13 @@ export default function HardwareAllocation() {
         best available hardware.
       </p>
 
-      <div className="flex flex-col gap-2.5">
-        {tasks.map((task) => (
+      <div className="flex flex-col">
+        {tasks.map((task, i) => (
           <div
             key={task.id}
-            className="flex flex-col gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+            className={`flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between ${
+              i > 0 ? 'border-t border-[var(--glass-border)]' : ''
+            }`}
           >
             <span className="text-sm font-medium">{task.label}</span>
             <SlidingSelector

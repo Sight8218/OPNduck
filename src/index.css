@@ -64,8 +64,8 @@ body {
 /* ------------------------------------------------------------
    The Fluid Gradient Background Layer
    A fixed, full-viewport animated canvas of warm blobs. Only
-   active in Glass mode (--glass-on). Flat/Monochrome show a
-   solid base color and disable the animation for performance.
+   active in Glass mode (--glass-on). Monochrome shows a solid
+   base color and disables the animation for performance.
    ------------------------------------------------------------ */
 @layer components {
   .fluid-background {
@@ -185,7 +185,8 @@ body {
 /* ------------------------------------------------------------
    Liquid Glass — the core reusable primitive
    Frosted blur + translucent tint + 1px inner light-catch edge
-   + soft lift shadow. Disabled (blur/tint off) in flat themes.
+   + soft lift shadow. Monochrome keeps the shape but drops the
+   blur/tint for its flatter, high-contrast look.
    ------------------------------------------------------------ */
 @layer components {
   .glass {
@@ -280,7 +281,7 @@ body {
    Accessibility — respect system contrast preferences
    When the user requests more contrast, the Monochrome theme's
    already-grayscale palette is pushed to true black/white and
-   Flat/Glass dim text is nudged brighter.
+   Glass's dim text is nudged brighter.
    ------------------------------------------------------------ */
 @media (prefers-contrast: more) {
   [data-theme='monochrome'] {
@@ -290,10 +291,6 @@ body {
     --btn-text: #000000;
     --input-bg: #000000;
     --glass-border: #4d4d4d;
-  }
-  [data-theme='flat'] {
-    --text-dim: #d8ccc4;
-    --text-faint: #9a8d85;
   }
   [data-theme='glass'] {
     --text-dim: rgba(255, 247, 240, 0.78);

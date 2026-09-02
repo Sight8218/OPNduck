@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import SlidingSelector from './SlidingSelector'
+import { useReduceMotion } from '../lib/motionPrefs'
 
 const ON_OFF = [
   { value: 'on' as const, label: 'On' },
@@ -7,12 +8,13 @@ const ON_OFF = [
 ]
 
 /**
- * Motion & density prefs. Local state only for now (matches every other
- * settings card pre-Alpha) — persistence and actually wiring these into the
- * app's animation/layout code comes with the accessibility pass.
+ * Motion & density prefs. Reduce motion is wired for real — it currently
+ * governs the decorative hover-lift-and-glow on Home's feature cards (see
+ * FeatureCard.tsx). Compact density is still a local-only placeholder,
+ * matching every other settings card pre-Alpha.
  */
 export default function MotionCard() {
-  const [reduceMotion, setReduceMotion] = useState<'on' | 'off'>('off')
+  const { reduceMotion, setReduceMotion } = useReduceMotion()
   const [compact, setCompact] = useState<'on' | 'off'>('off')
 
   return (
@@ -21,21 +23,21 @@ export default function MotionCard() {
       <p className="mb-4 text-xs text-[var(--text-dim)]">
         Trim animations and spacing for a snappier, denser interface.
       </p>
-      <div className="flex flex-col gap-2.5">
-        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col">
+        <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col">
             <span className="text-sm font-medium">Reduce motion</span>
-            <span className="text-xs text-[var(--text-dim)]">Cuts page transitions and hover animations to a minimum.</span>
+            <span className="text-xs text-[var(--text-dim)]">Turns off the hover lift/glow on Home's feature cards.</span>
           </div>
           <SlidingSelector
             id="reduce-motion"
             options={ON_OFF}
-            value={reduceMotion}
-            onChange={setReduceMotion}
+            value={reduceMotion ? 'on' : 'off'}
+            onChange={(v) => setReduceMotion(v === 'on')}
             className="w-full grid-cols-2 sm:w-32"
           />
         </div>
-        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-[var(--glass-border)] py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col">
             <span className="text-sm font-medium">Compact density</span>
             <span className="text-xs text-[var(--text-dim)]">Tighter padding across cards and lists.</span>

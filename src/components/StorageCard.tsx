@@ -14,8 +14,8 @@ export default function StorageCard() {
       <p className="mb-4 text-xs text-[var(--text-dim)]">
         Where downloads land and how much runs at once.
       </p>
-      <div className="flex flex-col gap-2.5">
-        <div className="flex flex-col gap-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-3">
+      <div className="flex flex-col">
+        <div className="flex flex-col gap-2 py-3">
           <span className="text-sm font-medium">Default download folder</span>
           <div className="flex items-center gap-2">
             <input
@@ -35,7 +35,7 @@ export default function StorageCard() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-[var(--glass-border)] py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col">
             <span className="text-sm font-medium">Max concurrent tasks</span>
             <span className="text-xs text-[var(--text-dim)]">
@@ -63,7 +63,7 @@ export default function StorageCard() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-[var(--glass-border)] py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col">
             <span className="text-sm font-medium">Cache</span>
             <span className="text-xs text-[var(--text-dim)]">Thumbnails and metadata pulled while browsing.</span>

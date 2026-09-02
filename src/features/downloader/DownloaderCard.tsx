@@ -22,7 +22,7 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
         onChange={(e) => setUrl(e.target.value)}
       />
       <div>
-        <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-[var(--text-dim)]">
+        <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">
           Format
         </span>
         <GlassSelect

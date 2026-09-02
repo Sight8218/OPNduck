@@ -19,7 +19,7 @@ export default function NavDisplayCard() {
     <div className="glass rounded-3xl p-5">
       <h2 className="mb-1 text-base font-bold text-[var(--text)]">Menu Icons</h2>
       <p className="mb-4 text-xs text-[var(--text-dim)]">
-        How the Home · Downloads · Plugins · Settings cards display.
+        How the Home, Downloads, Plugins and Settings cards display.
       </p>
       <SlidingSelector<NavDisplay>
         id="nav-display"

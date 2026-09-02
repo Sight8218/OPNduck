@@ -57,7 +57,7 @@ export default function HamburgerMenu() {
             exit={{ opacity: 0, x: -8, y: -4, scale: 0.98 }}
             transition={{ duration: 0.16, ease: 'easeOut' }}
           >
-            <p className="px-3 pb-1 pt-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--text-faint)]">
+            <p className="px-3 pb-1 pt-1.5 text-xs font-semibold text-[var(--text-faint)]">
               Pages
             </p>
             <div className="mb-1 flex flex-col gap-0.5">
@@ -86,7 +86,7 @@ export default function HamburgerMenu() {
 
             <div className="my-1 h-px bg-[var(--glass-border)]" />
 
-            <p className="px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-widest text-[var(--text-faint)]">
+            <p className="px-3 pb-1 pt-1 text-xs font-semibold text-[var(--text-faint)]">
               Socials
             </p>
             <div className="flex flex-col gap-0.5">

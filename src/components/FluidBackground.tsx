@@ -20,7 +20,7 @@
 /**
  * The vibrant fluid gradient background layer.
  * Rendered behind everything (z-index -2), animated warm blobs.
- * Automatically deactivates (opacity 0) in flat / monochrome themes.
+ * Automatically deactivates (opacity 0) in the Monochrome theme.
  */
 export default function FluidBackground() {
   return (

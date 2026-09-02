@@ -9,6 +9,7 @@ import VersionFooter from './components/VersionFooter'
 import { registerCoreFeatures } from './features/modules'
 import { DevModeProvider } from './lib/devMode'
 import { NavProvider } from './lib/navContext'
+import { ReduceMotionProvider } from './lib/motionPrefs'
 import Downloads from './pages/Downloads'
 import Home from './pages/Home'
 import Plugins from './pages/Plugins'
@@ -38,6 +39,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <DevModeProvider>
+        <ReduceMotionProvider>
         <NavProvider>
           <FluidBackground />
         <div className="relative flex min-h-screen flex-col">
@@ -56,6 +58,7 @@ export default function App() {
         </div>
         <CommandPalette />
         </NavProvider>
+        </ReduceMotionProvider>
       </DevModeProvider>
     </BrowserRouter>
   )

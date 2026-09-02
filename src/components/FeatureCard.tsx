@@ -19,11 +19,13 @@
 
 import type { ReactNode } from 'react'
 import type { FeatureDefinition } from '../features/registry'
+import { useReduceMotion } from '../lib/motionPrefs'
 
 /**
  * Shared chrome for every adaptive card: glass body, header (icon + title +
  * tagline + scope badge) and a footer. Feature-specific controls render in
- * the body via `children`.
+ * the body via `children`. The hover lift + glow is purely decorative, so it
+ * respects Settings > Appearance > Motion & Density > Reduce motion.
  */
 export default function FeatureCard({
   feature,
@@ -32,9 +34,12 @@ export default function FeatureCard({
   feature: FeatureDefinition
   children?: ReactNode
 }) {
+  const { reduceMotion } = useReduceMotion()
   return (
     <section
-      className="glass flex flex-col rounded-3xl p-5 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_4px_22px_-6px_var(--card-glow)]"
+      className={`glass flex flex-col rounded-3xl p-5 transition-all duration-300 ease-out ${
+        reduceMotion ? '' : 'hover:-translate-y-1 hover:shadow-[0_4px_22px_-6px_var(--card-glow)]'
+      }`}
       style={{ ['--card-glow' as string]: feature.accent ?? 'var(--card-glow)' }}
     >
       <div className="mb-4 flex items-start justify-between gap-3">
@@ -53,7 +58,7 @@ export default function FeatureCard({
             <p className="text-xs text-[var(--text-dim)]">{feature.tagline}</p>
           </div>
         </div>
-        <span className="rounded-full border border-[var(--glass-border)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-dim)]">
+        <span className="rounded-full border border-[var(--glass-border)] px-2 py-0.5 text-xs font-medium text-[var(--text-dim)]">
           {feature.scope === 'desktop-exclusive' ? 'Desktop' : 'Universal'}
         </span>
       </div>

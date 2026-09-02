@@ -17,9 +17,9 @@
  */
 
 
-export type Theme = 'glass' | 'flat' | 'monochrome'
+export type Theme = 'glass' | 'monochrome'
 
-export const THEMES: Theme[] = ['glass', 'flat', 'monochrome']
+export const THEMES: Theme[] = ['glass', 'monochrome']
 
 const STORAGE_KEY = 'opnduck.theme'
 

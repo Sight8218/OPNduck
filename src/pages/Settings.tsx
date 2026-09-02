@@ -18,9 +18,7 @@ import { useTheme } from '../themes/useTheme'
 function CategoryLabel({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">
-        {label}
-      </span>
+      <span className="text-sm font-semibold text-[var(--text-faint)]">{label}</span>
       <div className="h-px flex-1 bg-[var(--glass-border)]" />
     </div>
   )
