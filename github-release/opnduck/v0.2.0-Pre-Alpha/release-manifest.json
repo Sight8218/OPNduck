@@ -1,0 +1,91 @@
+{
+  "project": "opnduck-desktop",
+  "display_name": "OPNduck",
+  "version": "0.2.0-Pre-Alpha",
+  "manifest_version_field": "0.2.0-pre-alpha",
+  "release_type": "pre-alpha (first tagged release)",
+  "tag": {
+    "name": "v0.2.0-Pre-Alpha",
+    "exists": false,
+    "note": "No tags exist yet in this repo. Tag not created by this run (Manual mode) - Aaron to create/push manually."
+  },
+  "commit": "7732d6adf2a16138850f2c9aa295e22a857b33e4",
+  "commit_subject": "OPNduck-V0.2.0-Pre-Alpha checkpoint",
+  "branch": "main",
+  "generated_at": "2026-09-02T20:10:31Z",
+  "mode": "manual",
+  "stages": {
+    "discovery": {
+      "status": "complete",
+      "notes": "Read package.json, README.md, .gitignore, electron/main.cjs, git log/tags. No PKGBUILD, no electron-builder/Tauri config, no existing cliff.toml, no existing CHANGELOG.md, no tags."
+    },
+    "version": {
+      "status": "complete",
+      "action": "none - already correct",
+      "notes": "package.json version '0.2.0-pre-alpha' already matches intended release v0.2.0-Pre-Alpha. No rewrite performed. No prior release exists to compare against for downgrade checks."
+    },
+    "changelog": {
+      "status": "complete",
+      "tool": "git-cliff",
+      "config_created": "cliff.toml (none existed; created with conventional-commit parsers plus a catch-all 'Other' group so no commits are silently dropped)",
+      "commits_covered": 21,
+      "commit_range": "da166f9 (Initial foundation) .. 7732d6a (checkpoint, HEAD)",
+      "outputs": [
+        "CHANGELOG.md (repo root, curated/human-readable)",
+        "github-release/opnduck/v0.2.0-Pre-Alpha/CHANGELOG.raw.md (unabridged git-cliff output)"
+      ]
+    },
+    "readme": {
+      "status": "complete",
+      "changes": [
+        "Removed Flat theme from the 'Theme Engine' table (now Glass + Monochrome only, table heading updated from 'three modes' to 'two modes')"
+      ],
+      "unchanged": "Version references (already v0.2.0-Pre-Alpha), install instructions, tone, structure, licensing section - left as-is."
+    },
+    "build": {
+      "status": "complete",
+      "commands": ["npm run typecheck (tsc -b --noEmit)", "npm run lint (oxlint)", "npm run build (tsc -b && vite build)"],
+      "typecheck_result": "clean, no errors",
+      "lint_result": "clean, only 6 pre-existing warnings in files untouched this pass (navContext.tsx, motionPrefs.tsx, PageTransition.tsx, devMode.tsx) - no errors",
+      "build_result": "success - dist/index.html, dist/assets/index-DK425m-W.css (34.85 kB), dist/assets/index-D0RQkPkB.js (403.81 kB)"
+    },
+    "packaging": {
+      "status": "not_applicable",
+      "reason": "No PKGBUILD, no electron-builder config, no Tauri config, no CI release workflow exist in this project. Per pipeline rules, packaging targets are only built when actually configured - none are. dist/ is a web build output, not a packaged distributable.",
+      "arch_linux": { "available": false, "reason": "no PKGBUILD present" },
+      "windows": { "available": false, "reason": "no cross-compilation toolchain or Windows build config present; not fabricated" },
+      "other_linux_formats": { "available": false, "reason": "no AppImage/deb/rpm config present" }
+    },
+    "checksums": {
+      "status": "skipped",
+      "reason": "No distributable release artifacts were produced (see packaging.not_applicable). Nothing to hash."
+    },
+    "secret_scan": {
+      "status": "complete",
+      "tools": ["gitleaks (working tree)", "gitleaks (full git history, 21 commits)", "trufflehog filesystem"],
+      "result": "clean - no leaks found by any scanner"
+    },
+    "documentation": {
+      "status": "complete",
+      "files_changed": ["README.md", "CHANGELOG.md (new)", "cliff.toml (new)"]
+    },
+    "publication": {
+      "status": "not_performed",
+      "reason": "Manual mode - no tag pushed, no GitHub release created, no assets uploaded, no Discord webhook sent. Everything staged locally for Aaron to review and publish by hand."
+    }
+  },
+  "artifacts": [],
+  "checksums_file": null,
+  "toolchain": {
+    "node": "v26.7.0",
+    "npm": "11.19.0",
+    "typescript": "~6.0.2 (via tsc -b)",
+    "vite": "^8.2.2",
+    "electron": "^44.1.0 (not packaged this run)"
+  },
+  "warnings": [
+    "No prior tag/release exists, so this changelog covers the entire project history (21 commits), not just a delta.",
+    "No native packaging (Arch/Windows/other) is configured for this project yet - only a web/Electron dev build was verified. GitHub's auto-generated source archive is the only artifact available unless Aaron sets up packaging.",
+    "package.json version field uses lowercase 'pre-alpha'; the requested tag/display version uses 'v0.2.0-Pre-Alpha'. Left as-is per each source's own convention - flagging so Aaron can confirm this is intentional."
+  ]
+}

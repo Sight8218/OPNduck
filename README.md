@@ -27,14 +27,13 @@ The defining visual identity of OPNduck:
 - **Interactive modules** — inputs and "Run Task" buttons are slightly darker, inset
   modules that match the glass but look pressable.
 
-### Theme Engine (three modes)
+### Theme Engine (two modes)
 
 Switching happens in Settings → UI Theme:
 
 | Mode | Description |
 | ---- | ----------- |
 | **Glass** (default) | The flagship translucent, backdrop-blurred aesthetic over the fluid gradient. |
-| **Flat** | High-performance: strips all blur, gradients and transparency down to solid flat dark colors to save resources. |
 | **Monochrome** | Strict high-contrast black & white for maximum readability and minimal distraction. |
 
 Themes are implemented as CSS custom-property tokens switched by a single

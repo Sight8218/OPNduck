@@ -1,0 +1,21 @@
+{
+  "note": "DRAFT ONLY - not sent. Sending is an Automated-mode action requiring explicit authorization; this run is Manual mode.",
+  "project": "OPNduck",
+  "version": "v0.2.0-Pre-Alpha",
+  "content": "**OPNduck v0.2.0-Pre-Alpha** 🦆\n\nFirst tagged release - the local-first media suite's frontend shell, rebuilt on the new \"Liquid Glass\" design system.\n\n**Highlights**\n• Theme engine simplified down to **Glass** and **Monochrome** (Flat theme removed)\n• Fixed a long-standing CSS containing-block bug - the Settings category rail now correctly follows scroll (via a React portal)\n• De-cliché UI pass: dropped all-caps labels, middle-dot separators, and identical nested cards in favor of divider-lists\n• Card hover-lift/glow is now respects the Reduce Motion setting\n• Fixed a dev-tool (GlassTune) theme-leak bug bleeding Glass colors into other themes\n• General cleanup and simplification across the settings components\n\nVerified clean via `tsc -b`, `vite build`, and `oxlint` at every step.\n\nThis is still shell-only pre-alpha - download/convert/AI engines land in the Alpha phase. Expect bugs.",
+  "embeds": [
+    {
+      "title": "OPNduck v0.2.0-Pre-Alpha",
+      "url": null,
+      "footer": "No packaged installers yet - source only for this release.",
+      "fields": [
+        { "name": "Commit", "value": "7732d6a" },
+        { "name": "Branch", "value": "main" },
+        { "name": "Artifacts", "value": "None packaged (no Arch/Windows build config configured yet). GitHub source archive only." },
+        { "name": "Secret scan", "value": "Clean (gitleaks + trufflehog)" }
+      ]
+    }
+  ],
+  "asset_list": [],
+  "changelog_excerpt_source": "github-release/opnduck/v0.2.0-Pre-Alpha/CHANGELOG.raw.md (curated version in repo root CHANGELOG.md)"
+}
