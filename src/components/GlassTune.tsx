@@ -28,19 +28,23 @@ import type { Theme } from '../themes/theme'
 // too the moment any slider was touched.
 const GRAD_STOPS = [0x2b1216, 0x1f0508, 0x34151a, 0x1f0508]
 
-function mixBlack(hex: number, amount: number): number {
-  const a = Math.max(0, Math.min(1, amount))
-  const r = (hex >> 16) & 0xff
-  const g = (hex >> 8) & 0xff
-  const b = hex & 0xff
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value))
+}
+
+function mixBlack(rgb: number, amount: number): number {
+  const a = clamp(amount, 0, 1)
+  const r = (rgb >> 16) & 0xff
+  const g = (rgb >> 8) & 0xff
+  const b = rgb & 0xff
   const nr = Math.round(r * (1 - a))
   const ng = Math.round(g * (1 - a))
   const nb = Math.round(b * (1 - a))
   return (nr << 16) | (ng << 8) | nb
 }
 
-function hex(hex: number): string {
-  return '#' + hex.toString(16).padStart(6, '0')
+function hex(rgb: number): string {
+  return '#' + rgb.toString(16).padStart(6, '0')
 }
 
 function ensureScrim(id: string): HTMLElement | null {
@@ -71,10 +75,10 @@ export default function GlassTune({ theme }: { theme: Theme }) {
       return
     }
     if (!isGlass) return
-    const d = Math.max(0, Math.min(100, dark))
-    const s = Math.max(0, Math.min(95, scrim))
-    const bl = Math.max(-60, Math.min(60, blob))
-    const a = Math.max(10, Math.min(98, opacity))
+    const d = clamp(dark, 0, 100)
+    const s = clamp(scrim, 0, 95)
+    const bl = clamp(blob, -60, 60)
+    const a = clamp(opacity, 10, 98)
     // Darken the backdrop gradient toward black.
     const stops = GRAD_STOPS.map((s2) => mixBlack(s2, d / 100))
     document.documentElement.style.setProperty(

@@ -1,5 +1,8 @@
 import { useState } from 'react'
 
+const STEP_BTN_CLASS =
+  'grid h-8 w-8 place-items-center rounded-lg border border-[var(--glass-border)] bg-[var(--input-bg)] text-sm font-bold text-[var(--text)] transition-colors hover:bg-[var(--input-bg-hover)]'
+
 /**
  * Storage & performance prefs. Path/limits are display-only placeholders
  * until the desktop shell exposes a real folder picker and task queue —
@@ -46,7 +49,7 @@ export default function StorageCard() {
             <button
               type="button"
               onClick={() => setMaxTasks((n) => Math.max(1, n - 1))}
-              className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--glass-border)] bg-[var(--input-bg)] text-sm font-bold text-[var(--text)] transition-colors hover:bg-[var(--input-bg-hover)]"
+              className={STEP_BTN_CLASS}
               aria-label="Decrease"
             >
               −
@@ -55,7 +58,7 @@ export default function StorageCard() {
             <button
               type="button"
               onClick={() => setMaxTasks((n) => Math.min(8, n + 1))}
-              className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--glass-border)] bg-[var(--input-bg)] text-sm font-bold text-[var(--text)] transition-colors hover:bg-[var(--input-bg-hover)]"
+              className={STEP_BTN_CLASS}
               aria-label="Increase"
             >
               +
