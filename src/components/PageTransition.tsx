@@ -59,6 +59,14 @@ export default function PageTransition({ children }: { children: React.ReactNode
           transition: { duration: swipe.outDuration, ease: [0.22, 1, 0.36, 1] },
         }}
         onAnimationComplete={() => setSettled(true)}
+        // Framer Motion keeps a real `transform` (e.g. translateX(0px)) applied
+        // even when x has animated back to 0 — it never resets to a literal
+        // `none`, since it's built for repeated GPU-accelerated animation.
+        // Same containing-block problem as the filter fix above: any non-none
+        // transform on an ancestor breaks position: sticky/fixed descendants.
+        // Force it to a true `none` once settled; let Framer generate it
+        // normally while the enter/exit animation is actually running.
+        transformTemplate={(_, generated) => (settled ? 'none' : generated)}
       >
         {/* Routes normally always reflects the *live* current URL — even
             inside a motion.div that's still mid-exit-animation, since
