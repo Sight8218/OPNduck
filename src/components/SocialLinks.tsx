@@ -16,7 +16,7 @@ export default function SocialLinks({ spacing = 'gap-11' }: { spacing?: string }
           aria-label={`Open ${s.label}`}
           onClick={() => window.open(s.url, '_blank', 'noopener,noreferrer')}
           className="rounded-md transition-all duration-150 hover:scale-110"
-          style={{ filter: 'drop-shadow(0 0 9px rgba(179, 90, 45, 0.18))' }}
+          style={{ filter: 'drop-shadow(0 0 9px var(--card-glow))' }}
         >
           <img
             src={s.icon}

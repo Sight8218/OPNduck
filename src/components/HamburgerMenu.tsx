@@ -42,7 +42,7 @@ export default function HamburgerMenu() {
         aria-haspopup="menu"
         onClick={() => setOpen((o) => !o)}
         className="grid h-9 w-9 place-items-center rounded-lg text-[var(--text-dim)] transition-all duration-150 hover:scale-110 hover:text-[var(--text)]"
-        style={{ filter: 'drop-shadow(0 0 9px rgba(179, 90, 45, 0.18))' }}
+        style={{ filter: 'drop-shadow(0 0 9px var(--card-glow))' }}
       >
         <MenuIcon size={30} stroke={1.7} aria-hidden="true" />
       </button>

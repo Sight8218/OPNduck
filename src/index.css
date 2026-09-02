@@ -51,6 +51,10 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
+  /* PageTransition briefly translates the outgoing/incoming page past the
+     viewport edge; without this a native horizontal scrollbar flashes in
+     for that split second during every page switch. */
+  overflow-x: hidden;
 }
 
 body {
