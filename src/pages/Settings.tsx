@@ -33,6 +33,24 @@ export default function Settings() {
     sectionRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  const [debug, setDebug] = useState('')
+  const wrapRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const onScroll = () => {
+      const wrap = wrapRef.current?.getBoundingClientRect()
+      const navEl = document.querySelector('[aria-label="Settings sections"]')
+      const nav = navEl?.getBoundingClientRect()
+      const cs = navEl ? getComputedStyle(navEl) : null
+      setDebug(
+        `scrollY=${Math.round(window.scrollY)} wrapTop=${wrap ? Math.round(wrap.top) : '?'} wrapBottom=${wrap ? Math.round(wrap.bottom) : '?'} navTop=${nav ? Math.round(nav.top) : '?'} navBottom=${nav ? Math.round(nav.bottom) : '?'} position=${cs?.position} display=${cs ? getComputedStyle(navEl!.parentElement!).display : '?'}`,
+      )
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   useEffect(() => {
     const onScroll = () => {
       const last = CATEGORIES[CATEGORIES.length - 1]
@@ -58,6 +76,13 @@ export default function Settings() {
 
   return (
     <div className="px-4 py-6 sm:px-5">
+      {/* TEMP DEBUG — remove before shipping */}
+      <div
+        className="fixed left-0 top-16 z-[999] max-w-full whitespace-pre bg-black px-2 py-1 font-mono text-[10px] text-lime-300"
+        style={{ opacity: 0.95 }}
+      >
+        {debug}
+      </div>
       <div className="mb-6 max-w-6xl">
         <h1 className="text-2xl font-extrabold text-[var(--text)] sm:text-3xl">Settings</h1>
         <p className="mt-1 text-sm text-[var(--text-dim)]">
@@ -65,7 +90,7 @@ export default function Settings() {
         </p>
       </div>
 
-      <div className="relative mt-2">
+      <div className="relative mt-2" ref={wrapRef}>
       {/* Category rail pinned to the left edge (absolute, doesn't push content).
           bottom-0 matters: without it this wrapper shrinks to the nav's own
           height, which becomes the sticky element's containing block —
