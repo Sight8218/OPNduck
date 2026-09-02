@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Routes, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { NAV_ITEMS, swipeFor } from '../lib/nav'
@@ -22,11 +22,20 @@ export default function PageTransition({ children }: { children: React.ReactNode
   const { pathname } = location
   const next = indexOf(pathname)
   const prevRef = useRef(next)
+  // `filter: blur(0px)` is NOT the same as `filter: none` to the browser —
+  // a non-none filter on an ancestor creates a new containing block for
+  // position: sticky/fixed descendants, exactly like `transform` does. Left
+  // permanently at blur(0px), this silently broke sticky elements on every
+  // page (e.g. the Settings category rail never actually followed scroll).
+  // Settle to a real `none` once the enter animation finishes; reset to the
+  // blurred starting point on every navigation so the effect still plays.
+  const [settled, setSettled] = useState(false)
 
   const swipe = swipeFor(prevRef.current, next)
 
   useEffect(() => {
     prevRef.current = next
+    setSettled(false)
   }, [next])
 
   return (
@@ -37,7 +46,7 @@ export default function PageTransition({ children }: { children: React.ReactNode
         animate={{
           opacity: 1,
           x: 0,
-          filter: 'blur(0px)',
+          filter: settled ? 'none' : 'blur(0px)',
           transition: {
             duration: swipe.inDuration,
             ease: [0.22, 1, 0.36, 1],
@@ -49,6 +58,7 @@ export default function PageTransition({ children }: { children: React.ReactNode
           filter: 'blur(6px)',
           transition: { duration: swipe.outDuration, ease: [0.22, 1, 0.36, 1] },
         }}
+        onAnimationComplete={() => setSettled(true)}
       >
         {/* Routes normally always reflects the *live* current URL — even
             inside a motion.div that's still mid-exit-animation, since
