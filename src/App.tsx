@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route } from 'react-router-dom'
 import CommandPalette from './components/CommandPalette'
 import FluidBackground from './components/FluidBackground'
 import NavBar from './components/NavBar'
@@ -45,13 +45,11 @@ export default function App() {
           <PreAlphaBanner />
           <main className="flex-1 overflow-x-hidden overflow-y-visible">
             <PageTransition>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/downloads" element={<Downloads />} />
-                <Route path="/plugins" element={<Plugins />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/downloads" element={<Downloads />} />
+              <Route path="/plugins" element={<Plugins />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </PageTransition>
           </main>
           <VersionFooter />

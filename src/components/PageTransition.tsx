@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Routes, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { NAV_ITEMS, swipeFor } from '../lib/nav'
 
@@ -18,7 +18,8 @@ function indexOf(pathname: string): number {
  * during render is the standard framer transition idiom and is safe here.
  */
 export default function PageTransition({ children }: { children: React.ReactNode }) {
-  const { pathname } = useLocation()
+  const location = useLocation()
+  const { pathname } = location
   const next = indexOf(pathname)
   const prevRef = useRef(next)
 
@@ -49,7 +50,14 @@ export default function PageTransition({ children }: { children: React.ReactNode
           transition: { duration: swipe.outDuration, ease: [0.22, 1, 0.36, 1] },
         }}
       >
-        {children}
+        {/* Routes normally always reflects the *live* current URL — even
+            inside a motion.div that's still mid-exit-animation, since
+            AnimatePresence only freezes this subtree's own props, not the
+            router context. That caused a flash of the destination page
+            (unanimated) before the old wrapper's exit had even started.
+            Pinning `location` here freezes it to whatever was current when
+            this motion.div was created, matching its key. */}
+        <Routes location={location}>{children}</Routes>
       </motion.div>
     </AnimatePresence>
   )
