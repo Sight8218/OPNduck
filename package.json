@@ -5,6 +5,11 @@
   "type": "module",
   "description": "OPNduck — a local-first, open-source media processing suite. Pre-Alpha shell: GUI, settings, and design system. Linux-first, Windows-parallel.",
   "license": "GPL-3.0-or-later",
+  "homepage": "https://github.com/Sight8218/OPNduck",
+  "author": {
+    "name": "Aaron Jonsson",
+    "email": "Sight8218@users.noreply.github.com"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -13,7 +18,37 @@
     "typecheck": "tsc -b --noEmit",
     "desktop:dev": "concurrently -k \"vite\" \"wait-on http://localhost:1420 && electron .\"",
     "desktop:build": "npm run build && electron .",
-    "desktop:start": "electron ."
+    "desktop:start": "electron .",
+    "dist:linux": "npm run build && electron-builder --linux AppImage pacman",
+    "dist:win": "npm run build && electron-builder --win nsis portable",
+    "dist": "npm run build && electron-builder --linux AppImage pacman --win nsis portable"
+  },
+  "build": {
+    "appId": "dev.opnduck.desktop",
+    "productName": "OPNduck",
+    "directories": {
+      "output": "release-build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "extraMetadata": {
+      "main": "electron/main.cjs"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "AudioVideo",
+      "target": ["AppImage", "pacman"]
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": ["nsis", "portable"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   },
   "dependencies": {
     "@tabler/icons-react": "^3.46.0",
@@ -30,6 +65,7 @@
     "@vitejs/plugin-react": "^6.1.0",
     "concurrently": "^10.0.5",
     "electron": "^44.1.0",
+    "electron-builder": "^26.15.3",
     "oxlint": "^1.79.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",

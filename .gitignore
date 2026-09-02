@@ -24,9 +24,12 @@ src-tauri/target
 *.deb
 *.rpm
 *.AppImage
+*.pacman
 *.msi
 *.exe
 *.dmg
+*.blockmap
+release-build
 
 # Python sidecar (Master Engine) — wired in Alpha phase
 sidecar/venv
