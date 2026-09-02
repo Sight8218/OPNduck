@@ -10,6 +10,11 @@ This is **v0.2.0-Pre-Alpha**: a full rewrite of the frontend on a new design sys
 **shell only** — GUI, routing, theming, settings, and the adaptive card dashboard. The
 download/convert/AI engines start working in the Alpha phase.
 
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="OPNduck home screen — Downloader and AI Upscaler cards over the Liquid Glass fluid gradient" width="49%" />
+  <img src="docs/screenshots/settings.png" alt="OPNduck settings screen — theme, icon, and motion controls" width="49%" />
+</p>
+
 ---
 
 ## 🎨 The "Liquid Glass" Design System
