@@ -9,7 +9,7 @@ import type { Theme } from '../themes/theme'
  */
 export default function DevTools({ theme }: { theme: Theme }) {
   const [outlineOn, setOutlineOn] = useState(false)
-  const [cleared, setCleared] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const toggleOutline = () => {
     const next = !outlineOn
@@ -35,8 +35,8 @@ export default function DevTools({ theme }: { theme: Theme }) {
     }
     try {
       await navigator.clipboard.writeText(JSON.stringify(info, null, 2))
-      setCleared(true)
-      setTimeout(() => setCleared(false), 1500)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
     } catch {
       /* clipboard may be blocked */
     }
@@ -82,7 +82,7 @@ export default function DevTools({ theme }: { theme: Theme }) {
             onClick={copyDebugInfo}
             className="glass-btn px-3 py-1.5 text-xs"
           >
-            {cleared ? 'Copied!' : 'Copy'}
+            {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>
 

@@ -99,12 +99,12 @@ export default function HamburgerMenu() {
                   className="flex items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-[var(--text-dim)] transition-colors hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
                 >
                   <img
-                     src={s.icon}
-                     alt=""
-                     aria-hidden="true"
-                     className="h-[18px] w-[18px] object-contain"
-                     style={{ filter: 'invert(1)' }}
-                   />
+                    src={s.icon}
+                    alt=""
+                    aria-hidden="true"
+                    className="h-[18px] w-[18px] object-contain"
+                    style={{ filter: 'invert(1)' }}
+                  />
                   {s.label}
                 </button>
               ))}

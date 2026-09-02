@@ -123,7 +123,7 @@ export default function GlassTune({ theme }: { theme: Theme }) {
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-4">
-      <span className="text-sm font-semibold text-[var(--text)]">TEMP: Backdrop tuning</span>
+      <span className="text-sm font-semibold text-[var(--text)]">Backdrop tuning</span>
       {!isGlass && (
         <p className="text-xs text-[var(--text-faint)]">
           Only tunes the Glass theme's backdrop — switch to Glass to use these.

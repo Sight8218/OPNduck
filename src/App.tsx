@@ -40,24 +40,24 @@ export default function App() {
     <BrowserRouter>
       <DevModeProvider>
         <ReduceMotionProvider>
-        <NavProvider>
-          <FluidBackground />
-        <div className="relative flex min-h-screen flex-col">
-          <NavBar />
-          <PreAlphaBanner />
-          <main className="flex-1 overflow-x-hidden overflow-y-visible">
-            <PageTransition>
-              <Route path="/" element={<Home />} />
-              <Route path="/downloads" element={<Downloads />} />
-              <Route path="/plugins" element={<Plugins />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </PageTransition>
-          </main>
-          <VersionFooter />
-        </div>
-        <CommandPalette />
-        </NavProvider>
+          <NavProvider>
+            <FluidBackground />
+            <div className="relative flex min-h-screen flex-col">
+              <NavBar />
+              <PreAlphaBanner />
+              <main className="flex-1 overflow-x-hidden overflow-y-visible">
+                <PageTransition>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/downloads" element={<Downloads />} />
+                  <Route path="/plugins" element={<Plugins />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </PageTransition>
+              </main>
+              <VersionFooter />
+            </div>
+            <CommandPalette />
+          </NavProvider>
         </ReduceMotionProvider>
       </DevModeProvider>
     </BrowserRouter>
