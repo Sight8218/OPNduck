@@ -31,15 +31,16 @@ export default function NavBar() {
         {/* Centered wordmark — reads visually as "OPNDUCK" with "DUCK" a touch
             larger, carrying a visible gradient + soft glow. The gradient + clip
             are applied to the inline spans so nothing renders as a rectangle.
-            This is the one element allowed a gradient in the Glass theme. */}
+            Colors come from --accent/--accent-soft/--card-glow so the gradient
+            and glow retint per theme (e.g. black & white in Monochrome). */}
         <div
           className="titlebar-no-drag pointer-events-none absolute left-1/2 -translate-x-1/2 select-none whitespace-nowrap text-center text-2xl font-extrabold tracking-wide"
-          style={{ filter: 'drop-shadow(0 0 14px rgba(179, 90, 45, 0.45))' }}
+          style={{ filter: 'drop-shadow(0 0 14px var(--card-glow))' }}
         >
           <span
             className="tracking-widest"
             style={{
-              background: 'linear-gradient(90deg, #e6975f, #b35a2d)',
+              background: 'linear-gradient(90deg, var(--accent-soft), var(--accent))',
               WebkitBackgroundClip: 'text',
               backgroundClip: 'text',
               color: 'transparent',
@@ -51,7 +52,7 @@ export default function NavBar() {
           <span
             className="text-[0.92em] font-bold tracking-wider"
             style={{
-              background: 'linear-gradient(90deg, #b35a2d, #e6975f)',
+              background: 'linear-gradient(90deg, var(--accent), var(--accent-soft))',
               WebkitBackgroundClip: 'text',
               backgroundClip: 'text',
               color: 'transparent',

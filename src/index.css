@@ -84,14 +84,13 @@ body {
   }
   .fluid-background::before {
     /* A soft continuous wash so the whole viewport is gradiented — no dark
-       bands, flat solids or harsh seams. Colours come from the Glass palette. */
+       bands, flat solids or harsh seams. Theme-aware via --bg-wash (defined
+       per-theme in tokens.css); previously hardcoded to the Glass palette,
+       which bled orange into Monochrome too (--glass-on: 1 there as well). */
     content: '';
     position: absolute;
     inset: 0;
-    background:
-      radial-gradient(130% 110% at 18% 12%, rgba(179, 90, 45, 0.2), transparent 62%),
-      radial-gradient(140% 120% at 55% 45%, rgba(69, 39, 42, 0.34), transparent 60%),
-      radial-gradient(130% 130% at 88% 88%, rgba(179, 90, 45, 0.22), transparent 62%);
+    background: var(--bg-wash);
   }
 
   .fluid-scrim {
@@ -282,5 +281,36 @@ body {
   [data-theme='glass'] {
     --text-dim: rgba(255, 247, 240, 0.78);
     --text-faint: rgba(255, 247, 240, 0.55);
+  }
+}
+
+/* ------------------------------------------------------------
+   Custom themed scrollbar — a slim glass pill instead of the
+   platform default, on every scrollable element (both axes).
+   ------------------------------------------------------------ */
+@layer base {
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--glass-bg-strong) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--glass-bg-strong);
+    border: 2px solid var(--glass-border);
+    box-shadow: inset 0 0 0 1px var(--glass-border-inner);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }
