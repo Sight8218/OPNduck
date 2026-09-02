@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import GlassTune from './GlassTune'
+import type { Theme } from '../themes/theme'
 
 /**
  * Developer tools, gated behind dev mode (Ctrl+Shift+D). GlassTune is the
  * original backdrop-tuning panel; the rest are small, genuinely-functional
  * utilities for developing OPNduck itself rather than UI shell placeholders.
  */
-export default function DevTools() {
+export default function DevTools({ theme }: { theme: Theme }) {
   const [outlineOn, setOutlineOn] = useState(false)
   const [cleared, setCleared] = useState(false)
 
@@ -100,7 +101,7 @@ export default function DevTools() {
         </div>
       </div>
 
-      <GlassTune />
+      <GlassTune theme={theme} />
     </div>
   )
 }

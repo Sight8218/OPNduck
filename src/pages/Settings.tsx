@@ -118,7 +118,7 @@ export default function Settings() {
             <NavDisplayCard />
             <MotionCard />
 
-            {devMode && <DevTools />}
+            {devMode && <DevTools theme={theme} />}
           </section>
           <section
             id="settings-keybinds"

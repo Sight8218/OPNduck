@@ -17,7 +17,15 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import type { Theme } from '../themes/theme'
 
+// These are the Glass theme's own backdrop-gradient stops (see tokens.css
+// --bg-base for [data-theme='glass']) — this tool exists to tune exactly
+// that gradient, so it only makes sense, and only ever runs, while Glass
+// is the active theme. Applying them regardless of theme was the bug: the
+// override lands on <html> via inline style, which beats every theme
+// selector, so it silently bled Glass's reddish palette into Flat/Monochrome
+// too the moment any slider was touched.
 const GRAD_STOPS = [0x2b1216, 0x1f0508, 0x34151a, 0x1f0508]
 
 function mixBlack(hex: number, amount: number): number {
@@ -49,18 +57,20 @@ function ensureScrim(id: string): HTMLElement | null {
   return el
 }
 
-export default function GlassTune() {
+export default function GlassTune({ theme }: { theme: Theme }) {
   const [dark, setDark] = useState(33)
   const [scrim, setScrim] = useState(20)
   const [blob, setBlob] = useState(-47)
   const [opacity, setOpacity] = useState(65)
   const first = useRef(true)
+  const isGlass = theme === 'glass'
 
   useEffect(() => {
     if (first.current) {
       first.current = false
       return
     }
+    if (!isGlass) return
     const d = Math.max(0, Math.min(100, dark))
     const s = Math.max(0, Math.min(95, scrim))
     const bl = Math.max(-60, Math.min(60, blob))
@@ -81,7 +91,25 @@ export default function GlassTune() {
     // Scrim over the backdrop.
     const el = ensureScrim('glass-tune-scrim')
     if (el) el.style.backgroundColor = s > 0 ? `rgba(0,0,0,${s / 100})` : 'transparent'
-  }, [dark, scrim, blob, opacity])
+  }, [dark, scrim, blob, opacity, isGlass])
+
+  // Switched away from Glass (or this panel unmounts while it was applied):
+  // clear every override so nothing lingers into whatever theme comes next.
+  useEffect(() => {
+    if (isGlass) return
+    document.documentElement.style.removeProperty('--bg-base')
+    document.documentElement.style.removeProperty('--glass-bg')
+    const el = document.getElementById('glass-tune-scrim')
+    el?.remove()
+  }, [isGlass])
+
+  useEffect(() => {
+    return () => {
+      document.documentElement.style.removeProperty('--bg-base')
+      document.documentElement.style.removeProperty('--glass-bg')
+      document.getElementById('glass-tune-scrim')?.remove()
+    }
+  }, [])
 
   const code = `dark:${dark},scrim:${scrim},blob:${blob},panels:${opacity}`
 
@@ -96,21 +124,58 @@ export default function GlassTune() {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-4">
       <span className="text-sm font-semibold text-[var(--text)]">TEMP: Backdrop tuning</span>
-      <label className="flex flex-col gap-1 text-xs text-[var(--text-dim)]">
+      {!isGlass && (
+        <p className="text-xs text-[var(--text-faint)]">
+          Only tunes the Glass theme's backdrop — switch to Glass to use these.
+        </p>
+      )}
+      <label className="flex flex-col gap-1 text-xs text-[var(--text-dim)]" aria-disabled={!isGlass}>
         Backdrop darkness (black {dark}%)
-        <input type="range" min={0} max={100} value={dark} onChange={(e) => setDark(Number(e.target.value))} />
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={dark}
+          disabled={!isGlass}
+          onChange={(e) => setDark(Number(e.target.value))}
+          className="disabled:opacity-40"
+        />
       </label>
-      <label className="flex flex-col gap-1 text-xs text-[var(--text-dim)]">
+      <label className="flex flex-col gap-1 text-xs text-[var(--text-dim)]" aria-disabled={!isGlass}>
         Backdrop scrim (dims it {scrim}%)
-        <input type="range" min={0} max={95} value={scrim} onChange={(e) => setScrim(Number(e.target.value))} />
+        <input
+          type="range"
+          min={0}
+          max={95}
+          value={scrim}
+          disabled={!isGlass}
+          onChange={(e) => setScrim(Number(e.target.value))}
+          className="disabled:opacity-40"
+        />
       </label>
-      <label className="flex flex-col gap-1 text-xs text-[var(--text-dim)]">
+      <label className="flex flex-col gap-1 text-xs text-[var(--text-dim)]" aria-disabled={!isGlass}>
         Blob brightness ({blob > 0 ? '+' : ''}{blob})
-        <input type="range" min={-60} max={60} value={blob} onChange={(e) => setBlob(Number(e.target.value))} />
+        <input
+          type="range"
+          min={-60}
+          max={60}
+          value={blob}
+          disabled={!isGlass}
+          onChange={(e) => setBlob(Number(e.target.value))}
+          className="disabled:opacity-40"
+        />
       </label>
-      <label className="flex flex-col gap-1 text-xs text-[var(--text-dim)]">
+      <label className="flex flex-col gap-1 text-xs text-[var(--text-dim)]" aria-disabled={!isGlass}>
         Panel opacity (opaque {opacity}%)
-        <input type="range" min={10} max={98} value={opacity} onChange={(e) => setOpacity(Number(e.target.value))} />
+        <input
+          type="range"
+          min={10}
+          max={98}
+          value={opacity}
+          disabled={!isGlass}
+          onChange={(e) => setOpacity(Number(e.target.value))}
+          className="disabled:opacity-40"
+        />
       </label>
       <div className="flex items-center gap-2">
         <code className="flex-1 truncate rounded-md bg-black/40 px-2 py-1 font-mono text-xs text-[var(--text)]">{code}</code>
