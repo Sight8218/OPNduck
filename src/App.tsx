@@ -41,9 +41,9 @@ export default function App() {
         <NavProvider>
           <FluidBackground />
         <div className="relative flex min-h-screen flex-col">
-          <PreAlphaBanner />
           <NavBar />
-          <main className="flex-1">
+          <PreAlphaBanner />
+          <main className="flex-1 overflow-x-hidden overflow-y-visible">
             <PageTransition>
               <Routes>
                 <Route path="/" element={<Home />} />

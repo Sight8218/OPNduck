@@ -51,10 +51,6 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
-  /* PageTransition briefly translates the outgoing/incoming page past the
-     viewport edge; without this a native horizontal scrollbar flashes in
-     for that split second during every page switch. */
-  overflow-x: hidden;
 }
 
 body {
@@ -212,6 +208,23 @@ body {
 
   .glass-strong {
     background: var(--glass-bg-strong);
+  }
+
+  /* Fully opaque variant — same border/shadow language as .glass, but a
+     solid theme color and no backdrop-filter, for surfaces (like dropdown
+     menus) that shouldn't show the blurred background through them. */
+  .glass-solid {
+    position: relative;
+    background: var(--bg-solid);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      var(--glass-shadow),
+      inset 0 0 0 1px var(--glass-border-inner);
+    color: var(--text);
+    transition:
+      background-color 500ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 500ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 500ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   /* --- Interactive inputs: slightly darker & inset ---------------------- */

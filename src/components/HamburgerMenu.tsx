@@ -51,7 +51,7 @@ export default function HamburgerMenu() {
         {open && (
           <motion.div
             role="menu"
-            className="glass glass-strong absolute left-0 top-11 z-50 min-w-60 rounded-2xl p-2"
+            className="glass-solid absolute left-0 top-11 z-50 min-w-60 rounded-2xl p-2"
             initial={{ opacity: 0, x: -8, y: -4, scale: 0.98 }}
             animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
             exit={{ opacity: 0, x: -8, y: -4, scale: 0.98 }}
