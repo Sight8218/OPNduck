@@ -7,10 +7,13 @@ export interface SettingsCategory {
 }
 
 /**
- * Left-hand settings navigation, pinned near the left edge. Each category is
- * separated by a divider line and carries a sliding active indicator (shared
- * layoutId) that glides to whichever category becomes active — whether that
- * happened by clicking here or by scrolling the content.
+ * Left-hand settings navigation. Rendered via a portal straight to
+ * document.body by the Settings page (see Settings.tsx) so it sits outside
+ * PageTransition's animated wrapper entirely — position: fixed, pinned to
+ * the viewport like NavBar, not tracking scroll via any JS/CSS mechanism.
+ * Each category is separated by a divider line and carries a sliding active
+ * indicator (shared layoutId) that glides to whichever category becomes
+ * active — whether that happened by clicking here or by scrolling the page.
  */
 export default function SettingsNav({
   categories,
@@ -23,7 +26,7 @@ export default function SettingsNav({
 }) {
   return (
     <nav
-      className="glass sticky top-24 h-fit w-44 shrink-0 rounded-2xl p-2"
+      className="glass h-full w-full shrink-0 rounded-2xl p-2"
       aria-label="Settings sections"
     >
       <ul className="flex flex-col">

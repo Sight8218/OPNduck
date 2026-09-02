@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { IconAdjustmentsHorizontal, IconCpu, IconInfoCircle, IconKeyboard } from '@tabler/icons-react'
 import HardwareAllocation from '../components/HardwareAllocation'
 import InfoCard from '../components/InfoCard'
@@ -65,15 +66,19 @@ export default function Settings() {
         </p>
       </div>
 
-      <div className="relative mt-2">
-      {/* Category rail pinned to the left edge (absolute, doesn't push content).
-          bottom-0 matters: without it this wrapper shrinks to the nav's own
-          height, which becomes the sticky element's containing block —
-          leaving it zero room to travel, so it never actually follows scroll. */}
-      <div className="absolute left-0 top-0 bottom-0">
-        <SettingsNav categories={CATEGORIES} activeId={activeId} onSelect={select} />
-      </div>
+      {/* Category rail: portaled straight to document.body, fixed to the
+          viewport like NavBar — never following scroll via a mechanism,
+          just permanently pinned in place, from just below the top bar to
+          just above the bottom of the screen (viewport-relative, not
+          document-relative — no need to scroll to the very end to see it). */}
+      {createPortal(
+        <div className="fixed left-4 top-24 bottom-6 z-30 w-60 sm:left-5">
+          <SettingsNav categories={CATEGORIES} activeId={activeId} onSelect={select} />
+        </div>,
+        document.body,
+      )}
 
+      <div className="relative mt-2">
       {/* Settings column: centered on the viewport (matches the OPNDuck wordmark) */}
       <div className="flex w-full flex-col items-center">
         <div className="flex w-full max-w-3xl flex-col gap-6">
