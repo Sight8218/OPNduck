@@ -8,6 +8,7 @@ const STEP_BTN_CLASS =
  * until the desktop shell exposes a real folder picker and task queue —
  * consistent with every other settings card pre-Alpha.
  */
+// @category: settings/storage-performance
 export default function StorageCard() {
   const [maxTasks, setMaxTasks] = useState(2)
 
@@ -79,3 +80,4 @@ export default function StorageCard() {
     </div>
   )
 }
+// --- end: settings/storage-performance ---

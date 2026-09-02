@@ -24,8 +24,8 @@ import type { Theme } from '../themes/theme'
 // that gradient, so it only makes sense, and only ever runs, while Glass
 // is the active theme. Applying them regardless of theme was the bug: the
 // override lands on <html> via inline style, which beats every theme
-// selector, so it silently bled Glass's reddish palette into Flat/Monochrome
-// too the moment any slider was touched.
+// selector, so it silently bled Glass's reddish palette into Monochrome too
+// the moment any slider was touched.
 const GRAD_STOPS = [0x2b1216, 0x1f0508, 0x34151a, 0x1f0508]
 
 function clamp(value: number, min: number, max: number): number {
@@ -61,6 +61,7 @@ function ensureScrim(id: string): HTMLElement | null {
   return el
 }
 
+// @category: settings/dev-tools-backdrop-tuning
 export default function GlassTune({ theme }: { theme: Theme }) {
   const [dark, setDark] = useState(33)
   const [scrim, setScrim] = useState(20)
@@ -194,3 +195,4 @@ export default function GlassTune({ theme }: { theme: Theme }) {
     </div>
   )
 }
+// --- end: settings/dev-tools-backdrop-tuning ---
