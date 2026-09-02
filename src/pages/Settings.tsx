@@ -66,8 +66,11 @@ export default function Settings() {
       </div>
 
       <div className="relative mt-2">
-      {/* Category rail pinned to the left edge (absolute, doesn't push content) */}
-      <div className="absolute left-0 top-0">
+      {/* Category rail pinned to the left edge (absolute, doesn't push content).
+          bottom-0 matters: without it this wrapper shrinks to the nav's own
+          height, which becomes the sticky element's containing block —
+          leaving it zero room to travel, so it never actually follows scroll. */}
+      <div className="absolute left-0 top-0 bottom-0">
         <SettingsNav categories={CATEGORIES} activeId={activeId} onSelect={select} />
       </div>
 
