@@ -31,8 +31,10 @@ export default function SlidingSelector<T extends string>({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className="relative rounded-lg px-2 py-1.5 text-xs font-bold transition-colors"
-            style={{ color: selected ? 'var(--btn-text)' : 'var(--text-dim)' }}
+            className={`relative rounded-lg px-2 py-1.5 text-xs font-bold transition-colors ${
+              selected ? '' : 'text-[var(--text-dim)] hover:bg-[var(--glass-bg-strong)] hover:text-[var(--text)]'
+            }`}
+            style={selected ? { color: 'var(--btn-text)' } : undefined}
           >
             {selected && (
               <motion.span

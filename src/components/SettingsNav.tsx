@@ -36,7 +36,7 @@ export default function SettingsNav({
               <button
                 type="button"
                 onClick={() => onSelect(cat.id)}
-                className="relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium text-[var(--text-dim)] transition-colors"
+                className="relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium text-[var(--text-dim)] transition-colors hover:bg-[var(--glass-bg)] hover:text-[var(--text)]"
               >
                 {active && (
                   <motion.span

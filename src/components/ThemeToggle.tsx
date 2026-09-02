@@ -49,7 +49,7 @@ export default function ThemeToggle({
               className={`rounded-2xl border p-4 text-left transition-colors ${
                 active
                   ? 'border-[var(--input-border-focus)] bg-[var(--input-bg)]'
-                  : 'border-[var(--glass-border)] bg-[var(--glass-bg)]'
+                  : 'border-[var(--glass-border)] bg-[var(--glass-bg)] hover:border-[var(--glass-border-inner)] hover:bg-[var(--glass-bg-strong)]'
               }`}
             >
               <span className="text-sm font-bold">{THEME_LABELS[t].label}</span>
