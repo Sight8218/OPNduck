@@ -50,6 +50,8 @@ export default function InfoCard() {
         label: 'FFmpeg',
         value: isDesktop ? 'Detected with the desktop shell' : 'Bundle with desktop shell (Alpha)',
       },
+      { label: 'License', value: 'GPL-3.0' },
+      { label: 'Repository', value: 'github.com/Sight8218/OPNduck' },
     ]
   }, [])
 

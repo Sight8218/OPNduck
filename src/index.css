@@ -331,3 +331,11 @@ body {
     background: transparent;
   }
 }
+
+/* Dev tools: "Layout outline" toggle — outlines every .glass surface to
+   check spacing/alignment. Toggled via a class on <html>, not a React
+   inline style, so it survives across every page without prop drilling. */
+.opnduck-debug-outline .glass {
+  outline: 1px dashed #ff3366;
+  outline-offset: -1px;
+}

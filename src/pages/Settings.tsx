@@ -4,11 +4,27 @@ import { IconAdjustmentsHorizontal, IconCpu, IconInfoCircle, IconKeyboard } from
 import HardwareAllocation from '../components/HardwareAllocation'
 import InfoCard from '../components/InfoCard'
 import NavDisplayCard from '../components/NavDisplayCard'
-import GlassTune from '../components/GlassTune'
+import MotionCard from '../components/MotionCard'
+import StorageCard from '../components/StorageCard'
+import DevTools from '../components/DevTools'
 import { DEV_BIND, useDevMode } from '../lib/devMode'
 import SettingsNav, { type SettingsCategory } from '../components/SettingsNav'
 import ThemeToggle from '../components/ThemeToggle'
 import { useTheme } from '../themes/useTheme'
+
+/** Repeats the category name as a divider at the top of its scrolling
+ * section, so it's clear what you're looking at independent of the fixed
+ * panel's highlight — helpful once a category holds several cards. */
+function CategoryLabel({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-faint)]">
+        {label}
+      </span>
+      <div className="h-px flex-1 bg-[var(--glass-border)]" />
+    </div>
+  )
+}
 
 const CATEGORIES: SettingsCategory[] = [
   { id: 'appearance', label: 'Appearance', icon: IconAdjustmentsHorizontal },
@@ -36,19 +52,25 @@ export default function Settings() {
 
   useEffect(() => {
     const onScroll = () => {
-      const last = CATEGORIES[CATEGORIES.length - 1]
-      const lastEl = sectionRefs.current[last.id]
-      // Reached the bottom: the last section is shorter than the viewport, so
-      // its top never crosses the threshold — activate it at the very end.
-      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4
-      if (atBottom && lastEl) {
-        setActiveId((prev) => (prev === last.id ? prev : last.id))
-        return
-      }
+      // Whichever section's box actually contains the vertical middle of the
+      // viewport is "the one you're looking at" — a fixed distance-from-top
+      // threshold instead falsely jumps to the next category the moment it
+      // peeks in at the top, well before it's actually what's on screen, and
+      // could skip a section entirely if it's shorter than the threshold.
+      const midpoint = window.innerHeight / 2
       let current = CATEGORIES[0].id
       for (const c of CATEGORIES) {
         const el = sectionRefs.current[c.id]
-        if (el && el.getBoundingClientRect().top <= 160) current = c.id
+        if (!el) continue
+        const rect = el.getBoundingClientRect()
+        if (rect.top <= midpoint && rect.bottom >= midpoint) {
+          current = c.id
+          break
+        }
+        // Past this section's bottom already: keep it as the running
+        // candidate in case nothing fully straddles the midpoint (e.g. the
+        // last, short section once you've scrolled past its own middle).
+        if (rect.top <= midpoint) current = c.id
       }
       setActiveId((prev) => (prev === current ? prev : current))
     }
@@ -59,7 +81,9 @@ export default function Settings() {
 
   return (
     <div className="px-4 py-6 sm:px-5">
-      <div className="mb-6 max-w-6xl">
+      {/* pl-72 clears the fixed category panel (w-60 starting at left-4/5) —
+          without it this heading sat right underneath the panel. */}
+      <div className="mb-6 max-w-6xl pl-72">
         <h1 className="text-2xl font-extrabold text-[var(--text)] sm:text-3xl">Settings</h1>
         <p className="mt-1 text-sm text-[var(--text-dim)]">
           Global configuration, separate from the main workspace.
@@ -89,10 +113,12 @@ export default function Settings() {
             }}
             className="scroll-mt-24 flex flex-col gap-6"
           >
+            <CategoryLabel label="Appearance" />
             <ThemeToggle theme={theme} onChange={setTheme} />
             <NavDisplayCard />
+            <MotionCard />
 
-            {devMode && <GlassTune />}
+            {devMode && <DevTools />}
           </section>
           <section
             id="settings-keybinds"
@@ -101,8 +127,18 @@ export default function Settings() {
             }}
             className="scroll-mt-24 flex flex-col gap-6"
           >
+            <CategoryLabel label="Keybinds" />
             <div className="flex flex-col gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-4">
               <span className="text-sm font-semibold text-[var(--text)]">Keybinds</span>
+              <div className="flex items-center justify-between gap-3 border-b border-[var(--glass-border)] pb-3">
+                <div className="flex flex-col">
+                  <span className="text-sm text-[var(--text)]">Command palette</span>
+                  <span className="text-xs text-[var(--text-dim)]">Jump to any page or action.</span>
+                </div>
+                <kbd className="rounded-md border border-[var(--glass-border)] bg-[var(--input-bg)] px-2 py-1 font-mono text-xs tracking-wider text-[var(--text)]">
+                  Ctrl+K
+                </kbd>
+              </div>
               <div className="flex items-center justify-between gap-3 border-b border-[var(--glass-border)] pb-3">
                 <div className="flex flex-col">
                   <span className="text-sm text-[var(--text)]">Toggle developer / debug mode</span>
@@ -122,17 +158,20 @@ export default function Settings() {
             ref={(el) => {
               sectionRefs.current.system = el
             }}
-            className="scroll-mt-24"
+            className="scroll-mt-24 flex flex-col gap-6"
           >
+            <CategoryLabel label="System" />
             <HardwareAllocation />
+            <StorageCard />
           </section>
           <section
             id="settings-about"
             ref={(el) => {
               sectionRefs.current.about = el
             }}
-            className="scroll-mt-24"
+            className="scroll-mt-24 flex flex-col gap-6"
           >
+            <CategoryLabel label="About" />
             <InfoCard />
           </section>
           </div>
