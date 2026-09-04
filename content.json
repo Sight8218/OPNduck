@@ -1,0 +1,53 @@
+{
+  "_note": "Edited via the OPNduck dev panel (open any page with ?dev or press Ctrl+Shift+D). Export from the panel and commit this file to publish.",
+  "github": { "repo": "Sight8218/OPNduck" },
+  "hero": {
+    "eyebrow": "FREE · OPEN SOURCE · RUNS ON YOUR HARDWARE",
+    "title": "Your GPU already does this.\nStop paying monthly for it.",
+    "subtitle": "OPNduck is a media processing suite for AI upscaling, frame interpolation, downloading, and format conversion — all running locally, on the machine you already own. Nothing uploaded, nothing metered, nothing rented back to you."
+  },
+  "gallery": [
+    {
+      "img": "assets/home.png",
+      "title": "Home workspace",
+      "caption": "Tool cards are generated from installed features and plugins — install one and a card appears here automatically."
+    },
+    {
+      "img": "assets/settings.png",
+      "title": "Settings",
+      "caption": "Global configuration: Glass or Monochrome UI modes, menu-icon style, motion & density, and keybinds — kept separate from the workspace."
+    }
+  ],
+  "roadmap": {
+    "shipped": [
+      "App shell & navigation",
+      "Settings (themes, keybinds)",
+      "Glass / Monochrome UI modes"
+    ],
+    "planned": [
+      { "name": "Video downloader", "inProgress": true },
+      { "name": "AI upscaler", "inProgress": false },
+      { "name": "Migrate from Electron to Tauri", "inProgress": true },
+      { "name": "macOS build", "inProgress": false }
+    ]
+  },
+  "blog": [
+    {
+      "slug": "v0-2-0-pre-alpha",
+      "title": "v0.2.0 Pre-Alpha — the shell rebuild",
+      "date": "2026-09-04",
+      "author": "Ducky",
+      "tag": "RELEASE",
+      "excerpt": "Rebuilt the whole OPNduck shell with other temp tools, and revamped the navigation and UI/UX.",
+      "body": "Rebuilt the whole OPNduck shell with other temp tools\nRevamped the whole navigation system, Ui/Ux\nand much more\na more comprehensive release note will come with the next update."
+    }
+  ],
+  "downloads": {
+    "version": "V0.2.0-Pre-Alpha",
+    "releaseUrl": "https://github.com/Sight8218/OPNduck/releases/tag/V0.2.0-Pre-Alpha",
+    "links": [
+      { "platform": "Windows", "url": "https://github.com/Sight8218/OPNduck/releases/tag/V0.2.0-Pre-Alpha" },
+      { "platform": "Linux", "url": "https://github.com/Sight8218/OPNduck/releases/tag/V0.2.0-Pre-Alpha" }
+    ]
+  }
+}

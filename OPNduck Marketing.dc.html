@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  html { scrollbar-width: none; -ms-overflow-style: none; background: linear-gradient(180deg, #17130f 0%, #120f0c 40%, #0f0c0a 100%); }
+  html::-webkit-scrollbar { display: none; width: 0; height: 0; }
+  body { margin: 0; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none; background: radial-gradient(ellipse 900px 600px at 15% -5%, rgba(225,137,47,0.10), transparent 60%), radial-gradient(ellipse 700px 500px at 100% 20%, rgba(194,87,31,0.08), transparent 55%), transparent; }
+  body::-webkit-scrollbar { display: none; width: 0; height: 0; }
+  * { box-sizing: border-box; }
+  ::selection { background: #e1892f; color: #120f0c; }
+  @keyframes pulse-travel {
+    0% { left: -6px; opacity: 0; }
+    8% { opacity: 1; }
+    92% { opacity: 1; }
+    100% { left: 100%; opacity: 0; }
+  }
+  a { color: #e1892f; text-decoration: none; }
+  a:hover { color: #f2ab5c; }
+  @media (max-width: 880px) {
+    .om-hero-grid { grid-template-columns: 1fr !important; }
+    .om-feat-row { grid-template-columns: 1fr !important; }
+    .om-compare-table { font-size: 13px !important; }
+    .om-nav-links { display: none !important; }
+  }
+</style>
+</helmet>
+
+<div style="position:relative; color:#ede6d9; font-family:'IBM Plex Sans', sans-serif; overflow-x:hidden;">
+
+  <!-- NAV -->
+  <div style="position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; padding:22px 48px; border-bottom:1px solid rgba(225,137,47,0.12);">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <img src="assets/opnduck-logo.png" alt="OPNduck" style="width:34px;height:34px;border-radius:8px;object-fit:cover; box-shadow:0 4px 14px rgba(225,137,47,0.3);">
+      <span style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:17px; letter-spacing:0.5px;">OPNduck</span>
+      <span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1px; color:#e1892f; background:rgba(225,137,47,0.12); border:1px solid rgba(225,137,47,0.35); border-radius:4px; padding:3px 7px; margin-left:6px;">PRE-ALPHA</span>
+    </div>
+    <div class="om-nav-links" style="display:flex; align-items:center; gap:32px; font-size:14px; color:#b5a793;">
+      <a href="#tools" style="color:#b5a793;">Tools</a>
+      <a href="#why" style="color:#b5a793;">Why local-first</a>
+      <a href="./OPNduck Download.dc.html" style="color:#b5a793;">Download &amp; Docs</a>
+      <a href="https://github.com/Sight8218/OPNduck" style="display:flex; align-items:center; gap:7px; color:#ede6d9; border:1px solid rgba(237,230,217,0.25); padding:8px 14px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:12.5px;">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.02 1.93-.02 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div style="position:relative; z-index:2; padding:80px 48px 60px; max-width:1320px; margin:0 auto;">
+    <div class="om-hero-grid" style="display:grid; grid-template-columns:1.05fr 0.95fr; gap:64px; align-items:center;">
+
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:18px;">FREE &middot; OPEN SOURCE &middot; RUNS ON YOUR HARDWARE</div>
+        <h1 style="font-family:'JetBrains Mono',monospace; font-size:52px; line-height:1.08; font-weight:700; margin:0 0 24px; letter-spacing:-0.5px; text-wrap:pretty;">
+          Your GPU already does this.<br/>Stop paying monthly for it.
+        </h1>
+        <p style="font-size:17px; line-height:1.65; color:#bcae99; max-width:520px; margin:0 0 34px; text-wrap:pretty;">
+          OPNduck is a media processing suite for AI upscaling, frame interpolation, downloading, and format conversion — all running locally, on the machine you already own. Nothing uploaded, nothing metered, nothing rented back to you.
+        </p>
+        <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:36px;">
+          <a href="https://github.com/Sight8218/OPNduck" style="background:linear-gradient(160deg,#f0a63b,#d97a25); color:#17130f; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px; padding:14px 24px; border-radius:7px; display:inline-flex; align-items:center; gap:9px; box-shadow:0 8px 24px rgba(225,137,47,0.25);">
+            Follow progress on GitHub &rarr;
+          </a>
+          <a href="./OPNduck Download.dc.html" style="border:1px solid rgba(237,230,217,0.22); color:#ede6d9; font-family:'JetBrains Mono',monospace; font-weight:600; font-size:14px; padding:14px 24px; border-radius:7px; display:inline-flex; align-items:center;">
+            Build it yourself &rarr;
+          </a>
+        </div>
+        <div style="display:flex; gap:28px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#7d7364;">
+          <span>NVIDIA / AMD / Intel GPU</span>
+          <span>&middot;</span>
+          <span>CPU fallback</span>
+          <span>&middot;</span>
+          <span>Linux &amp; Windows</span>
+        </div>
+      </div>
+
+      <!-- LIVE PIPELINE VISUAL -->
+      <div style="background:linear-gradient(165deg,#1d1712,#151109); border:1px solid rgba(225,137,47,0.18); border-radius:14px; padding:28px; box-shadow:0 30px 60px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.03);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:22px;">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1.5px; color:#8a7c68;">LOCAL PIPELINE &middot; LIVE</span>
+          <span style="display:flex; align-items:center; gap:6px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#6a9962;"><span style="width:6px;height:6px;border-radius:50%;background:#6a9962;box-shadow:0 0 6px #6a9962;"></span>NO NETWORK HOP</span>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; position:relative; margin-bottom:30px; padding:0 4px;">
+          <div style="position:absolute; top:15px; left:20px; right:20px; height:2px; background:rgba(225,137,47,0.15);">
+            <div style="position:absolute; top:-2px; width:6px; height:6px; border-radius:50%; background:#e1892f; box-shadow:0 0 10px #e1892f; animation:pulse-travel 3.2s linear infinite;"></div>
+          </div>
+          <sc-for list="{{ pipelineStages }}" as="stage" hint-placeholder-count="5">
+            <div style="position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:8px; width:19%;">
+              <div style="width:30px; height:30px; border-radius:50%; background:#1d1712; border:2px solid {{ stage.color }}; display:flex; align-items:center; justify-content:center; font-size:13px;">{{ stage.icon }}</div>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:#8a7c68; text-align:center; letter-spacing:0.3px;">{{ stage.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <sc-for list="{{ utilBars }}" as="bar" hint-placeholder-count="3">
+          <div style="margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:11px; color:#a89a86; margin-bottom:6px;">
+              <span>{{ bar.name }}</span>
+              <span style="color:#e1892f;">{{ bar.pctLabel }}</span>
+            </div>
+            <div style="height:6px; background:rgba(237,230,217,0.06); border-radius:3px; overflow:hidden;">
+              <div style="height:100%; border-radius:3px; background:linear-gradient(90deg,#c2571f,#f0a63b); width:{{ bar.width }}; transition:width 0.6s ease;"></div>
+            </div>
+          </div>
+        </sc-for>
+
+        <div style="margin-top:18px; padding-top:16px; border-top:1px solid rgba(237,230,217,0.08); display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:11px; color:#7d7364;">
+          <span>source.mkv &rarr; output.mkv</span>
+          <span>0 bytes left this device</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- WHY I'M BUILDING THIS -->
+  <div style="position:relative; z-index:2; padding:70px 48px 60px; max-width:1100px; margin:0 auto;">
+    <h2 style="font-family:'JetBrains Mono',monospace; font-size:36px; font-weight:700; margin:0 0 28px; letter-spacing:-0.3px;">I was tired of paying for tools that don't own their own time.</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:48px; margin-bottom:36px;">
+      <div>
+        <p style="font-size:17px; line-height:1.7; color:#c4b8a4; margin:0; text-wrap:pretty;">For years I relied on whatever sketchy YouTube downloaders I could find — most of them bloated with ads, many carrying viruses that steal data and sell it. The "free" ones locked high-res downloads behind paywalls. When my footage was bad quality, I had to pay a $50 license just to upscale it with tools like Real-ESRGAN, except Real-ESRGAN has no GUI. Most people don't want to touch the terminal, so they end up paying for a wrapper app instead.</p>
+      </div>
+      <div>
+        <p style="font-size:17px; line-height:1.7; color:#c4b8a4; margin:0; text-wrap:pretty;">I built OPNduck because I was tired of paying subscription fees for something I could already do on my own GPU. No terminal required. No login. No limits. No monthly bill. And I'm not hiding where the inspiration came from.</p>
+      </div>
+    </div>
+
+    <div style="background:rgba(225,137,47,0.06); border:1px solid rgba(225,137,47,0.2); border-radius:10px; padding:24px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:16px;">IF YOU WANT OTHER OPTIONS</div>
+      <p style="font-size:14.5px; line-height:1.65; color:#a89a86; margin:0 0 12px; text-wrap:pretty;">If OPNduck isn't for you, these projects and tools deserve your time — they inspired this one and they're genuinely good.</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:#ede6d9; margin-bottom:4px;"><a href="https://flowframes.io" style="color:#ede6d9;">Flowframes</a></div>
+          <div style="font-size:13px; color:#8a7c68;">Frame interpolation with a clean, approachable UI. Open source, no subscription.</div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:#ede6d9; margin-bottom:4px;"><a href="https://www.4kdownload.com" style="color:#ede6d9;">4K Video Downloader</a></div>
+          <div style="font-size:13px; color:#8a7c68;">Free tier downloads up to 10 videos per day. Limited but honest about it, no dark patterns.</div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:#ede6d9; margin-bottom:4px;"><a href="https://github.com/xinntao/Real-ESRGAN" style="color:#ede6d9;">Real-ESRGAN</a></div>
+          <div style="font-size:13px; color:#8a7c68;">The upscaling engine that powers the good tools. Works if you speak terminal.</div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:#ede6d9; margin-bottom:4px;"><a href="https://ffmpeg.org" style="color:#ede6d9;">FFmpeg</a></div>
+          <div style="font-size:13px; color:#8a7c68;">The format conversion standard. Free, open, ancient, and it still does the job best.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <div id="tools" style="position:relative; z-index:2; padding:20px 48px 40px; max-width:1320px; margin:0 auto;">
+    <div style="margin-bottom:48px; max-width:640px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:14px;">FOUR TOOLS, ONE BINARY</div>
+      <h2 style="font-family:'JetBrains Mono',monospace; font-size:34px; font-weight:700; margin:0 0 14px; letter-spacing:-0.3px;">Not a dashboard. A toolbox.</h2>
+      <p style="font-size:16px; line-height:1.6; color:#a89a86; margin:0; text-wrap:pretty;">Each tool does one job and does it on your hardware. No feature is a teaser for a paid tier — there is no paid tier.</p>
+    </div>
+
+    <!-- Feature 1: AI Upscaling -->
+    <div class="om-feat-row" style="display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; padding:44px 0; border-top:1px solid rgba(225,137,47,0.12);">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#e1892f; margin-bottom:10px;">01 &middot; AI UPSCALING</div>
+        <h3 style="font-family:'JetBrains Mono',monospace; font-size:24px; margin:0 0 14px;">Sharper frames, run where the file already lives</h3>
+        <p style="font-size:15.5px; line-height:1.65; color:#a89a86; margin:0; text-wrap:pretty;">Upscale video and stills with local AI models. Point it at NVIDIA, AMD, or Intel silicon — or fall back to CPU when there's no GPU to hand the job to. The model runs in the same room as your files, not in someone else's datacenter.</p>
+      </div>
+      <div style="background:#171310; border:1px solid rgba(225,137,47,0.15); border-radius:12px; padding:22px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7d7364; margin-bottom:14px; letter-spacing:1px;">OUTPUT RESOLUTION LADDER</div>
+        <div style="display:flex; align-items:flex-end; gap:10px; height:110px;">
+          <sc-for list="{{ resLadder }}" as="rung" hint-placeholder-count="4">
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; justify-content:flex-end; height:100%;">
+              <div style="width:100%; background:linear-gradient(180deg,#f0a63b,#a85a1e); border-radius:4px 4px 0 0; height:{{ rung.height }};"></div>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#a89a86;">{{ rung.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 2: Frame Interpolation -->
+    <div class="om-feat-row" style="display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; padding:44px 0; border-top:1px solid rgba(225,137,47,0.12);">
+      <div style="order:2;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#e1892f; margin-bottom:10px;">02 &middot; FRAME INTERPOLATION</div>
+        <h3 style="font-family:'JetBrains Mono',monospace; font-size:24px; margin:0 0 14px;">Smoother motion, generated, not filmed</h3>
+        <p style="font-size:15.5px; line-height:1.65; color:#a89a86; margin:0; text-wrap:pretty;">Generate the frames that weren't shot. Turn 24fps footage into 48 or 60 for smoother playback, or stretch it for slow motion — without a re-shoot and without shipping the footage anywhere to get it.</p>
+      </div>
+      <div style="order:1; background:#171310; border:1px solid rgba(225,137,47,0.15); border-radius:12px; padding:22px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7d7364; margin-bottom:16px; letter-spacing:1px;">SOURCE vs INTERPOLATED TIMELINE</div>
+        <div style="margin-bottom:14px;">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#a89a86; margin-bottom:6px;">24fps source</div>
+          <div style="display:flex; gap:6px;">
+            <sc-for list="{{ frameBoxes24 }}" as="f" hint-placeholder-count="8">
+              <div style="flex:1; height:22px; background:rgba(225,137,47,0.5); border-radius:2px;"></div>
+            </sc-for>
+          </div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#e1892f; margin-bottom:6px;">48fps output</div>
+          <div style="display:flex; gap:3px;">
+            <sc-for list="{{ frameBoxes48 }}" as="f" hint-placeholder-count="16">
+              <div style="flex:1; height:22px; border-radius:2px; background:{{ f.color }};"></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 3: Downloader -->
+    <div class="om-feat-row" style="display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; padding:44px 0; border-top:1px solid rgba(225,137,47,0.12);">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#e1892f; margin-bottom:10px;">03 &middot; MEDIA DOWNLOADER</div>
+        <h3 style="font-family:'JetBrains Mono',monospace; font-size:24px; margin:0 0 14px;">Paste a link, get a file. That's it.</h3>
+        <p style="font-size:15.5px; line-height:1.65; color:#a89a86; margin:0; text-wrap:pretty;">A queue-based downloader with no browser extension quietly reporting home and no bundled toolbar. Pick a format, pick a quality, walk away — it writes straight to disk.</p>
+      </div>
+      <div style="background:#171310; border:1px solid rgba(225,137,47,0.15); border-radius:12px; padding:22px; font-family:'JetBrains Mono',monospace;">
+        <div style="display:flex; gap:10px; margin-bottom:16px;">
+          <div style="flex:1; background:#0f0c0a; border:1px solid rgba(237,230,217,0.1); border-radius:6px; padding:10px 12px; font-size:12px; color:#7d7364;">https://…/watch?v=…</div>
+          <div style="background:#e1892f; color:#17130f; border-radius:6px; padding:10px 16px; font-size:12px; font-weight:700;">ADD</div>
+        </div>
+        <sc-for list="{{ queueItems }}" as="q" hint-placeholder-count="3">
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-top:1px solid rgba(237,230,217,0.06); font-size:12px;">
+            <span style="color:#ede6d9;">{{ q.name }}</span>
+            <span style="color:{{ q.color }};">{{ q.status }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- Feature 4: Format Conversion -->
+    <div class="om-feat-row" style="display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; padding:44px 0; border-top:1px solid rgba(225,137,47,0.12); border-bottom:1px solid rgba(225,137,47,0.12);">
+      <div style="order:2;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#e1892f; margin-bottom:10px;">04 &middot; FORMAT CONVERSION</div>
+        <h3 style="font-family:'JetBrains Mono',monospace; font-size:24px; margin:0 0 14px;">Batch conversion, without re-encoding you didn't ask for</h3>
+        <p style="font-size:15.5px; line-height:1.65; color:#a89a86; margin:0; text-wrap:pretty;">Move between containers and codecs — MP4, MKV, WebM, HEVC, AV1, H.264 — in batches. Remux when a re-encode isn't needed; transcode when it is. You choose which.</p>
+      </div>
+      <div style="order:1; background:#171310; border:1px solid rgba(225,137,47,0.15); border-radius:12px; padding:22px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7d7364; margin-bottom:14px; letter-spacing:1px;">SUPPORTED CONTAINERS / CODECS</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <sc-for list="{{ formatChips }}" as="chip" hint-placeholder-count="6">
+            <div style="background:rgba(225,137,47,0.08); border:1px solid rgba(225,137,47,0.25); border-radius:6px; padding:9px 12px; font-family:'JetBrains Mono',monospace; font-size:12.5px; color:#f0a63b; text-align:center;">{{ chip }}</div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHY LOCAL-FIRST -->
+  <div id="why" style="position:relative; z-index:2; padding:70px 48px; max-width:1100px; margin:0 auto;">
+    <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:14px;">WHY LOCAL-FIRST</div>
+    <h2 style="font-family:'JetBrains Mono',monospace; font-size:32px; font-weight:700; margin:0 0 32px; letter-spacing:-0.3px; max-width:680px; text-wrap:pretty;">The pitch cloud tools won't make</h2>
+
+    <div style="display:grid; gap:26px; margin-bottom:44px;">
+      <p style="font-size:16px; line-height:1.7; color:#c4b8a4; margin:0; text-wrap:pretty;">Every "cloud AI upscaler" is renting you access to a GPU. You already own one. It's idle most of the day, sitting under your desk while a subscription service queues your file behind everyone else's — and charges you monthly for the privilege of waiting.</p>
+      <p style="font-size:16px; line-height:1.7; color:#c4b8a4; margin:0; text-wrap:pretty;">Uploading a 40GB source file so it can be "processed in the cloud" is slower than just processing it, full stop, on an ordinary home connection. Local-first isn't a privacy feature bolted onto the real product — it's faster, because there's no upload step, no queue, and no render slot you have to pay extra to skip.</p>
+      <p style="font-size:16px; line-height:1.7; color:#c4b8a4; margin:0; text-wrap:pretty;">Most "free" upscalers and interpolation tools cap your output resolution, watermark the result, or throttle you until you upgrade. OPNduck doesn't have a paid tier to upsell you into — there is no tier at all. It's the whole tool, or nothing.</p>
+      <p style="font-size:16px; line-height:1.7; color:#c4b8a4; margin:0; text-wrap:pretty;">And it's open source. Read the code that touches your media files, or don't — but the option exists, which is more than you get from a closed binary that phones home to a license server before it'll let you export.</p>
+    </div>
+
+    <div class="om-compare-table" style="border:1px solid rgba(225,137,47,0.18); border-radius:12px; overflow:hidden;">
+      <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; background:#1a1510;">
+        <div style="padding:14px 18px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#7d7364;"></div>
+        <div style="padding:14px 18px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#a89a86; border-left:1px solid rgba(225,137,47,0.12);">TYPICAL CLOUD TOOL</div>
+        <div style="padding:14px 18px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#e1892f; border-left:1px solid rgba(225,137,47,0.12); background:rgba(225,137,47,0.06);">OPNDUCK</div>
+      </div>
+      <sc-for list="{{ compareRows }}" as="row" hint-placeholder-count="5">
+        <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; border-top:1px solid rgba(225,137,47,0.1);">
+          <div style="padding:14px 18px; font-size:13.5px; color:#c4b8a4;">{{ row.label }}</div>
+          <div style="padding:14px 18px; font-size:13.5px; color:#8a7c68; border-left:1px solid rgba(225,137,47,0.1);">{{ row.cloud }}</div>
+          <div style="padding:14px 18px; font-size:13.5px; color:#ede6d9; font-weight:600; border-left:1px solid rgba(225,137,47,0.1); background:rgba(225,137,47,0.04);">{{ row.local }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div style="position:relative; z-index:2; padding:20px 48px 90px; max-width:1100px; margin:0 auto;">
+    <div style="background:linear-gradient(155deg,#211a13,#171310); border:1px solid rgba(225,137,47,0.22); border-radius:16px; padding:56px; text-align:center; position:relative; overflow:hidden;">
+      <div style="position:absolute; top:-40%; left:50%; transform:translateX(-50%); width:600px; height:400px; background:radial-gradient(ellipse,rgba(225,137,47,0.18),transparent 70%); pointer-events:none;"></div>
+      <div style="position:relative;">
+        <span style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1.5px; color:#e1892f; background:rgba(225,137,47,0.12); border:1px solid rgba(225,137,47,0.35); border-radius:5px; padding:5px 10px;">IT'S EARLY. THAT'S THE POINT.</span>
+        <h2 style="font-family:'JetBrains Mono',monospace; font-size:32px; font-weight:700; margin:22px 0 16px; text-wrap:pretty;">Built by one person, in the open</h2>
+        <p style="font-size:16px; line-height:1.65; color:#a89a86; max-width:560px; margin:0 auto 32px; text-wrap:pretty;">OPNduck is pre-alpha — no polished installer yet, no marketing budget, no roadmap slide deck. Just a repo you can clone, break, and file issues against. Star it if you want to see where it goes, or open a PR if you'd rather help it get there.</p>
+        <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+          <a href="https://github.com/Sight8218/OPNduck" style="background:linear-gradient(160deg,#f0a63b,#d97a25); color:#17130f; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px; padding:15px 26px; border-radius:7px; box-shadow:0 8px 24px rgba(225,137,47,0.25);">Follow on GitHub &rarr;</a>
+          <a href="./OPNduck Download.dc.html" style="border:1px solid rgba(237,230,217,0.22); color:#ede6d9; font-family:'JetBrains Mono',monospace; font-weight:600; font-size:14px; padding:15px 26px; border-radius:7px;">Get the docs &amp; builds &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEGAL & SAFETY -->
+  <div style="position:relative; z-index:2; padding:70px 48px 60px; max-width:1100px; margin:0 auto; border-top:1px solid rgba(225,137,47,0.12);">
+    <div style="margin-bottom:48px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:16px;">ABOUT THIS PROJECT</div>
+      <p style="font-size:15px; line-height:1.7; color:#a89a86; margin:0 0 12px; text-wrap:pretty;">OPNduck is built by a 16-year-old developer with no budget for human coders. We use AI to build and maintain this app — people can say what they want about that, but it's what we have to do right now. The code is open source under GPL-3.0 so anyone can audit it, fork it, or contribute.</p>
+    </div>
+
+    <div style="background:#2a1810; border:1px solid rgba(225,137,47,0.35); border-radius:10px; padding:24px; margin-bottom:48px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:#e1892f; margin-bottom:12px;">⚠ SAFETY & TERMS OF USE</div>
+      <div style="font-size:14px; line-height:1.75; color:#c4b8a4; text-wrap:pretty;">
+        <p style="margin:0 0 12px;"><strong>This app will not process sexual or pornographic content in any form.</strong> The downloader, upscaler, frame interpolation tool, and format converter will refuse any file suspected to contain adult material.</p>
+        <p style="margin:0 0 12px;">We take this seriously: OPNduck exists to help creators work with their own footage, edit videos, and convert media for legitimate purposes. It does not exist to facilitate child exploitation, abuse material, or any form of sexual content processing.</p>
+        <p style="margin:0 0 12px;">We will never implement a "filter" that lets this app process CSAM or sexual content. Not now, not in future versions, not as an optional flag. If you use OPNduck for any illegal purpose — especially the sexual abuse of minors — you are breaking the law, and we will not help you do it.</p>
+        <p style="margin:0 0 12px;"><strong>Our commitment to fighting abuse:</strong> If we ever receive many requests to add support for users to process and download pornographic or sexual content, we will hire a dedicated developer to build a <strong>STRICT CSAM detection filter</strong>. This comes with its own security drawbacks — the filtering layer itself introduces vulnerabilities we'd rather not have — but it's the measure we have to take to keep the app safe. The filter will be bound directly to the engine at the core level: if predators try to remove it, they can only swap out the shell, not the engine. The filter cannot be detached or bypassed without breaking the entire app. This is intentional — it makes it much harder for people with bad intent to rip it out and misuse the tool.</p>
+        <p style="margin:0 0 12px;">The filter will be locked down: only official developers will ever have access to modify it, and we will pursue official certification with law enforcement to validate it works. The filter will detect <strong>confirmed</strong> illegal material, not suspected — to avoid false alarms that harm innocent users. If confirmed CSAM is detected, the app will automatically report it to law enforcement. This is non-negotiable, and the code for this filter will never be open source.</p>
+        <p style="margin:0 0 12px;"><strong>What stays free and open:</strong> The version of OPNduck without the filter — the version that refuses to download or process any sexual content at all — will remain the primary version. It will continue to be open source, free, and updated more frequently than any filtered version. The filtered version exists only as a necessary safeguard if demand forces us to build it, but the original, safer version will always be the main project, always available, and always getting the most development attention.</p>
+        <p style="margin:0 0 12px;"><strong>Why we're doing this:</strong> A person I know was exploited as a child. Since then, they have struggled with suicidal thoughts and tried to end their life. Many others who have gone through the same thing also don't feel good — they carry that pain forward. I don't know exactly how it feels to have been exploited, but I know it can't feel good. No one deserves that. Our job is not to make it easier for predators — it's to catch them. That's why this feature exists.</p>
+        <p style="margin:0;"><strong>By using this software, you agree:</strong> You own or have permission to process every file you run through OPNduck. You will not use it to create, distribute, or facilitate access to illegal content. You will not use it to harm others or break the law.</p>
+      </div>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#7d7364; text-wrap:pretty;">
+      <p style="margin:0 0 8px;"><strong>License:</strong> <a href="https://www.gnu.org/licenses/gpl-3.0.html" style="color:#7d7364;">GPL-3.0</a> — see the repository for full terms.</p>
+      <p style="margin:0;"><strong>Report abuse:</strong> If you believe OPNduck is being used illegally or to cause harm, contact GitHub directly with the evidence.</p>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div style="position:relative; z-index:2; border-top:1px solid rgba(225,137,47,0.12); padding:36px 48px; max-width:1320px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+    <div style="display:flex; align-items:center; gap:10px; font-family:'JetBrains Mono',monospace; font-size:13px; color:#7d7364;">
+      <span style="color:#ede6d9; font-weight:700;">OPNduck</span>
+      <span>&mdash; built by one developer who got tired of subscribing to software that runs a model on hardware they already own.</span>
+    </div>
+    <div style="display:flex; gap:24px; font-family:'JetBrains Mono',monospace; font-size:12.5px; color:#7d7364;">
+      <a href="https://github.com/Sight8218/OPNduck" style="color:#7d7364;">GitHub</a>
+      <a href="./OPNduck Download.dc.html" style="color:#7d7364;">Download &amp; Docs</a>
+      <span>GPL-3.0 License</span>
+    </div>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    gpu: 71, cpu: 34, disk: 12,
+  };
+
+  componentDidMount() {
+    this._tick = setInterval(() => {
+      this.setState(s => ({
+        gpu: this._walk(s.gpu, 55, 92),
+        cpu: this._walk(s.cpu, 15, 48),
+        disk: this._walk(s.disk, 4, 30),
+      }));
+    }, 1400);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+
+  _walk(v, min, max) {
+    const next = v + (Math.random() * 20 - 10);
+    return Math.max(min, Math.min(max, Math.round(next)));
+  }
+
+  renderVals() {
+    const { gpu, cpu, disk } = this.state;
+    return {
+      pipelineStages: [
+        { icon: '\u25A1', label: 'SOURCE', color: '#8a7c68' },
+        { icon: '\u2699', label: 'DECODE', color: '#e1892f' },
+        { icon: '\u25B2', label: 'UPSCALE', color: '#e1892f' },
+        { icon: '\u21C4', label: 'INTERP.', color: '#e1892f' },
+        { icon: '\u25A0', label: 'OUTPUT', color: '#8a7c68' },
+      ],
+      utilBars: [
+        { name: 'GPU', pctLabel: gpu + '%', width: gpu + '%' },
+        { name: 'CPU', pctLabel: cpu + '%', width: cpu + '%' },
+        { name: 'DISK I/O', pctLabel: disk + '%', width: disk + '%' },
+      ],
+      resLadder: [
+        { label: '480p', height: '25%' },
+        { label: '720p', height: '45%' },
+        { label: '1080p', height: '70%' },
+        { label: '4K', height: '100%' },
+      ],
+      frameBoxes24: Array.from({ length: 8 }, () => ({})),
+      frameBoxes48: Array.from({ length: 16 }, (_, i) => ({
+        color: i % 2 === 0 ? 'rgba(225,137,47,0.5)' : 'rgba(240,166,59,0.9)',
+      })),
+      queueItems: [
+        { name: 'lecture-04.webm', status: 'downloading', color: '#e1892f' },
+        { name: 'talk-clip.mp4', status: 'done', color: '#6a9962' },
+        { name: 'stream-archive.mkv', status: 'queued', color: '#7d7364' },
+      ],
+      formatChips: ['MP4', 'MKV', 'WebM', 'HEVC', 'AV1', 'H.264'],
+      compareRows: [
+        { label: 'Processing happens on', cloud: 'their servers', local: 'your machine' },
+        { label: 'Your files leave the device', cloud: 'yes, every time', local: 'never' },
+        { label: 'Monthly cost', cloud: '$10\u2013$40/mo', local: '$0' },
+        { label: 'Works offline', cloud: 'no', local: 'yes' },
+        { label: 'Source code', cloud: 'closed', local: 'open' },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

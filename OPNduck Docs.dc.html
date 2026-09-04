@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="./opnduck-cms.js"></script>
+<style>
+  html { scroll-behavior:smooth; scrollbar-width:none; background:#0f0c0a; }
+  html::-webkit-scrollbar { display:none; }
+  body { margin:0; background:#0f0c0a; }
+  * { box-sizing:border-box; }
+  ::selection { background:#e1892f; color:#120f0c; }
+  a { color:#e1892f; text-decoration:none; }
+  a:hover { color:#f2ab5c; }
+  .om-doc-code { font-family:'JetBrains Mono',monospace; font-size:13px; color:#f0c58a; background:#0f0c0a; border:1px solid rgba(237,230,217,0.08); border-radius:8px; padding:14px 16px; overflow-x:auto; white-space:pre; display:block; margin:12px 0; line-height:1.6; }
+  @media (max-width:960px){ .om-doc-grid{grid-template-columns:1fr !important} .om-doc-side{position:static !important; height:auto !important; border-right:none !important; border-bottom:1px solid rgba(225,137,47,0.12) !important; } .om-nav-links{display:none !important} .om-pad{padding-left:22px !important;padding-right:22px !important} }
+</style>
+</helmet>
+
+<div style="position:relative; min-height:100vh; background:radial-gradient(ellipse 900px 600px at 15% -5%, rgba(225,137,47,0.08), transparent 60%), linear-gradient(180deg,#17130f 0%,#120f0c 40%,#0f0c0a 100%); color:#ede6d9; font-family:'IBM Plex Sans',sans-serif;">
+
+  <div class="om-pad" style="position:sticky; top:0; z-index:50; display:flex; align-items:center; justify-content:space-between; padding:16px 48px; border-bottom:1px solid rgba(225,137,47,0.12); background:rgba(15,12,10,0.82); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);">
+    <a href="./OPNduck Marketing v2.dc.html" style="display:flex; align-items:center; gap:12px;">
+      <img src="assets/opnduck-logo.png" alt="OPNduck" style="width:34px;height:34px;border-radius:8px;object-fit:cover; box-shadow:0 4px 14px rgba(225,137,47,0.3);">
+      <span style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:17px; letter-spacing:0.5px; color:#ede6d9;">OPNduck</span>
+      <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#8a7c68; margin-left:4px;">/ docs</span>
+    </a>
+    <div class="om-nav-links" style="display:flex; align-items:center; gap:30px; font-size:14px; color:#b5a793;">
+      <a href="./OPNduck Marketing v2.dc.html" style="color:#b5a793;">Home</a>
+      <a href="./OPNduck Blog.dc.html" style="color:#b5a793;">Blog</a>
+      <a href="./OPNduck Download.dc.html" style="color:#b5a793;">Download</a>
+      <a href="https://github.com/Sight8218/OPNduck" style="color:#ede6d9; border:1px solid rgba(237,230,217,0.25); padding:8px 14px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:12.5px;">GitHub</a>
+    </div>
+  </div>
+
+  <div class="om-doc-grid" style="display:grid; grid-template-columns:250px 1fr; max-width:1240px; margin:0 auto;">
+
+    <!-- SIDEBAR -->
+    <aside class="om-doc-side" style="position:sticky; top:65px; height:calc(100vh - 65px); overflow-y:auto; border-right:1px solid rgba(225,137,47,0.12); padding:34px 26px; scrollbar-width:none;">
+      <sc-for list="{{ nav }}" as="group" hint-placeholder-count="4">
+        <div style="margin-bottom:26px;">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1.5px; color:#e1892f; margin-bottom:12px;">{{ group.title }}</div>
+          <div style="display:flex; flex-direction:column; gap:9px;">
+            <sc-for list="{{ group.items }}" as="item" hint-placeholder-count="3">
+              <a href="{{ item.href }}" style="font-size:14px; color:#b5a793;" style-hover="color:#f0a63b">{{ item.label }}</a>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="om-pad" style="padding:52px 56px 80px; max-width:820px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:12px;">DOCUMENTATION &middot; PRE-ALPHA</div>
+      <h1 style="font-family:'JetBrains Mono',monospace; font-size:36px; font-weight:700; margin:0 0 14px; letter-spacing:-0.3px;">Getting started</h1>
+      <p style="font-size:16px; line-height:1.7; color:#a89a86; margin:0 0 20px; text-wrap:pretty;">OPNduck is pre-alpha software. Things will change, break, and get renamed. These docs describe how it's meant to work today — if something here doesn't match reality, the reality is probably a bug, so file an issue.</p>
+      <div style="background:rgba(225,137,47,0.06); border-left:3px solid #e1892f; border-radius:0 8px 8px 0; padding:14px 18px; font-size:14.5px; line-height:1.6; color:#c4b8a4; margin-bottom:44px;">Everything runs on your machine. No account, no cloud, no telemetry. If a step here asks you to log in anywhere, it's wrong.</div>
+
+      <h2 id="install" style="font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; margin:0 0 12px; scroll-margin-top:80px;">Installation</h2>
+      <p style="font-size:15.5px; line-height:1.7; color:#a89a86; margin:0 0 8px; text-wrap:pretty;">There's no signed installer yet. For the pre-alpha you clone and run from source.</p>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:13px; color:#ede6d9; margin:20px 0 6px;">Linux</div>
+      <code class="om-doc-code">git clone https://github.com/Sight8218/OPNduck
+cd OPNduck
+./setup.sh        # pulls model weights + ffmpeg
+python -m opnduck</code>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:13px; color:#ede6d9; margin:20px 0 6px;">Windows</div>
+      <code class="om-doc-code">git clone https://github.com/Sight8218/OPNduck
+cd OPNduck
+setup.bat
+python -m opnduck</code>
+      <p style="font-size:14px; line-height:1.65; color:#7d7364; margin:6px 0 44px;">Exact commands may differ between commits — always check the repo README for the current entry point.</p>
+
+      <h2 id="gpu" style="font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; margin:0 0 12px; scroll-margin-top:80px;">GPU setup</h2>
+      <p style="font-size:15.5px; line-height:1.7; color:#a89a86; margin:0 0 18px; text-wrap:pretty;">OPNduck detects your hardware on launch and picks a backend. You can override it in settings if detection guesses wrong.</p>
+      <div style="display:grid; gap:12px; margin-bottom:44px;">
+        <sc-for list="{{ gpuRows }}" as="g" hint-placeholder-count="4">
+          <div style="display:grid; grid-template-columns:120px 1fr; gap:16px; align-items:baseline; border-top:1px solid rgba(237,230,217,0.07); padding-top:12px;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:13.5px; color:#f0a63b;">{{ g.name }}</div>
+            <div style="font-size:14.5px; line-height:1.6; color:#a89a86;">{{ g.detail }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <h2 id="tools" style="font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; margin:0 0 12px; scroll-margin-top:80px;">The four tools</h2>
+      <div style="display:flex; flex-direction:column; gap:18px; margin-bottom:44px;">
+        <sc-for list="{{ tools }}" as="t" hint-placeholder-count="4">
+          <div style="background:#171310; border:1px solid rgba(225,137,47,0.14); border-radius:12px; padding:22px;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#e1892f; margin-bottom:8px;">{{ t.num }}</div>
+            <h3 style="font-family:'JetBrains Mono',monospace; font-size:18px; margin:0 0 8px;">{{ t.title }}</h3>
+            <p style="font-size:14.5px; line-height:1.65; color:#a89a86; margin:0; text-wrap:pretty;">{{ t.body }}</p>
+          </div>
+        </sc-for>
+      </div>
+
+      <h2 id="build" style="font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; margin:0 0 12px; scroll-margin-top:80px;">Building from source</h2>
+      <p style="font-size:15.5px; line-height:1.7; color:#a89a86; margin:0 0 8px; text-wrap:pretty;">You'll need Python 3.10+, git, and ffmpeg on your PATH. The setup script fetches model weights on first run — expect a few GB.</p>
+      <code class="om-doc-code">python -m venv .venv
+source .venv/bin/activate     # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+python -m opnduck --check     # verifies GPU + ffmpeg</code>
+      <p style="font-size:14px; line-height:1.65; color:#7d7364; margin:6px 0 44px;">If <span style="font-family:'JetBrains Mono',monospace; color:#f0a63b;">--check</span> reports no GPU, OPNduck still runs on CPU — just slower.</p>
+
+      <h2 id="trouble" style="font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; margin:0 0 12px; scroll-margin-top:80px;">Troubleshooting</h2>
+      <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:44px;">
+        <sc-for list="{{ faqs }}" as="f" hint-placeholder-count="4">
+          <div style="border-top:1px solid rgba(237,230,217,0.07); padding-top:14px;">
+            <div style="font-size:15px; font-weight:600; color:#ede6d9; margin-bottom:6px;">{{ f.q }}</div>
+            <div style="font-size:14.5px; line-height:1.65; color:#a89a86; text-wrap:pretty;">{{ f.a }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:linear-gradient(155deg,#211a13,#171310); border:1px solid rgba(225,137,47,0.22); border-radius:14px; padding:28px; display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap;">
+        <div>
+          <h3 style="font-family:'JetBrains Mono',monospace; font-size:18px; margin:0 0 6px;">Still stuck?</h3>
+          <p style="font-size:14.5px; color:#a89a86; margin:0;">Open an issue with your OS, GPU, and the full error output.</p>
+        </div>
+        <a href="https://github.com/Sight8218/OPNduck/issues" style="background:linear-gradient(160deg,#f0a63b,#d97a25); color:#17130f; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:13px; padding:13px 20px; border-radius:7px; white-space:nowrap;">File an issue &rarr;</a>
+      </div>
+    </main>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      nav: [
+        { title: 'START HERE', items: [
+          { label: 'Getting started', href: '#' },
+          { label: 'Installation', href: '#install' },
+          { label: 'GPU setup', href: '#gpu' },
+        ]},
+        { title: 'USING IT', items: [
+          { label: 'The four tools', href: '#tools' },
+          { label: 'Building from source', href: '#build' },
+          { label: 'Troubleshooting', href: '#trouble' },
+        ]},
+        { title: 'MORE', items: [
+          { label: 'Download & builds', href: './OPNduck Download.dc.html' },
+          { label: 'Blog / dev log', href: './OPNduck Blog.dc.html' },
+          { label: 'Terms & safety', href: './OPNduck Terms.dc.html' },
+        ]},
+      ],
+      gpuRows: [
+        { name: 'NVIDIA', detail: 'CUDA acceleration, the fastest path. Recent drivers recommended.' },
+        { name: 'AMD', detail: 'Runs via ROCm/DirectML depending on platform. Linux support is stronger right now.' },
+        { name: 'Intel', detail: 'Arc and recent integrated GPUs are supported through the shared backend.' },
+        { name: 'CPU fallback', detail: 'No GPU? Everything still works, it just takes longer. Nothing is gated behind hardware.' },
+      ],
+      tools: [
+        { num: '01 · AI UPSCALING', title: 'Upscale video & stills', body: 'Point it at a file, pick a target resolution, choose a model. The job runs on your GPU (or CPU) and writes the result to disk. Batch a folder if you want.' },
+        { num: '02 · FRAME INTERPOLATION', title: 'Generate in-between frames', body: 'Turn 24fps into 48 or 60 for smoother motion, or stretch a clip for slow motion. Pick source and target frame rates and let it fill the gaps.' },
+        { num: '03 · MEDIA DOWNLOADER', title: 'Queue-based downloads', body: 'Paste a link, choose format and quality, add it to the queue. No browser extension, no bundled toolbar — it writes straight to disk.' },
+        { num: '04 · FORMAT CONVERSION', title: 'Convert & remux in batches', body: 'Move between MP4, MKV, WebM, HEVC, AV1, H.264. Remux when no re-encode is needed; transcode when it is. You decide.' },
+      ],
+      faqs: [
+        { q: 'It says "no GPU detected" but I have one.', a: 'Update your drivers, then override the backend in Settings. Run python -m opnduck --check to see what OPNduck can actually reach.' },
+        { q: 'The downloader refuses a file.', a: 'By policy OPNduck will not process content it flags as adult material. This is intentional and not configurable — see the Terms & Safety page.' },
+        { q: 'Upscaling is extremely slow.', a: 'You are probably on the CPU fallback. Confirm your GPU backend is active, and try a smaller model or lower target resolution first.' },
+        { q: 'Something crashed with a stack trace.', a: 'That is expected in pre-alpha. Copy the full output and open an issue with your OS and GPU — it genuinely helps.' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

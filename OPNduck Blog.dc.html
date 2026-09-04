@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="./opnduck-cms.js"></script>
+<style>
+  html { scroll-behavior:smooth; scrollbar-width:none; background:#0f0c0a; }
+  html::-webkit-scrollbar { display:none; }
+  body { margin:0; background:#0f0c0a; }
+  * { box-sizing:border-box; }
+  ::selection { background:#e1892f; color:#120f0c; }
+  a { color:#e1892f; text-decoration:none; }
+  a:hover { color:#f2ab5c; }
+  @media (max-width:880px){ .om-nav-links{display:none !important} .om-pad{padding-left:22px !important;padding-right:22px !important} .om-feat{grid-template-columns:1fr !important} }
+</style>
+</helmet>
+
+<div style="position:relative; min-height:100vh; background:radial-gradient(ellipse 900px 600px at 15% -5%, rgba(225,137,47,0.10), transparent 60%), linear-gradient(180deg,#17130f 0%,#120f0c 40%,#0f0c0a 100%); color:#ede6d9; font-family:'IBM Plex Sans',sans-serif;">
+
+  <div class="om-pad" style="position:sticky; top:0; z-index:50; display:flex; align-items:center; justify-content:space-between; padding:16px 48px; border-bottom:1px solid rgba(225,137,47,0.12); background:rgba(15,12,10,0.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);">
+    <a href="./OPNduck Marketing v2.dc.html" style="display:flex; align-items:center; gap:12px;">
+      <img src="assets/opnduck-logo.png" alt="OPNduck" style="width:34px;height:34px;border-radius:8px;object-fit:cover; box-shadow:0 4px 14px rgba(225,137,47,0.3);">
+      <span style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:17px; letter-spacing:0.5px; color:#ede6d9;">OPNduck</span>
+    </a>
+    <div class="om-nav-links" style="display:flex; align-items:center; gap:30px; font-size:14px; color:#b5a793;">
+      <a href="./OPNduck Marketing v2.dc.html" style="color:#b5a793;">Home</a>
+      <a href="./OPNduck Docs.dc.html" style="color:#b5a793;">Docs</a>
+      <a href="./OPNduck Blog.dc.html" style="color:#f0a63b;">Blog</a>
+      <a href="./OPNduck Download.dc.html" style="color:#b5a793;">Download</a>
+    </div>
+  </div>
+
+  <!-- LIST VIEW -->
+  <sc-if value="{{ showList }}" hint-placeholder-val="{{ true }}">
+  <div>
+    <div class="om-pad" style="padding:64px 48px 20px; max-width:1000px; margin:0 auto;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:14px;">DEV LOG</div>
+      <h1 style="font-family:'JetBrains Mono',monospace; font-size:40px; font-weight:700; margin:0 0 14px; letter-spacing:-0.3px;">Building in the open</h1>
+      <p style="font-size:16px; line-height:1.65; color:#a89a86; margin:0; max-width:620px; text-wrap:pretty;">Notes from a pre-alpha. No content calendar, no growth hacking — just what changed, what broke, and what I was thinking. Longer discussion happens in the GitHub issues.</p>
+    </div>
+
+    <!-- FEATURED / PINNED -->
+    <div class="om-pad" style="padding:36px 48px 20px; max-width:1000px; margin:0 auto;">
+      <div onClick="{{ openFeatured }}" style="cursor:pointer; display:block; background:linear-gradient(155deg,#211a13,#171310); border:1px solid rgba(225,137,47,0.22); border-radius:14px; padding:36px; transition:border-color .2s, transform .2s;" style-hover="border-color:rgba(225,137,47,0.5); transform:translateY(-2px)">
+        <div style="display:flex; gap:12px; align-items:center; margin-bottom:16px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#e1892f;">
+          <span style="background:rgba(225,137,47,0.14); border:1px solid rgba(225,137,47,0.35); border-radius:5px; padding:4px 9px;">PINNED</span>
+          <span style="color:#8a7c68;">{{ featured.date }} &middot; {{ featured.tag }}</span>
+        </div>
+        <h2 style="font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:700; margin:0 0 12px; color:#ede6d9; text-wrap:pretty;">{{ featured.title }}</h2>
+        <p style="font-size:15.5px; line-height:1.7; color:#a89a86; margin:0 0 14px; max-width:720px; text-wrap:pretty;">{{ featured.excerpt }}</p>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#e1892f;">Read the post &rarr;</span>
+      </div>
+    </div>
+
+    <!-- POST GRID -->
+    <div class="om-pad" style="padding:24px 48px 60px; max-width:1000px; margin:0 auto;">
+      <div class="om-feat" style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        <sc-for list="{{ gridPosts }}" as="post" hint-placeholder-count="2">
+          <div onClick="{{ post.open }}" style="cursor:pointer; display:flex; flex-direction:column; background:#171310; border:1px solid rgba(225,137,47,0.14); border-radius:12px; padding:26px; transition:border-color .2s, transform .2s;" style-hover="border-color:rgba(225,137,47,0.45); transform:translateY(-3px)">
+            <div style="display:flex; gap:10px; align-items:center; margin-bottom:14px; font-family:'JetBrains Mono',monospace; font-size:11px;">
+              <span style="color:#f0a63b; background:rgba(225,137,47,0.1); border:1px solid rgba(225,137,47,0.3); border-radius:5px; padding:3px 8px;">{{ post.tag }}</span>
+              <span style="color:#7d7364;">{{ post.date }}</span>
+            </div>
+            <h3 style="font-family:'JetBrains Mono',monospace; font-size:19px; font-weight:700; margin:0 0 10px; color:#ede6d9; text-wrap:pretty;">{{ post.title }}</h3>
+            <p style="font-size:14.5px; line-height:1.65; color:#a89a86; margin:0 0 16px; text-wrap:pretty;">{{ post.excerpt }}</p>
+            <span style="margin-top:auto; font-family:'JetBrains Mono',monospace; font-size:12px; color:#e1892f;">Read the post &rarr;</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="margin-top:36px; text-align:center; font-family:'JetBrains Mono',monospace; font-size:13px; color:#8a7c68;">
+        More notes land in the repo. <a href="https://github.com/Sight8218/OPNduck">Watch the project &rarr;</a>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- READER VIEW -->
+  <sc-if value="{{ showReader }}" hint-placeholder-val="{{ false }}">
+  <div class="om-pad" style="padding:52px 48px 80px; max-width:760px; margin:0 auto;">
+    <div onClick="{{ backToList }}" style="cursor:pointer; display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#8a7c68; margin-bottom:32px; transition:color .2s;" style-hover="color:#f0a63b">&larr; all posts</div>
+    <div style="display:flex; gap:12px; align-items:center; margin-bottom:18px; font-family:'JetBrains Mono',monospace; font-size:11px;">
+      <span style="color:#f0a63b; background:rgba(225,137,47,0.1); border:1px solid rgba(225,137,47,0.3); border-radius:5px; padding:4px 9px;">{{ active.tag }}</span>
+      <span style="color:#7d7364;">{{ active.date }}</span>
+      <span style="color:#7d7364;">&middot; by {{ active.author }}</span>
+    </div>
+    <h1 style="font-family:'JetBrains Mono',monospace; font-size:34px; font-weight:700; margin:0 0 28px; letter-spacing:-0.3px; line-height:1.15; text-wrap:pretty;">{{ active.title }}</h1>
+    <div style="border-top:1px solid rgba(225,137,47,0.15); padding-top:28px; display:flex; flex-direction:column; gap:20px;">
+      <sc-for list="{{ active.paras }}" as="para" hint-placeholder-count="3">
+        <p style="font-size:17px; line-height:1.75; color:#c4b8a4; margin:0; text-wrap:pretty;">{{ para }}</p>
+      </sc-for>
+    </div>
+    <div style="margin-top:44px; padding-top:24px; border-top:1px solid rgba(225,137,47,0.12); display:flex; justify-content:space-between; flex-wrap:wrap; gap:14px; font-family:'JetBrains Mono',monospace; font-size:13px; color:#8a7c68;">
+      <span onClick="{{ backToList }}" style="cursor:pointer; color:#e1892f;">&larr; back to all posts</span>
+      <a href="https://github.com/Sight8218/OPNduck">Discuss on GitHub &rarr;</a>
+    </div>
+  </div>
+  </sc-if>
+
+  <div class="om-pad" style="border-top:1px solid rgba(225,137,47,0.12); padding:32px 48px; max-width:1100px; margin:24px auto 0; display:flex; justify-content:space-between; flex-wrap:wrap; gap:14px; font-family:'JetBrains Mono',monospace; font-size:12.5px; color:#7d7364;">
+    <span style="color:#ede6d9; font-weight:700;">OPNduck</span>
+    <div style="display:flex; gap:20px; flex-wrap:wrap;">
+      <a href="./OPNduck Marketing v2.dc.html" style="color:#7d7364;">Home</a>
+      <a href="./OPNduck Docs.dc.html" style="color:#7d7364;">Docs</a>
+      <a href="./OPNduck Terms.dc.html" style="color:#7d7364;">Terms &amp; Safety</a>
+      <span>GPL-3.0 License</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { slug: null, cms: null };
+
+  ORIGIN = {
+    slug: 'why-opnduck-exists', tag: 'ORIGIN', date: '2026', author: 'Ducky',
+    title: 'Why OPNduck exists',
+    excerpt: 'For years I paid for sketchy downloaders and login-walled upscalers to do things my own GPU could already do. This is the long version of why I started building the tool I actually wanted.',
+    body: 'For years I relied on whatever sketchy YouTube downloaders I could find — most of them bloated with ads, many carrying viruses that steal data and sell it. The "free" ones locked high-res downloads behind paywalls.\nWhen my footage was bad quality, I had to pay a $50 license just to upscale it with tools like Real-ESRGAN, except Real-ESRGAN has no GUI. Most people don\u2019t want to touch the terminal, so they end up paying for a wrapper app instead.\nI built OPNduck because I was tired of paying subscription fees for something I could already do on my own GPU. No terminal required. No login. No limits. No monthly bill.\nAnd I\u2019m not hiding where the inspiration came from — the tools that inspired this are linked on the home page, and they\u2019re genuinely good.'
+  };
+
+  componentDidMount() {
+    this._syncHash();
+    this._onHash = () => this._syncHash();
+    window.addEventListener('hashchange', this._onHash);
+    if (window.OPNduckCMS) window.OPNduckCMS.load().then(c => this.setState({ cms: c || {} }));
+  }
+  componentWillUnmount() { window.removeEventListener('hashchange', this._onHash); }
+  _syncHash() {
+    const m = (location.hash || '').match(/post\/(.+)$/);
+    this.setState({ slug: m ? decodeURIComponent(m[1]) : null });
+    if (!m) window.scrollTo({ top: 0 });
+  }
+  _open(slug) { location.hash = 'post/' + slug; window.scrollTo({ top: 0 }); }
+  _allPosts() {
+    const cms = this.state.cms || {};
+    const cmsPosts = (cms.blog || []).map(p => ({
+      slug: p.slug, tag: p.tag || 'UPDATE', date: p.date || '', author: p.author || 'Ducky',
+      title: p.title || 'Untitled', excerpt: p.excerpt || '', body: p.body || ''
+    }));
+    return [this.ORIGIN, ...cmsPosts];
+  }
+
+  renderVals() {
+    const all = this._allPosts();
+    const featured = all[0];
+    const grid = all.slice(1);
+    const active = all.find(p => p.slug === this.state.slug) || null;
+    const paras = active ? active.body.split('\n').map(s => s.trim()).filter(Boolean) : [];
+    return {
+      showList: !this.state.slug,
+      showReader: !!this.state.slug && !!active,
+      featured,
+      openFeatured: () => this._open(featured.slug),
+      gridPosts: grid.map(p => ({ ...p, open: () => this._open(p.slug) })),
+      active: active ? { ...active, paras } : { tag: '', date: '', author: '', title: '', paras: [] },
+      backToList: () => { this._open ? (location.hash = '') : null; this.setState({ slug: null }); window.scrollTo({ top: 0 }); },
+    };
+  }
+}
+</script>
+</body>
+</html>

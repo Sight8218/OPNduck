@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html { scroll-behavior:smooth; scrollbar-width:none; background:#0f0c0a; }
+  html::-webkit-scrollbar { display:none; }
+  body { margin:0; background:#0f0c0a; }
+  * { box-sizing:border-box; }
+  ::selection { background:#e1892f; color:#120f0c; }
+  a { color:#e1892f; text-decoration:none; }
+  a:hover { color:#f2ab5c; }
+  @media (max-width:880px){ .om-nav-links{display:none !important} .om-pad{padding-left:22px !important;padding-right:22px !important} }
+</style>
+</helmet>
+
+<div style="position:relative; min-height:100vh; background:radial-gradient(ellipse 900px 600px at 15% -5%, rgba(225,137,47,0.10), transparent 60%), linear-gradient(180deg,#17130f 0%,#120f0c 40%,#0f0c0a 100%); color:#ede6d9; font-family:'IBM Plex Sans',sans-serif;">
+
+  <div class="om-pad" style="position:sticky; top:0; z-index:50; display:flex; align-items:center; justify-content:space-between; padding:16px 48px; border-bottom:1px solid rgba(225,137,47,0.12); background:rgba(15,12,10,0.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);">
+    <a href="./OPNduck Marketing v2.dc.html" style="display:flex; align-items:center; gap:12px;">
+      <img src="assets/opnduck-logo.png" alt="OPNduck" style="width:34px;height:34px;border-radius:8px;object-fit:cover; box-shadow:0 4px 14px rgba(225,137,47,0.3);">
+      <span style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:17px; letter-spacing:0.5px; color:#ede6d9;">OPNduck</span>
+    </a>
+    <div class="om-nav-links" style="display:flex; align-items:center; gap:30px; font-size:14px; color:#b5a793;">
+      <a href="./OPNduck Marketing v2.dc.html" style="color:#b5a793;">Home</a>
+      <a href="./OPNduck Docs.dc.html" style="color:#b5a793;">Docs</a>
+      <a href="./OPNduck Blog.dc.html" style="color:#b5a793;">Blog</a>
+      <a href="./OPNduck Download.dc.html" style="color:#b5a793;">Download</a>
+    </div>
+  </div>
+
+  <div class="om-pad" style="padding:64px 48px 40px; max-width:820px; margin:0 auto;">
+    <a href="./OPNduck Marketing v2.dc.html" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#8a7c68;">&larr; Back to home</a>
+    <h1 style="font-family:'JetBrains Mono',monospace; font-size:38px; font-weight:700; margin:18px 0 14px; letter-spacing:-0.3px;">Terms of Use &amp; Safety</h1>
+    <p style="font-size:16px; line-height:1.65; color:#a89a86; margin:0; text-wrap:pretty;">Last updated for the pre-alpha. These terms may change as the project matures — the safety commitments below will not get weaker, only clearer.</p>
+  </div>
+
+  <div class="om-pad" style="padding:10px 48px 40px; max-width:820px; margin:0 auto;">
+    <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:16px;">ABOUT THIS PROJECT</div>
+    <p style="font-size:15.5px; line-height:1.7; color:#c4b8a4; margin:0 0 40px; text-wrap:pretty;">OPNduck is built by a 16-year-old developer with no budget for human coders. We use AI to build and maintain this app — people can say what they want about that, but it's what we have to do right now. The code is open source under GPL-3.0 so anyone can audit it, fork it, or contribute.</p>
+
+    <div style="background:#2a1810; border:1px solid rgba(225,137,47,0.35); border-radius:10px; padding:28px; margin-bottom:40px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:#e1892f; margin-bottom:14px;">&#9888; SAFETY &amp; TERMS OF USE</div>
+      <div style="font-size:14.5px; line-height:1.8; color:#c4b8a4; text-wrap:pretty;">
+        <p style="margin:0 0 14px;"><strong>This app will not process sexual or pornographic content in any form.</strong> The downloader, upscaler, frame interpolation tool, and format converter will refuse any file suspected to contain adult material.</p>
+        <p style="margin:0 0 14px;">We take this seriously: OPNduck exists to help creators work with their own footage, edit videos, and convert media for legitimate purposes. It does not exist to facilitate child exploitation, abuse material, or any form of sexual content processing.</p>
+        <p style="margin:0 0 14px;">We will never implement a "filter" that lets this app process CSAM or sexual content. Not now, not in future versions, not as an optional flag. If you use OPNduck for any illegal purpose — especially the sexual abuse of minors — you are breaking the law, and we will not help you do it.</p>
+        <p style="margin:0 0 14px;"><strong>Our commitment to fighting abuse:</strong> If we ever receive many requests to make the app able to process and download pornographic or sexual content, we will hire a dedicated developer to build a <strong>STRICT CSAM detection filter</strong>. This comes with its own security drawbacks — the filtering layer itself introduces vulnerabilities we'd rather not have, and it will not be as secure as those users want — but it's the measure we have to take to keep the app safe. The filter will be bound directly to the engine at the core level: if predators try to remove it, they can only swap out the shell, not the engine. The filter cannot be detached or bypassed without breaking the entire app. This is intentional — it makes it much harder for people with bad intent to rip it out and misuse the tool.</p>
+        <p style="margin:0 0 14px;">The filter will be locked down: only official developers will ever have access to modify it, and we will pursue official certification with law enforcement to validate it works. The filter will detect <strong>confirmed</strong> illegal material, not suspected — to avoid false alarms that harm innocent users. If confirmed CSAM is detected, the app will automatically report it to law enforcement. This is non-negotiable, and the code for this filter will never be open source.</p>
+        <p style="margin:0 0 14px;"><strong>What stays free and open:</strong> The version of OPNduck without the filter — the version that refuses to download or process any sexual content at all — will remain the primary version. It will continue to be open source, free, and updated more frequently than any filtered version, because the filtered version needs extra testing and special development. The filtered version exists only as a necessary safeguard if demand forces us to build it, but the original, safer version will always be the main project, always available, and always getting the most development attention.</p>
+        <p style="margin:0 0 14px;"><strong>Why we're doing this:</strong> A person I know was exploited as a child. Since then, they have struggled with suicidal thoughts and tried to end their life. Many others who have gone through the same thing also don't feel good — they carry that pain forward. I don't know exactly how it feels to have been exploited, but I know it can't feel good. No one deserves that. Our job is not to make it easier for predators — it's to catch them. That's why this feature exists.</p>
+        <p style="margin:0;"><strong>By using this software, you agree:</strong> You own or have permission to process every file you run through OPNduck. You will not use it to create, distribute, or facilitate access to illegal content. You will not use it to harm others or break the law.</p>
+      </div>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace; font-size:12.5px; color:#7d7364; line-height:1.8; text-wrap:pretty; border-top:1px solid rgba(225,137,47,0.12); padding-top:28px;">
+      <p style="margin:0 0 8px;"><strong>License:</strong> <a href="https://www.gnu.org/licenses/gpl-3.0.html" style="color:#7d7364;">GPL-3.0</a> — see the repository for full terms.</p>
+      <p style="margin:0;"><strong>Report abuse:</strong> If you believe OPNduck is being used illegally or to cause harm, contact GitHub directly with the evidence.</p>
+    </div>
+  </div>
+
+  <div class="om-pad" style="border-top:1px solid rgba(225,137,47,0.12); padding:32px 48px; max-width:1100px; margin:48px auto 0; display:flex; justify-content:space-between; flex-wrap:wrap; gap:14px; font-family:'JetBrains Mono',monospace; font-size:12.5px; color:#7d7364;">
+    <span style="color:#ede6d9; font-weight:700;">OPNduck</span>
+    <div style="display:flex; gap:20px; flex-wrap:wrap;">
+      <a href="./OPNduck Marketing v2.dc.html" style="color:#7d7364;">Home</a>
+      <a href="./OPNduck Docs.dc.html" style="color:#7d7364;">Docs</a>
+      <a href="./OPNduck Blog.dc.html" style="color:#7d7364;">Blog</a>
+      <span>GPL-3.0 License</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

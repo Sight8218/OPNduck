@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<script src="./opnduck-cms.js"></script>
+<style>
+  html { scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; background:#0f0c0a; }
+  html::-webkit-scrollbar { display:none; width:0; height:0; }
+  body { margin:0; overflow-x:hidden; scrollbar-width:none; -ms-overflow-style:none; background:#0f0c0a; }
+  body::-webkit-scrollbar { display:none; width:0; height:0; }
+  * { box-sizing:border-box; }
+  ::selection { background:#e1892f; color:#120f0c; }
+  a { color:#e1892f; text-decoration:none; }
+  a:hover { color:#f2ab5c; }
+  @keyframes pulse-travel { 0%{left:-6px;opacity:0} 8%{opacity:1} 92%{opacity:1} 100%{left:100%;opacity:0} }
+  @keyframes drift-a { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,40px)} }
+  @keyframes drift-b { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-50px,-30px)} }
+  @keyframes marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+  @keyframes sheen { 0%{background-position:-140% 0} 60%,100%{background-position:240% 0} }
+  @media (max-width:880px){
+    .om-hero-grid{grid-template-columns:1fr !important}
+    .om-feat-row{grid-template-columns:1fr !important}
+    .om-feat-row > div{order:0 !important}
+    .om-two{grid-template-columns:1fr !important}
+    .om-compare-table{font-size:13px !important}
+    .om-nav-links{display:none !important}
+    .om-pad{padding-left:22px !important;padding-right:22px !important}
+    .om-h1{font-size:38px !important}
+  }
+</style>
+</helmet>
+
+<div style="position:relative; color:#ede6d9; font-family:'IBM Plex Sans',sans-serif; overflow-x:hidden;">
+
+  <!-- ambient depth (fixed = never affects scroll height) -->
+  <div style="position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;">
+    <div style="position:absolute; top:-160px; left:-120px; width:640px; height:640px; border-radius:50%; background:radial-gradient(circle,rgba(225,137,47,0.13),transparent 62%); filter:blur(20px); animation:drift-a 22s ease-in-out infinite;"></div>
+    <div style="position:absolute; top:32%; right:-160px; width:560px; height:560px; border-radius:50%; background:radial-gradient(circle,rgba(194,87,31,0.11),transparent 60%); filter:blur(24px); animation:drift-b 27s ease-in-out infinite;"></div>
+    <div style="position:absolute; inset:0; background:radial-gradient(ellipse 100% 60% at 50% 0%, rgba(255,255,255,0.02), transparent 60%);"></div>
+  </div>
+
+  <!-- scroll progress -->
+  <div style="position:fixed; top:0; left:0; right:0; height:3px; z-index:60; background:rgba(255,255,255,0.04);">
+    <div data-progress="" style="height:100%; width:0%; background:linear-gradient(90deg,#c2571f,#f0a63b); box-shadow:0 0 10px rgba(240,166,59,0.6); transition:width .1s linear;"></div>
+  </div>
+
+  <!-- back to top -->
+  <div data-totop="" onClick="{{ scrollTop }}" style="position:fixed; bottom:28px; right:28px; z-index:60; width:46px; height:46px; border-radius:50%; background:linear-gradient(160deg,#f0a63b,#c2571f); color:#17130f; display:flex; align-items:center; justify-content:center; font-size:20px; cursor:pointer; opacity:0; transform:translateY(12px); pointer-events:none; transition:opacity .3s ease, transform .3s ease; box-shadow:0 10px 26px rgba(225,137,47,0.35);" style-hover="filter:brightness(1.08)">↑</div>
+
+  <!-- NAV -->
+  <div class="om-pad" style="position:sticky; top:0; z-index:50; display:flex; align-items:center; justify-content:space-between; padding:16px 48px; border-bottom:1px solid rgba(225,137,47,0.12); background:rgba(15,12,10,0.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <img src="assets/opnduck-logo.png" alt="OPNduck" style="width:34px;height:34px;border-radius:8px;object-fit:cover; box-shadow:0 4px 14px rgba(225,137,47,0.3);">
+      <span style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:17px; letter-spacing:0.5px;">OPNduck</span>
+      <span style="font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1px; color:#e1892f; background:rgba(225,137,47,0.12); border:1px solid rgba(225,137,47,0.35); border-radius:4px; padding:3px 7px; margin-left:2px; display:inline-flex; align-items:center; gap:5px;"><span style="width:5px;height:5px;border-radius:50%;background:#e1892f;animation:blink 1.6s ease-in-out infinite;"></span>PRE-ALPHA</span>
+    </div><div class="om-nav-links" style="display: flex; align-items: center; gap: 30px; font-size: 14px; width: 933px; height: 38px; text-align: center">
+      
+      
+      
+      
+      <a data-nav="roadmap" href="#roadmap" style="color:#b5a793; transition:color .25s;">Roadmap</a>
+      <a href="./OPNduck Docs.dc.html" style="color:#b5a793; transition:color .25s;">Docs</a>
+      <a href="https://github.com/Sight8218/OPNduck" style="display:flex; align-items:center; gap:7px; color:#ede6d9; border:1px solid rgba(237,230,217,0.25); padding:8px 14px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:12.5px; transition:border-color .25s, background .25s;" style-hover="border-color:rgba(225,137,47,0.6); background:rgba(225,137,47,0.08)">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.02 1.93-.02 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>
+        GitHub
+      </a><a href="./OPNduck Blog.dc.html" style="color:#b5a793; transition:color .25s;">Blog</a>
+      <a href="./OPNduck Download.dc.html" style="color:#b5a793; transition:color .25s;">Download</a>
+      
+    </div>
+    
+  </div>
+
+  <!-- HERO -->
+  <div class="om-pad" style="position:relative; z-index:2; padding:76px 48px 48px; max-width:1320px; margin:0 auto;">
+    <div class="om-hero-grid" style="display:grid; grid-template-columns:1.05fr 0.95fr; gap:60px; align-items:center;">
+      <div data-reveal="">
+        <div data-hero-eyebrow="" style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:18px;">FREE · OPEN SOURCE · RUNS ON YOUR HARDWARE</div>
+        <h1 data-hero-title="" class="om-h1" style="font-family:'JetBrains Mono',monospace; font-size:52px; line-height:1.08; font-weight:700; margin:0 0 24px; letter-spacing:-0.5px; text-wrap:pretty;">Your GPU already does this.<br>Stop paying monthly for it.</h1>
+        <p data-hero-sub="" style="font-size:17px; line-height:1.65; color:#bcae99; max-width:520px; margin:0 0 34px; text-wrap:pretty;">OPNduck is a media processing suite for AI upscaling, frame interpolation, downloading, and format conversion — all running locally, on the machine you already own. Nothing uploaded, nothing metered, nothing rented back to you.</p>
+        <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:34px;">
+          <a href="https://github.com/Sight8218/OPNduck" style="background:linear-gradient(160deg,#f0a63b,#d97a25); color:#17130f; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px; padding:14px 24px; border-radius:7px; display:inline-flex; align-items:center; gap:9px; box-shadow:0 8px 24px rgba(225,137,47,0.28); transition:transform .2s ease, box-shadow .2s ease;" style-hover="transform:translateY(-2px); box-shadow:0 14px 32px rgba(225,137,47,0.4)">Follow progress on GitHub →</a>
+          <a href="./OPNduck Download.dc.html" style="border:1px solid rgba(237,230,217,0.22); color:#ede6d9; font-family:'JetBrains Mono',monospace; font-weight:600; font-size:14px; padding:14px 24px; border-radius:7px; display:inline-flex; align-items:center; transition:border-color .2s, background .2s;" style-hover="border-color:rgba(225,137,47,0.5); background:rgba(225,137,47,0.06)">Build it yourself →</a>
+        </div>
+        <div style="display:flex; gap:22px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#7d7364; flex-wrap:wrap;">
+          <span>NVIDIA / AMD / Intel GPU</span><span>·</span><span>CPU fallback</span><span>·</span><span>Linux &amp; Windows</span>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
+          <a href="https://github.com/Sight8218/OPNduck" data-gh-link="" style="display:flex; align-items:center; gap:8px; background:rgba(225,137,47,0.07); border:1px solid rgba(225,137,47,0.22); border-radius:7px; padding:9px 13px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#ede6d9; transition:border-color .2s, background .2s;" style-hover="border-color:rgba(225,137,47,0.5); background:rgba(225,137,47,0.12)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#f0a63b"><path d="M12 .5l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 16.9 5.8 20l1.6-7L2 8.3l7.1-.6z"></path></svg>
+            <span data-gh-stars="" style="color:#f0a63b; font-weight:700;">···</span><span style="color:#8a7c68;">stars</span>
+          </a>
+          <a href="https://github.com/Sight8218/OPNduck/releases" data-gh-rel-link="" style="display:flex; align-items:center; gap:8px; background:rgba(225,137,47,0.07); border:1px solid rgba(225,137,47,0.22); border-radius:7px; padding:9px 13px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#ede6d9; transition:border-color .2s, background .2s;" style-hover="border-color:rgba(225,137,47,0.5); background:rgba(225,137,47,0.12)">
+            <span style="width:6px; height:6px; border-radius:50%; background:#6a9962; box-shadow:0 0 6px #6a9962;"></span>
+            <span style="color:#8a7c68;">latest</span><span data-gh-release="" style="color:#f0a63b; font-weight:700;">loading…</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- LIVE PIPELINE WIDGET -->
+      <div data-reveal="" data-delay="120" style="background:linear-gradient(165deg,#1d1712,#151109); border:1px solid rgba(225,137,47,0.18); border-radius:14px; padding:26px; box-shadow:0 30px 60px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.03);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:22px;">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1.5px; color:#8a7c68;">LOCAL PIPELINE · DEMO</span>
+          <span style="display:flex; align-items:center; gap:6px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#6a9962;"><span style="width:6px;height:6px;border-radius:50%;background:#6a9962;box-shadow:0 0 6px #6a9962; animation:blink 1.8s ease-in-out infinite;"></span>NO NETWORK HOP</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; position:relative; margin-bottom:28px; padding:0 4px;">
+          <div style="position:absolute; top:15px; left:20px; right:20px; height:2px; background:rgba(225,137,47,0.15);">
+            <div style="position:absolute; top:-2px; width:6px; height:6px; border-radius:50%; background:#e1892f; box-shadow:0 0 10px #e1892f; animation:pulse-travel 3.2s linear infinite;"></div>
+          </div>
+          <sc-for list="{{ pipelineStages }}" as="stage" hint-placeholder-count="5">
+            <div style="position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:8px; width:19%;">
+              <div style="width:30px; height:30px; border-radius:50%; background:#1d1712; border:2px solid {{ stage.color }}; display:flex; align-items:center; justify-content:center; font-size:13px;">{{ stage.icon }}</div>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:9.5px; color:#8a7c68; text-align:center; letter-spacing:0.3px;">{{ stage.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:11px; color:#a89a86; margin-bottom:6px;"><span>GPU</span><span data-num="gpu" style="color:#e1892f;">71%</span></div>
+          <div style="height:6px; background:rgba(237,230,217,0.06); border-radius:3px; overflow:hidden;"><div data-fill="gpu" style="height:100%; border-radius:3px; background:linear-gradient(90deg,#c2571f,#f0a63b); width:71%; transition:width .6s ease;"></div></div>
+        </div>
+        <div style="margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:11px; color:#a89a86; margin-bottom:6px;"><span>CPU</span><span data-num="cpu" style="color:#e1892f;">34%</span></div>
+          <div style="height:6px; background:rgba(237,230,217,0.06); border-radius:3px; overflow:hidden;"><div data-fill="cpu" style="height:100%; border-radius:3px; background:linear-gradient(90deg,#c2571f,#f0a63b); width:34%; transition:width .6s ease;"></div></div>
+        </div>
+        <div style="margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:11px; color:#a89a86; margin-bottom:6px;"><span>DISK I/O</span><span data-num="disk" style="color:#e1892f;">12%</span></div>
+          <div style="height:6px; background:rgba(237,230,217,0.06); border-radius:3px; overflow:hidden;"><div data-fill="disk" style="height:100%; border-radius:3px; background:linear-gradient(90deg,#c2571f,#f0a63b); width:12%; transition:width .6s ease;"></div></div>
+        </div>
+        <div style="margin-top:14px; padding-top:16px; border-top:1px solid rgba(237,230,217,0.08); display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:11px; color:#7d7364;">
+          <span>source.mkv → output.mkv</span><span>0 bytes left this device</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TICKER -->
+  <div style="position:relative; z-index:2; border-top:1px solid rgba(225,137,47,0.1); border-bottom:1px solid rgba(225,137,47,0.1); overflow:hidden; padding:12px 0; margin-top:24px; -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent); mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);">
+    <div style="display:flex; width:max-content; animation:marquee 32s linear infinite; font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#6f6454;">
+      <sc-for list="{{ tickerRun }}" as="t" hint-placeholder-count="2">
+        <div style="display:flex; gap:34px; padding-right:34px;">
+          <sc-for list="{{ tickerWords }}" as="w" hint-placeholder-count="10">
+            <span style="display:flex; align-items:center; gap:34px;">{{ w }}<span style="color:#e1892f;">◆</span></span>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- GALLERY (browser-framed carousel) -->
+  <div id="screens" class="om-pad" style="position:relative; z-index:2; padding:74px 48px 30px; max-width:1100px; margin:0 auto; scroll-margin-top:90px;">
+    <div data-reveal="" style="margin-bottom:34px; max-width:640px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:14px;">THE ACTUAL APP</div>
+      <h2 style="font-family:'JetBrains Mono',monospace; font-size:34px; font-weight:700; margin:0 0 14px; letter-spacing:-0.3px;">This is what exists today</h2>
+      <p style="font-size:16px; line-height:1.6; color:#a89a86; margin:0; text-wrap:pretty;">No mockups. These are real screenshots of the current pre-alpha build — the shell, running.</p>
+    </div>
+
+    <div data-reveal="" data-delay="80" data-gallery="" style="background:#14100c; border:1px solid rgba(225,137,47,0.2); border-radius:14px; overflow:hidden; box-shadow:0 30px 60px -24px rgba(0,0,0,0.6);">
+      <!-- window chrome -->
+      <div style="display:flex; align-items:center; gap:14px; padding:12px 16px; border-bottom:1px solid rgba(225,137,47,0.14); background:rgba(255,255,255,0.02);">
+        <div style="display:flex; gap:7px;">
+          <span style="width:11px;height:11px;border-radius:50%;background:#e05c48;"></span>
+          <span style="width:11px;height:11px;border-radius:50%;background:#e1a53b;"></span>
+          <span style="width:11px;height:11px;border-radius:50%;background:#6a9962;"></span>
+        </div>
+        <div style="flex:1; text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; color:#7d7364; background:#0f0c0a; border:1px solid rgba(237,230,217,0.06); border-radius:5px; padding:5px 10px;">OPNduck — <span data-gallery-tab="">Home workspace</span></div>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7d7364;"><span data-gallery-idx="">1</span>/<span data-gallery-len="">2</span></span>
+      </div>
+      <!-- track -->
+      <div style="overflow:hidden;">
+        <div data-gallery-track="" style="display:flex; width:100%; transition:transform .5s cubic-bezier(.2,.7,.2,1);">
+          <sc-for list="{{ galleryShots }}" as="shot" hint-placeholder-count="2">
+            <div style="min-width:100%; width:100%;">
+              <img data-shot="" alt="OPNduck screenshot" style="display:block; width:100%; height:auto;">
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- caption + controls -->
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-top:20px; flex-wrap:wrap;">
+      <div style="max-width:640px;">
+        <div data-gallery-title="" style="font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:700; color:#ede6d9; margin-bottom:6px;">Home workspace</div>
+        <p data-gallery-caption="" style="font-size:14.5px; line-height:1.6; color:#a89a86; margin:0; text-wrap:pretty;">Tool cards are generated from installed features and plugins — install one and a card appears here automatically.</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div onClick="{{ galleryPrev }}" style="width:40px;height:40px;border-radius:8px;border:1px solid rgba(225,137,47,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#ede6d9;font-size:16px;transition:background .2s,border-color .2s;" style-hover="background:rgba(225,137,47,0.1);border-color:rgba(225,137,47,0.6)">←</div>
+        <div data-gallery-dots="" style="display:flex; gap:8px;"></div>
+        <div onClick="{{ galleryNext }}" style="width:40px;height:40px;border-radius:8px;border:1px solid rgba(225,137,47,0.3);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#ede6d9;font-size:16px;transition:background .2s,border-color .2s;" style-hover="background:rgba(225,137,47,0.1);border-color:rgba(225,137,47,0.6)">→</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHY I'M BUILDING THIS -->
+  <div id="story" class="om-pad" style="position:relative; z-index:2; padding:80px 48px 60px; max-width:1100px; margin:0 auto; scroll-margin-top:90px;">
+    <h2 data-reveal="" style="font-family:'JetBrains Mono',monospace; font-size:36px; font-weight:700; margin:0 0 28px; letter-spacing:-0.3px; text-wrap:pretty;">I was tired of paying for tools that don't own their own time.</h2>
+    <div class="om-two" style="display:grid; grid-template-columns:1fr 1fr; gap:48px; margin-bottom:36px;">
+      <p data-reveal="" style="font-size:17px; line-height:1.7; color:#c4b8a4; margin:0; text-wrap:pretty;">For years I relied on whatever sketchy YouTube downloaders I could find — most of them bloated with ads, many carrying viruses that steal data and sell it. The "free" ones locked high-res downloads behind paywalls. When my footage was bad quality, I had to pay a $50 license just to upscale it with tools like Real-ESRGAN, except Real-ESRGAN has no GUI. Most people don't want to touch the terminal, so they end up paying for a wrapper app instead.</p>
+      <p data-reveal="" data-delay="120" style="font-size:17px; line-height:1.7; color:#c4b8a4; margin:0; text-wrap:pretty;">I built OPNduck because I was tired of paying subscription fees for something I could already do on my own GPU. No terminal required. No login. No limits. No monthly bill. And I'm not hiding where the inspiration came from.</p>
+    </div>
+
+    <div data-reveal="" style="background:rgba(225,137,47,0.06); border:1px solid rgba(225,137,47,0.2); border-radius:10px; padding:24px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:16px;">IF YOU WANT OTHER OPTIONS</div>
+      <p style="font-size:14.5px; line-height:1.65; color:#a89a86; margin:0 0 16px; text-wrap:pretty;">If OPNduck isn't for you, these projects and tools deserve your time — they inspired this one and they're genuinely good.</p>
+      <div class="om-two" style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+        <sc-for list="{{ recs }}" as="r" hint-placeholder-count="4">
+          <a href="{{ r.url }}" style="display:block; background:rgba(15,12,10,0.5); border:1px solid rgba(237,230,217,0.08); border-radius:8px; padding:14px 16px; transition:border-color .2s, transform .2s;" style-hover="border-color:rgba(225,137,47,0.4); transform:translateY(-2px)">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:#ede6d9; margin-bottom:4px;">{{ r.name }}</div>
+            <div style="font-size:13px; color:#8a7c68; line-height:1.5;">{{ r.desc }}</div>
+          </a>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <div id="tools" class="om-pad" style="position:relative; z-index:2; padding:20px 48px 40px; max-width:1320px; margin:0 auto; scroll-margin-top:90px;">
+    <div data-reveal="" style="margin-bottom:44px; max-width:640px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:14px;">FOUR TOOLS, ONE BINARY</div>
+      <h2 style="font-family:'JetBrains Mono',monospace; font-size:34px; font-weight:700; margin:0 0 14px; letter-spacing:-0.3px;">Not a dashboard. A toolbox.</h2>
+      <p style="font-size:16px; line-height:1.6; color:#a89a86; margin:0; text-wrap:pretty;">Each tool does one job and does it on your hardware. No feature is a teaser for a paid tier — there is no paid tier.</p>
+    </div>
+
+    <!-- 01 AI UPSCALING + before/after slider -->
+    <div class="om-feat-row" style="display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; padding:44px 0; border-top:1px solid rgba(225,137,47,0.12);">
+      <div data-reveal="">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#e1892f; margin-bottom:10px;">01 · AI UPSCALING</div>
+        <h3 style="font-family:'JetBrains Mono',monospace; font-size:24px; margin:0 0 14px;">Sharper frames, run where the file already lives</h3>
+        <p style="font-size:15.5px; line-height:1.65; color:#a89a86; margin:0; text-wrap:pretty;">Upscale video and stills with local AI models. Point it at NVIDIA, AMD, or Intel silicon — or fall back to CPU when there's no GPU to hand the job to. The model runs in the same room as your files, not in someone else's datacenter.</p>
+      </div>
+      <div data-reveal="" data-delay="100">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7d7364; margin-bottom:12px; letter-spacing:1px;">DRAG TO COMPARE · BEFORE / AFTER</div>
+        <div data-compare="" style="position:relative; height:clamp(220px,30vw,320px); border-radius:12px; overflow:hidden; border:1px solid rgba(225,137,47,0.18); cursor:ew-resize; user-select:none; touch-action:none; background:#171310;">
+          <!-- AFTER (sharp) base image -->
+          <div style="position:absolute; inset:0; background:url('assets/upscale-duck.png') center/cover no-repeat;"></div>
+          <!-- BEFORE (blurry, blocky) clipped -->
+          <div data-before="" style="position:absolute; inset:0; width:50%; overflow:hidden; border-right:2px solid rgba(240,166,59,0.9); box-shadow:2px 0 12px rgba(0,0,0,.4);">
+            <div style="position:absolute; top:0; left:0; height:100%; width:var(--cw,100%); min-width:100%; background:url('assets/upscale-duck.png') center/cover no-repeat; filter:blur(4px) saturate(.78) contrast(.9) brightness(.96);"></div>
+            <div style="position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(0,0,0,.12) 0 5px, transparent 5px 6px), repeating-linear-gradient(90deg, rgba(0,0,0,.12) 0 5px, transparent 5px 6px);"></div>
+          </div>
+          <div style="position:absolute; top:12px; left:12px; font-family:'JetBrains Mono',monospace; font-size:10px; color:#ede6d9; background:rgba(15,12,10,0.6); padding:4px 8px; border-radius:4px;">BEFORE · 480p</div>
+          <div style="position:absolute; top:12px; right:12px; font-family:'JetBrains Mono',monospace; font-size:10px; color:#17130f; background:rgba(240,166,59,0.92); padding:4px 8px; border-radius:4px; font-weight:700;">AFTER · 4K (AI)</div>
+          <div data-handle="" style="position:absolute; top:0; bottom:0; left:50%; width:2px; background:rgba(240,166,59,0.9); transform:translateX(-1px); pointer-events:none;">
+            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:34px; height:34px; border-radius:50%; background:linear-gradient(160deg,#f0a63b,#c2571f); display:flex; align-items:center; justify-content:center; color:#17130f; font-size:13px; font-weight:800; box-shadow:0 4px 14px rgba(0,0,0,.5);">↔</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 02 FRAME INTERPOLATION -->
+    <div class="om-feat-row" style="display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; padding:44px 0; border-top:1px solid rgba(225,137,47,0.12);">
+      <div data-reveal="" style="order:2;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#e1892f; margin-bottom:10px;">02 · FRAME INTERPOLATION</div>
+        <h3 style="font-family:'JetBrains Mono',monospace; font-size:24px; margin:0 0 14px;">Smoother motion, generated, not filmed</h3>
+        <p style="font-size:15.5px; line-height:1.65; color:#a89a86; margin:0; text-wrap:pretty;">Generate the frames that weren't shot. Turn 24fps footage into 48 or 60 for smoother playback, or stretch it for slow motion — without a re-shoot and without shipping the footage anywhere to get it.</p>
+      </div>
+      <div data-reveal="" data-delay="100" style="order:1; background:#171310; border:1px solid rgba(225,137,47,0.15); border-radius:12px; padding:22px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7d7364; margin-bottom:16px; letter-spacing:1px;">SOURCE vs INTERPOLATED TIMELINE</div>
+        <div style="margin-bottom:14px;">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#a89a86; margin-bottom:6px;">24fps source</div>
+          <div style="display:flex; gap:6px;">
+            <sc-for list="{{ frameBoxes24 }}" as="f" hint-placeholder-count="8">
+              <div style="flex:1; height:22px; background:rgba(225,137,47,0.5); border-radius:2px;"></div>
+            </sc-for>
+          </div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#e1892f; margin-bottom:6px;">48fps output</div>
+          <div style="display:flex; gap:3px;">
+            <sc-for list="{{ frameBoxes48 }}" as="f" hint-placeholder-count="16">
+              <div style="flex:1; height:22px; border-radius:2px; background:{{ f.color }};"></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 DOWNLOADER -->
+    <div class="om-feat-row" style="display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; padding:44px 0; border-top:1px solid rgba(225,137,47,0.12);">
+      <div data-reveal="">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#e1892f; margin-bottom:10px;">03 · MEDIA DOWNLOADER</div>
+        <h3 style="font-family:'JetBrains Mono',monospace; font-size:24px; margin:0 0 14px;">Paste a link, get a file. That's it.</h3>
+        <p style="font-size:15.5px; line-height:1.65; color:#a89a86; margin:0; text-wrap:pretty;">A queue-based downloader with no browser extension quietly reporting home and no bundled toolbar. Pick a format, pick a quality, walk away — it writes straight to disk.</p>
+      </div>
+      <div data-reveal="" data-delay="100" style="background:#171310; border:1px solid rgba(225,137,47,0.15); border-radius:12px; padding:22px; font-family:'JetBrains Mono',monospace;">
+        <div style="display:flex; gap:10px; margin-bottom:16px;">
+          <div style="flex:1; background:#0f0c0a; border:1px solid rgba(237,230,217,0.1); border-radius:6px; padding:10px 12px; font-size:12px; color:#7d7364;">https://…/watch?v=…</div>
+          <div style="background:#e1892f; color:#17130f; border-radius:6px; padding:10px 16px; font-size:12px; font-weight:700;">ADD</div>
+        </div>
+        <sc-for list="{{ queueItems }}" as="q" hint-placeholder-count="3">
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-top:1px solid rgba(237,230,217,0.06); font-size:12px;">
+            <span style="color:#ede6d9;">{{ q.name }}</span>
+            <span style="color:{{ q.color }};">{{ q.status }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- 04 FORMAT CONVERSION -->
+    <div class="om-feat-row" style="display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; padding:44px 0; border-top:1px solid rgba(225,137,47,0.12); border-bottom:1px solid rgba(225,137,47,0.12);">
+      <div data-reveal="" style="order:2;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#e1892f; margin-bottom:10px;">04 · FORMAT CONVERSION</div>
+        <h3 style="font-family:'JetBrains Mono',monospace; font-size:24px; margin:0 0 14px;">Batch conversion, without re-encoding you didn't ask for</h3>
+        <p style="font-size:15.5px; line-height:1.65; color:#a89a86; margin:0; text-wrap:pretty;">Move between containers and codecs — MP4, MKV, WebM, HEVC, AV1, H.264 — in batches. Remux when a re-encode isn't needed; transcode when it is. You choose which.</p>
+      </div>
+      <div data-reveal="" data-delay="100" style="order:1; background:#171310; border:1px solid rgba(225,137,47,0.15); border-radius:12px; padding:22px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#7d7364; margin-bottom:14px; letter-spacing:1px;">SUPPORTED CONTAINERS / CODECS</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <sc-for list="{{ formatChips }}" as="chip" hint-placeholder-count="6">
+            <div style="background:rgba(225,137,47,0.08); border:1px solid rgba(225,137,47,0.25); border-radius:6px; padding:9px 12px; font-family:'JetBrains Mono',monospace; font-size:12.5px; color:#f0a63b; text-align:center; transition:background .2s, transform .2s;" style-hover="background:rgba(225,137,47,0.16); transform:translateY(-2px)">{{ chip }}</div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHY LOCAL-FIRST -->
+  <div id="why" class="om-pad" style="position:relative; z-index:2; padding:70px 48px; max-width:1100px; margin:0 auto; scroll-margin-top:90px;">
+    <div data-reveal="">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:14px;">WHY LOCAL-FIRST</div>
+      <h2 style="font-family:'JetBrains Mono',monospace; font-size:32px; font-weight:700; margin:0 0 32px; letter-spacing:-0.3px; max-width:680px; text-wrap:pretty;">The pitch cloud tools won't make</h2>
+    </div>
+    <div style="display:grid; gap:22px; margin-bottom:44px;">
+      <p data-reveal="" style="font-size:16px; line-height:1.7; color:#c4b8a4; margin:0; text-wrap:pretty;">Every "cloud AI upscaler" is renting you access to a GPU. You already own one. It's idle most of the day, sitting under your desk while a subscription service queues your file behind everyone else's — and charges you monthly for the privilege of waiting.</p>
+      <p data-reveal="" style="font-size:16px; line-height:1.7; color:#c4b8a4; margin:0; text-wrap:pretty;">Uploading a 40GB source file so it can be "processed in the cloud" is slower than just processing it, full stop, on an ordinary home connection. Local-first isn't a privacy feature bolted onto the real product — it's faster, because there's no upload step, no queue, and no render slot you have to pay extra to skip.</p>
+      <p data-reveal="" style="font-size:16px; line-height:1.7; color:#c4b8a4; margin:0; text-wrap:pretty;">Most "free" upscalers and interpolation tools cap your output resolution, watermark the result, or throttle you until you upgrade. OPNduck doesn't have a paid tier to upsell you into — there is no tier at all. It's the whole tool, or nothing.</p>
+      <p data-reveal="" style="font-size:16px; line-height:1.7; color:#c4b8a4; margin:0; text-wrap:pretty;">And it's open source. Read the code that touches your media files, or don't — but the option exists, which is more than you get from a closed binary that phones home to a license server before it'll let you export.</p>
+    </div>
+
+    <div data-reveal="" class="om-compare-table" style="border:1px solid rgba(225,137,47,0.18); border-radius:12px; overflow:hidden;">
+      <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; background:#1a1510;">
+        <div style="padding:14px 18px;"></div>
+        <div style="padding:14px 18px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#a89a86; border-left:1px solid rgba(225,137,47,0.12);">TYPICAL CLOUD TOOL</div>
+        <div style="padding:14px 18px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#e1892f; border-left:1px solid rgba(225,137,47,0.12); background:rgba(225,137,47,0.06);">OPNDUCK</div>
+      </div>
+      <sc-for list="{{ compareRows }}" as="row" hint-placeholder-count="5">
+        <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; border-top:1px solid rgba(225,137,47,0.1);">
+          <div style="padding:14px 18px; font-size:13.5px; color:#c4b8a4;">{{ row.label }}</div>
+          <div style="padding:14px 18px; font-size:13.5px; color:#8a7c68; border-left:1px solid rgba(225,137,47,0.1);">{{ row.cloud }}</div>
+          <div style="padding:14px 18px; font-size:13.5px; color:#ede6d9; font-weight:600; border-left:1px solid rgba(225,137,47,0.1); background:rgba(225,137,47,0.04);">{{ row.local }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ROADMAP -->
+  <div id="roadmap" class="om-pad" style="position:relative; z-index:2; padding:70px 48px 40px; max-width:1100px; margin:0 auto; scroll-margin-top:90px;">
+    <div data-reveal="" style="margin-bottom:36px; max-width:680px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:14px;">HONEST ROADMAP</div>
+      <h2 style="font-family:'JetBrains Mono',monospace; font-size:34px; font-weight:700; margin:0 0 14px; letter-spacing:-0.3px; text-wrap:pretty;">What works, and what doesn't yet</h2>
+      <p style="font-size:16px; line-height:1.6; color:#a89a86; margin:0; text-wrap:pretty;">OPNduck is pre-alpha and this is the whole truth. Right now it's the shell and its settings. The tools on the marketing page above describe where it's going — not where it is.</p>
+    </div>
+    <div class="om-two" style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+      <!-- SHIPPED -->
+      <div data-reveal="" style="background:rgba(106,153,98,0.06); border:1px solid rgba(106,153,98,0.3); border-radius:12px; padding:24px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
+          <span style="width:9px;height:9px;border-radius:50%;background:#6a9962;box-shadow:0 0 8px #6a9962;"></span>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:1.5px; color:#8fb587; font-weight:700;">SHIPPED · WORKS TODAY</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <sc-for list="{{ roadmapShipped }}" as="item" hint-placeholder-count="3">
+            <div style="display:flex; align-items:center; gap:12px; font-size:14.5px; color:#d7e0d2;">
+              <span style="flex:none; width:20px; height:20px; border-radius:5px; background:rgba(106,153,98,0.25); color:#8fb587; display:flex; align-items:center; justify-content:center; font-size:12px;">✓</span>
+              <span>{{ item }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <!-- PLANNED -->
+      <div data-reveal="" data-delay="100" style="background:rgba(225,137,47,0.05); border:1px solid rgba(225,137,47,0.25); border-radius:12px; padding:24px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
+          <span style="width:9px;height:9px;border-radius:50%;background:#e1892f;box-shadow:0 0 8px #e1892f; animation:blink 1.8s ease-in-out infinite;"></span>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:1.5px; color:#f0a63b; font-weight:700;">PLANNED · NOT DONE</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <sc-for list="{{ roadmapPlanned }}" as="item" hint-placeholder-count="4">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:14.5px; color:#d8ccb8;">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <span style="flex:none; width:20px; height:20px; border-radius:5px; border:1px dashed rgba(225,137,47,0.5); color:#c2571f; display:flex; align-items:center; justify-content:center; font-size:11px;">…</span>
+                <span>{{ item.name }}</span>
+              </div>
+              <span style="flex:none; font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.5px; padding:3px 8px; border-radius:20px; background:{{ item.badgeBg }}; color:{{ item.badgeColor }};">{{ item.badge }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="om-pad" style="position:relative; z-index:2; padding:20px 48px 90px; max-width:1100px; margin:0 auto;">
+    <div data-reveal="" style="background:linear-gradient(155deg,#211a13,#171310); border:1px solid rgba(225,137,47,0.22); border-radius:16px; padding:56px; text-align:center; position:relative; overflow:hidden;">
+      <div style="position:absolute; top:-40%; left:50%; transform:translateX(-50%); width:600px; height:400px; background:radial-gradient(ellipse,rgba(225,137,47,0.18),transparent 70%); pointer-events:none;"></div>
+      <div style="position:relative;">
+        <span style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1.5px; color:#e1892f; background:rgba(225,137,47,0.12); border:1px solid rgba(225,137,47,0.35); border-radius:5px; padding:5px 10px;">IT'S EARLY. THAT'S THE POINT.</span>
+        <h2 style="font-family:'JetBrains Mono',monospace; font-size:32px; font-weight:700; margin:22px 0 16px; text-wrap:pretty;">Built by one person, in the open</h2>
+        <p style="font-size:16px; line-height:1.65; color:#a89a86; max-width:560px; margin:0 auto 32px; text-wrap:pretty;">OPNduck is pre-alpha — no polished installer yet, no marketing budget, no roadmap slide deck. Just a repo you can clone, break, and file issues against. Star it if you want to see where it goes, or open a PR if you'd rather help it get there.</p>
+        <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+          <a href="https://github.com/Sight8218/OPNduck" style="background:linear-gradient(160deg,#f0a63b,#d97a25); color:#17130f; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px; padding:15px 26px; border-radius:7px; box-shadow:0 8px 24px rgba(225,137,47,0.28); transition:transform .2s, box-shadow .2s;" style-hover="transform:translateY(-2px); box-shadow:0 14px 32px rgba(225,137,47,0.42)">Follow on GitHub →</a>
+          <a href="./OPNduck Download.dc.html" style="border:1px solid rgba(237,230,217,0.22); color:#ede6d9; font-family:'JetBrains Mono',monospace; font-weight:600; font-size:14px; padding:15px 26px; border-radius:7px; transition:border-color .2s, background .2s;" style-hover="border-color:rgba(225,137,47,0.5); background:rgba(225,137,47,0.06)">Get the docs &amp; builds →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAFETY SUMMARY + link to full terms -->
+  <div class="om-pad" style="position:relative; z-index:2; padding:70px 48px 60px; max-width:1100px; margin:0 auto; border-top:1px solid rgba(225,137,47,0.12);">
+    <div data-reveal="" style="margin-bottom:40px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:16px;">ABOUT THIS PROJECT</div>
+      <p style="font-size:15px; line-height:1.7; color:#a89a86; margin:0; text-wrap:pretty;">OPNduck is built by a 16-year-old developer with no budget for human coders. We use AI to build and maintain this app — people can say what they want about that, but it's what we have to do right now. The code is open source under GPL-3.0 so anyone can audit it, fork it, or contribute.</p>
+    </div>
+
+    <div data-reveal="" style="background:#2a1810; border:1px solid rgba(225,137,47,0.35); border-radius:10px; padding:26px; display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap; justify-content:space-between;">
+      <div style="max-width:640px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:#e1892f; margin-bottom:12px;">⚠ SAFETY &amp; TERMS OF USE</div>
+        <p style="font-size:14.5px; line-height:1.7; color:#c4b8a4; margin:0; text-wrap:pretty;"><strong>OPNduck will not process sexual or pornographic content in any form.</strong> It exists to help people work with their own footage — not to facilitate abuse. The full terms explain our zero-tolerance CSAM stance, how a strict filter would be engine-bound and law-enforcement-certified if ever needed, and why this matters personally.</p>
+      </div>
+      <a href="./OPNduck Terms.dc.html" style="background:linear-gradient(160deg,#f0a63b,#d97a25); color:#17130f; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:13px; padding:13px 20px; border-radius:7px; white-space:nowrap; transition:transform .2s;" style-hover="transform:translateY(-2px)">Read full terms →</a>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="om-pad" style="position:relative; z-index:2; border-top:1px solid rgba(225,137,47,0.12); padding:36px 48px; max-width:1320px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+    <div style="display:flex; align-items:center; gap:10px; font-family:'JetBrains Mono',monospace; font-size:13px; color:#7d7364; max-width:640px;">
+      <span style="color:#ede6d9; font-weight:700;">OPNduck</span>
+      <span>— built by one developer who got tired of subscribing to software that runs a model on hardware they already own.</span>
+    </div>
+    <div style="display:flex; gap:22px; font-family:'JetBrains Mono',monospace; font-size:12.5px; color:#7d7364; flex-wrap:wrap;">
+      <a href="https://github.com/Sight8218/OPNduck" style="color:#7d7364;" style-hover="color:#e1892f">GitHub</a>
+      <a href="./OPNduck Docs.dc.html" style="color:#7d7364;" style-hover="color:#e1892f">Docs</a>
+      <a href="./OPNduck Blog.dc.html" style="color:#7d7364;" style-hover="color:#e1892f">Blog</a>
+      <a href="./OPNduck Download.dc.html" style="color:#7d7364;" style-hover="color:#e1892f">Download</a>
+      <a href="./OPNduck Terms.dc.html" style="color:#7d7364;" style-hover="color:#e1892f">Terms &amp; Safety</a>
+      <span>GPL-3.0 License</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900},&quot;reduceMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Motion&quot;},&quot;demoIntervalMs&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1400,&quot;min&quot;:600,&quot;max&quot;:3000,&quot;step&quot;:100,&quot;unit&quot;:&quot;ms&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Motion&quot;}}">
+class Component extends DCLogic {
+  componentDidMount() {
+    this.reduce = !!this.props.reduceMotion;
+    this._setupReveal();
+    this._setupScroll();
+    this._setupBars();
+    this._setupCompare();
+    this._initGallery();
+    this._fetchGitHub('Sight8218/OPNduck');
+    if (window.OPNduckCMS) {
+      window.OPNduckCMS.load().then(c => {
+        if (c && Object.keys(c).length) this._applyContent(c);
+      });
+    }
+  }
+  componentDidUpdate() { this._initGallery(); }
+  _applyContent(c) {
+    // hero
+    if (c.hero) {
+      const eb = document.querySelector('[data-hero-eyebrow]');
+      const ti = document.querySelector('[data-hero-title]');
+      const su = document.querySelector('[data-hero-sub]');
+      if (eb && c.hero.eyebrow) eb.textContent = c.hero.eyebrow;
+      if (su && c.hero.subtitle) su.textContent = c.hero.subtitle;
+      if (ti && c.hero.title) ti.innerHTML = c.hero.title.split('\n').map(s => s.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]))).join('<br/>');
+    }
+    // gallery + roadmap flow through state -> re-render
+    if (c.gallery && c.gallery.length) this._shots = c.gallery;
+    if (c.roadmap) this._roadmap = c.roadmap;
+    if (c.github && c.github.repo) {
+      document.querySelectorAll('[data-gh-link]').forEach(a => a.href = 'https://github.com/' + c.github.repo);
+      document.querySelectorAll('[data-gh-rel-link]').forEach(a => a.href = 'https://github.com/' + c.github.repo + '/releases');
+      this._fetchGitHub(c.github.repo);
+    }
+    this.setState({ tick: (this.state.tick || 0) + 1 });
+  }
+  _fetchGitHub(repo) {
+    fetch('https://api.github.com/repos/' + repo).then(r => r.ok ? r.json() : null).then(d => {
+      if (d && typeof d.stargazers_count === 'number') {
+        document.querySelectorAll('[data-gh-stars]').forEach(n => n.textContent = d.stargazers_count);
+      }
+    }).catch(() => {});
+    fetch('https://api.github.com/repos/' + repo + '/releases/latest').then(r => r.ok ? r.json() : null).then(d => {
+      const tag = d && (d.tag_name || d.name);
+      document.querySelectorAll('[data-gh-release]').forEach(n => n.textContent = tag || 'v0.2.0');
+    }).catch(() => { document.querySelectorAll('[data-gh-release]').forEach(n => n.textContent = 'v0.2.0'); });
+  }
+  _initGallery() {
+    const wrap = document.querySelector('[data-gallery]');
+    if (!wrap) return;
+    const shots = this._activeShots();
+    if (this._slide == null) this._slide = 0;
+    if (this._slide >= shots.length) this._slide = 0;
+    const track = document.querySelector('[data-gallery-track]');
+    const dots = document.querySelector('[data-gallery-dots]');
+    // set image sources here (never via a template hole, which would emit a literal URL during streaming)
+    document.querySelectorAll('[data-shot]').forEach((img, i) => {
+      const want = shots[i] && shots[i].img;
+      if (want && img.getAttribute('src') !== want) { img.src = want; img.alt = (shots[i].title || 'OPNduck screenshot'); }
+    });
+    const paint = () => {
+      if (track) track.style.transform = 'translateX(-' + (this._slide * 100) + '%)';
+      const s = shots[this._slide] || {};
+      const t = document.querySelector('[data-gallery-title]');
+      const cap = document.querySelector('[data-gallery-caption]');
+      const tab = document.querySelector('[data-gallery-tab]');
+      const idx = document.querySelector('[data-gallery-idx]');
+      const len = document.querySelector('[data-gallery-len]');
+      if (t) t.textContent = s.title || '';
+      if (cap) cap.textContent = s.caption || '';
+      if (tab) tab.textContent = s.title || 'OPNduck';
+      if (idx) idx.textContent = this._slide + 1;
+      if (len) len.textContent = shots.length;
+      if (dots) Array.from(dots.children).forEach((d, i) => {
+        const on = i === this._slide;
+        d.style.width = on ? '22px' : '8px';
+        d.style.background = on ? '#f0a63b' : 'rgba(237,230,217,0.25)';
+      });
+    };
+    if (dots) {
+      dots.innerHTML = '';
+      shots.forEach((_, i) => {
+        const d = document.createElement('div');
+        d.setAttribute('style', 'height:8px;width:8px;border-radius:20px;background:rgba(237,230,217,0.25);cursor:pointer;transition:width .3s,background .3s;');
+        d.addEventListener('click', () => { this._slide = i; paint(); });
+        dots.appendChild(d);
+      });
+    }
+    paint();
+    this._galleryPaint = paint;
+  }
+  _activeShots() { return (this._shots && this._shots.length) ? this._shots : this.DEFAULT_SHOTS; }
+  galleryNext() { const n = this._activeShots().length; this._slide = ((this._slide || 0) + 1) % n; this._galleryPaint && this._galleryPaint(); }
+  galleryPrev() { const n = this._activeShots().length; this._slide = ((this._slide || 0) - 1 + n) % n; this._galleryPaint && this._galleryPaint(); }
+  componentWillUnmount() {
+    clearInterval(this._bars);
+    if (this._onScroll) window.removeEventListener('scroll', this._onScroll);
+  }
+  _setupReveal() {
+    if (this.reduce) return;
+    const items = Array.from(document.querySelectorAll('[data-reveal]'));
+    items.forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(28px)';
+      el.style.transition = 'opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1)';
+      const d = el.getAttribute('data-delay');
+      if (d) el.style.transitionDelay = d + 'ms';
+    });
+    const io = new IntersectionObserver((ents) => {
+      ents.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.style.opacity = '1';
+          e.target.style.transform = 'none';
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    items.forEach(el => io.observe(el));
+  }
+  _setupScroll() {
+    const bar = document.querySelector('[data-progress]');
+    const top = document.querySelector('[data-totop]');
+    const links = Array.from(document.querySelectorAll('[data-nav]'));
+    const sections = ['story', 'tools', 'screens', 'why', 'roadmap'];
+    this._onScroll = () => {
+      const st = window.scrollY || document.documentElement.scrollTop;
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      const p = h > 0 ? (st / h) * 100 : 0;
+      if (bar) bar.style.width = p + '%';
+      if (top) {
+        const on = st > 520;
+        top.style.opacity = on ? '1' : '0';
+        top.style.pointerEvents = on ? 'auto' : 'none';
+        top.style.transform = on ? 'translateY(0)' : 'translateY(12px)';
+      }
+      let cur = '';
+      sections.forEach(id => {
+        const s = document.getElementById(id);
+        if (s && s.getBoundingClientRect().top < 220) cur = id;
+      });
+      links.forEach(l => {
+        l.style.color = (l.getAttribute('data-nav') === cur) ? '#f0a63b' : '#b5a793';
+      });
+    };
+    window.addEventListener('scroll', this._onScroll, { passive: true });
+    this._onScroll();
+  }
+  scrollTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  _setupBars() {
+    if (this.reduce) return;
+    const ms = this.props.demoIntervalMs || 1400;
+    const st = { gpu: 71, cpu: 34, disk: 12 };
+    const walk = (v, min, max) => Math.max(min, Math.min(max, Math.round(v + (Math.random() * 20 - 10))));
+    const apply = () => {
+      [['gpu', st.gpu], ['cpu', st.cpu], ['disk', st.disk]].forEach(([k, v]) => {
+        const fill = document.querySelector('[data-fill="' + k + '"]');
+        const num = document.querySelector('[data-num="' + k + '"]');
+        if (fill) fill.style.width = v + '%';
+        if (num) num.textContent = v + '%';
+      });
+    };
+    this._bars = setInterval(() => {
+      st.gpu = walk(st.gpu, 55, 92);
+      st.cpu = walk(st.cpu, 15, 48);
+      st.disk = walk(st.disk, 4, 30);
+      apply();
+    }, ms);
+  }
+  _setupCompare() {
+    const wrap = document.querySelector('[data-compare]');
+    if (!wrap) return;
+    const before = wrap.querySelector('[data-before]');
+    const inner = before ? before.firstElementChild : null;
+    const handle = wrap.querySelector('[data-handle]');
+    if (!before || !handle) return;
+    let dragging = false;
+    const setPos = (clientX) => {
+      const r = wrap.getBoundingClientRect();
+      let x = (clientX - r.left) / r.width;
+      x = Math.max(0, Math.min(1, x));
+      const pct = x * 100;
+      before.style.width = pct + '%';
+      handle.style.left = pct + '%';
+      if (inner) inner.style.width = r.width + 'px';
+    };
+    const getX = (e) => (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+    const down = (e) => { dragging = true; setPos(getX(e)); e.preventDefault(); };
+    const move = (e) => { if (dragging) setPos(getX(e)); };
+    const up = () => { dragging = false; };
+    wrap.addEventListener('mousedown', down);
+    wrap.addEventListener('touchstart', down, { passive: false });
+    window.addEventListener('mousemove', move);
+    window.addEventListener('touchmove', move, { passive: false });
+    window.addEventListener('mouseup', up);
+    window.addEventListener('touchend', up);
+    // set inner width so blurred layer isn't squished by clip
+    const r = wrap.getBoundingClientRect();
+    if (inner) inner.style.width = r.width + 'px';
+  }
+  renderVals() {
+    this.DEFAULT_SHOTS = [
+      { img: 'assets/home.png', title: 'Home workspace', caption: 'Tool cards are generated from installed features and plugins — install one and a card appears here automatically.' },
+      { img: 'assets/settings.png', title: 'Settings', caption: 'Global configuration: Glass or Monochrome UI modes, menu-icon style, motion & density, and keybinds — kept separate from the workspace.' },
+    ];
+    const DEFAULT_ROADMAP = {
+      shipped: ['App shell & navigation', 'Settings (themes, keybinds)', 'Glass / Monochrome UI modes'],
+      planned: [
+        { name: 'Video downloader', inProgress: true },
+        { name: 'AI upscaler', inProgress: false },
+        { name: 'Migrate from Electron to Tauri', inProgress: true },
+        { name: 'macOS build', inProgress: false },
+      ],
+    };
+    const rm = this._roadmap || DEFAULT_ROADMAP;
+    const planned = (rm.planned || []).map(p => ({
+      name: p.name,
+      badge: p.inProgress ? 'IN PROGRESS' : 'PLANNED',
+      badgeBg: p.inProgress ? 'rgba(240,166,59,0.9)' : 'rgba(237,230,217,0.06)',
+      badgeColor: p.inProgress ? '#17130f' : '#8a7c68',
+    }));
+    return {
+      scrollTop: () => this.scrollTop(),
+      galleryShots: this._activeShots(),
+      galleryPrev: () => this.galleryPrev(),
+      galleryNext: () => this.galleryNext(),
+      roadmapShipped: rm.shipped || [],
+      roadmapPlanned: planned,
+      pipelineStages: [
+        { icon: '\u25A1', label: 'SOURCE', color: '#8a7c68' },
+        { icon: '\u2699', label: 'DECODE', color: '#e1892f' },
+        { icon: '\u25B2', label: 'UPSCALE', color: '#e1892f' },
+        { icon: '\u21C4', label: 'INTERP.', color: '#e1892f' },
+        { icon: '\u25A0', label: 'OUTPUT', color: '#8a7c68' },
+      ],
+      tickerRun: [{}, {}],
+      tickerWords: ['NO LOGIN', 'NO CLOUD', 'NO SUBSCRIPTION', 'NVIDIA', 'AMD', 'INTEL', 'CPU FALLBACK', 'OPEN SOURCE', 'GPL-3.0', 'RUNS LOCALLY'],
+      recs: [
+        { name: 'Flowframes', url: 'https://flowframes.io', desc: 'Frame interpolation with a clean, approachable UI. Open source, no subscription.' },
+        { name: '4K Video Downloader', url: 'https://www.4kdownload.com', desc: 'Free tier downloads up to 10 videos per day. Limited but honest about it, no dark patterns.' },
+        { name: 'Real-ESRGAN', url: 'https://github.com/xinntao/Real-ESRGAN', desc: 'The upscaling engine that powers the good tools. Works if you speak terminal.' },
+        { name: 'FFmpeg', url: 'https://ffmpeg.org', desc: 'The format conversion standard. Free, open, ancient, and it still does the job best.' },
+      ],
+      frameBoxes24: Array.from({ length: 8 }, () => ({})),
+      frameBoxes48: Array.from({ length: 16 }, (_, i) => ({
+        color: i % 2 === 0 ? 'rgba(225,137,47,0.5)' : 'rgba(240,166,59,0.9)',
+      })),
+      queueItems: [
+        { name: 'lecture-04.webm', status: 'downloading', color: '#e1892f' },
+        { name: 'talk-clip.mp4', status: 'done', color: '#6a9962' },
+        { name: 'stream-archive.mkv', status: 'queued', color: '#7d7364' },
+      ],
+      formatChips: ['MP4', 'MKV', 'WebM', 'HEVC', 'AV1', 'H.264'],
+      compareRows: [
+        { label: 'Processing happens on', cloud: 'their servers', local: 'your machine' },
+        { label: 'Your files leave the device', cloud: 'yes, every time', local: 'never' },
+        { label: 'Monthly cost', cloud: '$10\u2013$40/mo', local: '$0' },
+        { label: 'Works offline', cloud: 'no', local: 'yes' },
+        { label: 'Source code', cloud: 'closed', local: 'open' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
