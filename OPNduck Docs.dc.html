@@ -64,18 +64,12 @@
       <div style="background:rgba(225,137,47,0.06); border-left:3px solid #e1892f; border-radius:0 8px 8px 0; padding:14px 18px; font-size:14.5px; line-height:1.6; color:#c4b8a4; margin-bottom:44px;">Everything runs on your machine. No account, no cloud, no telemetry. If a step here asks you to log in anywhere, it's wrong.</div>
 
       <h2 id="install" style="font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; margin:0 0 12px; scroll-margin-top:80px;">Installation</h2>
-      <p style="font-size:15.5px; line-height:1.7; color:#a89a86; margin:0 0 8px; text-wrap:pretty;">There's no signed installer yet. For the pre-alpha you clone and run from source.</p>
-      <div style="font-family:'JetBrains Mono',monospace; font-size:13px; color:#ede6d9; margin:20px 0 6px;">Linux</div>
-      <code class="om-doc-code">git clone https://github.com/Sight8218/OPNduck
+      <p style="font-size:15.5px; line-height:1.7; color:#a89a86; margin:0 0 8px; text-wrap:pretty;">Grab a pre-built installer from the <a href="./OPNduck Download.dc.html" style="color:#e1892f;">Download page</a>, or run it from source — same commands on Linux and Windows. Requires <strong style="color:#ede6d9;">Node.js LTS v20+</strong>.</p>
+      <code class="om-doc-code">git clone https://github.com/Sight8218/OPNduck.git
 cd OPNduck
-./setup.sh        # pulls model weights + ffmpeg
-python -m opnduck</code>
-      <div style="font-family:'JetBrains Mono',monospace; font-size:13px; color:#ede6d9; margin:20px 0 6px;">Windows</div>
-      <code class="om-doc-code">git clone https://github.com/Sight8218/OPNduck
-cd OPNduck
-setup.bat
-python -m opnduck</code>
-      <p style="font-size:14px; line-height:1.65; color:#7d7364; margin:6px 0 44px;">Exact commands may differ between commits — always check the repo README for the current entry point.</p>
+npm install
+npm run desktop:dev     # launches the app in dev mode</code>
+      <p style="font-size:14px; line-height:1.65; color:#7d7364; margin:6px 0 44px;">Prefer it in a plain browser tab instead of the desktop shell? <span style="font-family:'JetBrains Mono',monospace; color:#f0a63b;">npm run dev</span> starts a web dev server at localhost:1420 with the identical frontend. Exact commands may differ between commits — always check the repo README for the current entry point.</p>
 
       <h2 id="gpu" style="font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; margin:0 0 12px; scroll-margin-top:80px;">GPU setup</h2>
       <p style="font-size:15.5px; line-height:1.7; color:#a89a86; margin:0 0 18px; text-wrap:pretty;">OPNduck detects your hardware on launch and picks a backend. You can override it in settings if detection guesses wrong.</p>
@@ -89,6 +83,7 @@ python -m opnduck</code>
       </div>
 
       <h2 id="tools" style="font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; margin:0 0 12px; scroll-margin-top:80px;">The four tools</h2>
+      <p style="font-size:14px; line-height:1.65; color:#7d7364; margin:0 0 18px; text-wrap:pretty;">Design target for the Alpha phase — v0.2.0-Pre-Alpha is the shell only, none of these run yet. See the <a href="./OPNduck Marketing v2.dc.html#roadmap" style="color:#e1892f;">Roadmap</a> for what's actually shipped today.</p>
       <div style="display:flex; flex-direction:column; gap:18px; margin-bottom:44px;">
         <sc-for list="{{ tools }}" as="t" hint-placeholder-count="4">
           <div style="background:#171310; border:1px solid rgba(225,137,47,0.14); border-radius:12px; padding:22px;">
@@ -99,13 +94,13 @@ python -m opnduck</code>
         </sc-for>
       </div>
 
-      <h2 id="build" style="font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; margin:0 0 12px; scroll-margin-top:80px;">Building from source</h2>
-      <p style="font-size:15.5px; line-height:1.7; color:#a89a86; margin:0 0 8px; text-wrap:pretty;">You'll need Python 3.10+, git, and ffmpeg on your PATH. The setup script fetches model weights on first run — expect a few GB.</p>
-      <code class="om-doc-code">python -m venv .venv
-source .venv/bin/activate     # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python -m opnduck --check     # verifies GPU + ffmpeg</code>
-      <p style="font-size:14px; line-height:1.65; color:#7d7364; margin:6px 0 44px;">If <span style="font-family:'JetBrains Mono',monospace; color:#f0a63b;">--check</span> reports no GPU, OPNduck still runs on CPU — just slower.</p>
+      <h2 id="build" style="font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; margin:0 0 12px; scroll-margin-top:80px;">Building your own installer</h2>
+      <p style="font-size:15.5px; line-height:1.7; color:#a89a86; margin:0 0 8px; text-wrap:pretty;">Package a Linux (AppImage + pacman) or Windows (NSIS installer + portable exe) build from the same source tree used for the official releases.</p>
+      <code class="om-doc-code">npm install
+npm run dist:linux     # Linux: AppImage + .pacman
+npm run dist:win       # Windows: installer + portable .exe
+npm run dist           # both platforms</code>
+      <p style="font-size:14px; line-height:1.65; color:#7d7364; margin:6px 0 44px;">Output lands in <span style="font-family:'JetBrains Mono',monospace; color:#f0a63b;">release-build/</span>. Cross-building Windows installers from Linux (or vice versa) may need extra tooling from electron-builder — building on the target OS is the reliable path.</p>
 
       <h2 id="trouble" style="font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; margin:0 0 12px; scroll-margin-top:80px;">Troubleshooting</h2>
       <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:44px;">
@@ -163,10 +158,9 @@ class Component extends DCLogic {
         { num: '04 · FORMAT CONVERSION', title: 'Convert & remux in batches', body: 'Move between MP4, MKV, WebM, HEVC, AV1, H.264. Remux when no re-encode is needed; transcode when it is. You decide.' },
       ],
       faqs: [
-        { q: 'It says "no GPU detected" but I have one.', a: 'Update your drivers, then override the backend in Settings. Run python -m opnduck --check to see what OPNduck can actually reach.' },
-        { q: 'The downloader refuses a file.', a: 'By policy OPNduck will not process content it flags as adult material. This is intentional and not configurable — see the Terms & Safety page.' },
-        { q: 'Upscaling is extremely slow.', a: 'You are probably on the CPU fallback. Confirm your GPU backend is active, and try a smaller model or lower target resolution first.' },
-        { q: 'Something crashed with a stack trace.', a: 'That is expected in pre-alpha. Copy the full output and open an issue with your OS and GPU — it genuinely helps.' },
+        { q: '`npm install` or `npm run desktop:dev` fails.', a: 'Confirm Node.js is LTS v20+ (`node -v`), delete node_modules and package-lock.json, then reinstall. Still stuck? File an issue with the exact error.' },
+        { q: 'The downloader / upscaler / interpolator don\'t do anything yet.', a: 'Correct, for now — v0.2.0-Pre-Alpha is the app shell only. The processing engines land in the Alpha phase; see the Roadmap on the homepage for what\'s actually shipped.' },
+        { q: 'Something crashed with a stack trace.', a: 'That is expected in pre-alpha. Copy the full output and open an issue with your OS and Node version — it genuinely helps.' },
       ],
     };
   }
