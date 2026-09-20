@@ -27,6 +27,7 @@ const RUNNING_LABEL: Record<TaskState['kind'], string> = {
   download: 'Downloading',
   convert: 'Converting',
   upscale: 'Upscaling',
+  interpolate: 'Interpolating',
 }
 
 function statusLabel(task: TaskState): string {

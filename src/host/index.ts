@@ -91,7 +91,17 @@ export interface UpscaleRequest {
   destination?: string
 }
 
-export type TaskKind = 'download' | 'convert' | 'upscale'
+/** How much to multiply the source frame rate by — 2x doubles it, 4x quadruples it. */
+export type InterpolateMultiplier = 2 | 4
+
+export interface InterpolateRequest {
+  inputPath: string
+  multiplier: InterpolateMultiplier
+  /** Overrides the Settings default destination for this one job. */
+  destination?: string
+}
+
+export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate'
 export type TaskStatus = 'queued' | 'running' | 'done' | 'error' | 'canceled'
 
 export interface TaskState {
@@ -124,6 +134,7 @@ export interface HostTasks {
   startConvert(req: ConvertRequest): Promise<string>
   startUpscale(req: UpscaleRequest): Promise<string>
   startVideoUpscale(req: UpscaleRequest): Promise<string>
+  startInterpolate(req: InterpolateRequest): Promise<string>
   cancel(taskId: string): void
   list(): TaskState[]
   /** Fires with the full task list on every change. Returns an unsubscribe fn. */
@@ -158,6 +169,8 @@ export interface Host {
   /** realesrgan-ncnn-vulkan isn't bundled either, and unlike yt-dlp/ffmpeg it's
    *  essentially never pre-installed — same check shape, for the Image Upscaler. */
   checkRealesrgan(): Promise<ToolStatus>
+  /** rife-ncnn-vulkan isn't bundled either — same check shape, for Frame Interpolation. */
+  checkRife(): Promise<ToolStatus>
   tasks: HostTasks
 }
 
@@ -247,6 +260,27 @@ const browserTasks: HostTasks = {
     browserListeners.forEach((l) => l(browserTaskList))
     return id
   },
+  startInterpolate: async (req) => {
+    const id = crypto.randomUUID()
+    browserTaskList = [
+      {
+        id,
+        kind: 'interpolate',
+        status: 'error',
+        progress: 0,
+        label: 'Frame Interpolation requires the desktop app',
+        error: 'Desktop app required',
+        format: 'RIFE',
+        quality: `${req.multiplier}× frames`,
+        sizeBytes: null,
+        sizeIsEstimate: false,
+        thumbnailUrl: null,
+        experimentalMatch: null,
+      },
+    ]
+    browserListeners.forEach((l) => l(browserTaskList))
+    return id
+  },
   cancel: () => {},
   list: () => browserTaskList,
   subscribe: (listener) => {
@@ -274,6 +308,7 @@ const browserHost: Host = {
   checkYtDlp: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkFfmpeg: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkRealesrgan: async () => ({ available: false, installHint: 'Desktop app required' }),
+  checkRife: async () => ({ available: false, installHint: 'Desktop app required' }),
   tasks: browserTasks,
 }
 

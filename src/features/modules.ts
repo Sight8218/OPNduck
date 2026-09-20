@@ -20,6 +20,7 @@
 import { registerFeatures } from './registry'
 import ConverterCard from './converter/ConverterCard'
 import DownloaderCard from './downloader/DownloaderCard'
+import InterpolationCard from './interpolate/InterpolationCard'
 import ImageUpscalerCard from './upscaler/ImageUpscalerCard'
 import VideoUpscalerCard from './upscaler/VideoUpscalerCard'
 
@@ -76,6 +77,18 @@ export function registerCoreFeatures(): void {
       icon: '⇧',
       enabled: true,
       render: VideoUpscalerCard,
+      source: 'core',
+    },
+    {
+      id: 'frame-interpolation',
+      title: 'Frame Interpolation',
+      tagline: 'RIFE · smoother motion',
+      description:
+        'Generates real in-between frames to raise a video’s frame rate 2× or 4× — extracts every frame, AI-interpolates the gaps, then reassembles at the higher rate with the original audio. Same per-frame cost as the upscalers; not shortcuttable.',
+      scope: 'desktop-exclusive',
+      icon: '⏩',
+      enabled: true,
+      render: InterpolationCard,
       source: 'core',
     },
   ])

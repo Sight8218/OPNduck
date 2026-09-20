@@ -22,6 +22,7 @@ import type {
   DownloadProbe,
   DownloadRequest,
   Host,
+  InterpolateRequest,
   TaskState,
   ToolStatus,
   UpscaleRequest,
@@ -42,11 +43,13 @@ interface ElectronBridge {
   checkYtDlp(): Promise<ToolStatus>
   checkFfmpeg(): Promise<ToolStatus>
   checkRealesrgan(): Promise<ToolStatus>
+  checkRife(): Promise<ToolStatus>
   tasks: {
     startDownload(req: DownloadRequest): Promise<string>
     startConvert(req: ConvertRequest): Promise<string>
     startUpscale(req: UpscaleRequest): Promise<string>
     startVideoUpscale(req: UpscaleRequest): Promise<string>
+    startInterpolate(req: InterpolateRequest): Promise<string>
     cancel(taskId: string): void
     list(): Promise<TaskState[]>
     onUpdate(listener: (tasks: TaskState[]) => void): () => void
@@ -87,11 +90,13 @@ export function detectElectronHost(): Host | null {
     checkYtDlp: () => bridge.checkYtDlp(),
     checkFfmpeg: () => bridge.checkFfmpeg(),
     checkRealesrgan: () => bridge.checkRealesrgan(),
+    checkRife: () => bridge.checkRife(),
     tasks: {
       startDownload: (req) => bridge.tasks.startDownload(req),
       startConvert: (req) => bridge.tasks.startConvert(req),
       startUpscale: (req) => bridge.tasks.startUpscale(req),
       startVideoUpscale: (req) => bridge.tasks.startVideoUpscale(req),
+      startInterpolate: (req) => bridge.tasks.startInterpolate(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
       list: () => cachedTasks,
       subscribe: (listener) => {
