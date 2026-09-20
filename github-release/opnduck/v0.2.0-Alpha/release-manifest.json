@@ -6,14 +6,15 @@
   "release_type": "alpha (first release with a real, working feature)",
   "tag": {
     "name": "v0.2.0-Alpha",
-    "exists": false,
-    "note": "No v-prefixed release tags exist in this repo yet (the lightweight 'Pre-Alpha'/'Alpha' tags present are leftovers from the GitHub-repo reconciliation merge, pointing at unrelated commits - 'Initial commit' and 'Add files via upload' - not this project's release convention, which cliff.toml pins to tag_pattern 'v[0-9]*'). Tag not created by this run (Manual mode) - Aaron to create/push manually."
+    "exists": true,
+    "commit": "5688346",
+    "note": "Created as an annotated tag at 5688346 (includes the README/build/prep commits on top of the b2212f0 checkpoint) and pushed to origin, matching cliff.toml's tag_pattern 'v[0-9]*'. The pre-existing lightweight 'Pre-Alpha'/'Alpha' tags remain unrelated leftovers from the GitHub-repo reconciliation merge (pointing at 'Initial commit' / 'Add files via upload') and were left untouched."
   },
   "commit": "b2212f006fe38644d850dbda31534beebf659522",
   "commit_subject": "OPNduck-V0.2.0-Alpha checkpoint: real yt-dlp downloading + UI fixes",
   "branch": "main",
   "generated_at": "2026-09-20T07:21:50Z",
-  "mode": "manual",
+  "mode": "automated (finished/published by a later run in this session; earlier stages above were done in manual/prep mode)",
   "stages": {
     "discovery": {
       "status": "complete",
@@ -94,8 +95,17 @@
       "files_already_updated_by_prior_checkpoint": ["CHANGELOG.md", "PROJECT_BRIEF.md", "package.json (version)"]
     },
     "publication": {
-      "status": "not_performed",
-      "reason": "Manual mode - no tag pushed, no GitHub release created, no assets uploaded, no Discord webhook sent. Everything staged locally under release-build/ and github-release/opnduck/v0.2.0-Alpha/ for Aaron to review and publish by hand."
+      "status": "complete",
+      "mode": "automated (explicit authorization: \"release the new version now with everything\")",
+      "actions": [
+        "Committed remaining prep files (github-release/opnduck/v0.2.0-Alpha/, .claude/audit-log.md) as 5688346",
+        "Created annotated tag v0.2.0-Alpha at 5688346 (cliff.toml tag_pattern 'v[0-9]*' convention; distinct from the pre-existing unrelated lightweight 'Alpha' tag, which was left untouched)",
+        "Pushed main and v0.2.0-Alpha to origin (https://github.com/Sight8218/OPNduck.git)",
+        "Created GitHub release v0.2.0-Alpha via `gh release create` (--prerelease, --verify-tag) with the curated CHANGELOG.md entry as the release body, uploading all 4 distributables plus SHA256SUMS.txt",
+        "Verified all 5 uploaded asset digests via `gh release view --json assets` match the sha256 values recorded above"
+      ],
+      "release_url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.2.0-Alpha",
+      "discord": "not sent - discord-release.json left as a local draft only, per instruction (separate channel/account action, explicitly out of scope for this run)"
     }
   },
   "artifacts": [
