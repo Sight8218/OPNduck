@@ -299,33 +299,19 @@ body {
 }
 
 /* ------------------------------------------------------------
-   Custom themed scrollbar — a slim glass pill instead of the
-   platform default, on every scrollable element (both axes).
+   No visible scrollbars anywhere — an opinionated app doesn't need
+   the chrome, and it sidesteps any per-theme scrollbar coloring
+   entirely. Scrolling itself still works; only the bar is hidden.
    ------------------------------------------------------------ */
 @layer base {
   html {
-    scrollbar-width: thin;
-    scrollbar-color: var(--glass-bg-strong) transparent;
+    scrollbar-width: none;
   }
 
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: var(--glass-bg-strong);
-    border: 2px solid var(--glass-border);
-    box-shadow: inset 0 0 0 1px var(--glass-border-inner);
-    border-radius: 9999px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--accent);
-  }
-  ::-webkit-scrollbar-corner {
-    background: transparent;
+    display: none;
+    width: 0;
+    height: 0;
   }
 }
 

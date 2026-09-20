@@ -17,7 +17,7 @@
  */
 
 
-import type { Host } from './index'
+import type { DownloadProbe, DownloadRequest, Host, TaskState, YtDlpStatus } from './index'
 
 /**
  * The bridge exposed by electron/preload.cjs via contextIsolation.
@@ -29,6 +29,16 @@ interface ElectronBridge {
   isDesktop: true
   window: { minimize(): void; maximize(): void; close(): void }
   pickFile(options?: { extensions?: string[] }): Promise<string | null>
+  pickFolder(): Promise<string | null>
+  checkYtDlp(): Promise<YtDlpStatus>
+  tasks: {
+    startDownload(req: DownloadRequest): Promise<string>
+    cancel(taskId: string): void
+    list(): Promise<TaskState[]>
+    onUpdate(listener: (tasks: TaskState[]) => void): () => void
+    getDefaultDownloadDir(): Promise<string>
+    probe(req: DownloadRequest): Promise<DownloadProbe>
+  }
 }
 
 declare global {
@@ -42,6 +52,13 @@ export function detectElectronHost(): Host | null {
   const bridge = typeof window !== 'undefined' ? window.opnduckHost : undefined
   if (!bridge) return null
 
+  let cachedTasks: TaskState[] = []
+  const listeners = new Set<(tasks: TaskState[]) => void>()
+  bridge.tasks.onUpdate((tasks) => {
+    cachedTasks = tasks
+    listeners.forEach((l) => l(tasks))
+  })
+
   return {
     platformName: bridge.platformName,
     isDesktop: true,
@@ -51,5 +68,19 @@ export function detectElectronHost(): Host | null {
       close: () => bridge.window.close(),
     },
     pickFile: (options) => bridge.pickFile(options),
+    pickFolder: () => bridge.pickFolder(),
+    checkYtDlp: () => bridge.checkYtDlp(),
+    tasks: {
+      startDownload: (req) => bridge.tasks.startDownload(req),
+      cancel: (taskId) => bridge.tasks.cancel(taskId),
+      list: () => cachedTasks,
+      subscribe: (listener) => {
+        listeners.add(listener)
+        listener(cachedTasks)
+        return () => listeners.delete(listener)
+      },
+      getDefaultDownloadDir: () => bridge.tasks.getDefaultDownloadDir(),
+      probe: (req) => bridge.tasks.probe(req),
+    },
   }
 }

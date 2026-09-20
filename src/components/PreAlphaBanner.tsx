@@ -3,7 +3,7 @@ import { useState } from 'react'
 const GITHUB_URL = 'https://github.com/Sight8218/OPNduck'
 
 /**
- * Yellow "Pre-Alpha" notice. Shows a disclaimer and links to the GitHub repo
+ * Yellow "Alpha" notice. Shows a disclaimer and links to the GitHub repo
  * so users can report bugs. Dismissible per session.
  */
 export default function PreAlphaBanner() {
@@ -29,10 +29,10 @@ export default function PreAlphaBanner() {
           ⚠
         </span>
         <p className="leading-snug">
-          <strong className="font-bold text-amber-300">Pre-Alpha:</strong>{' '}
+          <strong className="font-bold text-amber-300">Alpha:</strong>{' '}
           <span className="text-[var(--text-dim)]">
-            This is the shell only — expect bugs and missing features. Found one? Report
-            it on{' '}
+            Downloading is live; other tools are still stubs. Expect bugs and missing
+            features. Found one? Report it on{' '}
           </span>
           <a
             href={GITHUB_URL}
@@ -47,7 +47,7 @@ export default function PreAlphaBanner() {
         <button
           type="button"
           onClick={() => setVisible(false)}
-          aria-label="Dismiss pre-alpha notice"
+          aria-label="Dismiss alpha notice"
           className="shrink-0 rounded-lg px-2 py-1 text-xs font-bold text-[var(--text-dim)] transition-colors hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
         >
           ✕

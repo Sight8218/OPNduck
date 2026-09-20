@@ -23,6 +23,12 @@ export default function NavMenuCards({ layoutId = 'nav-active' }: { layoutId?: s
         const isActive = item.index === activeIndex
         const showIcon = navDisplay !== 'text'
         const showLabel = navDisplay !== 'icon'
+        // Hybrid's label is a "when there's room" nicety, not load-bearing —
+        // the icon alone is still a complete, recognizable menu item. Hiding
+        // it below `xl` keeps 4 full labels + wordmark + socials + window
+        // controls from ever needing more width than a normal window has,
+        // instead of relying on clipping to save it after the fact.
+        const labelResponsive = navDisplay === 'hybrid' ? 'hidden xl:inline' : ''
         const Icon = item.icon
         return (
           <NavLink
@@ -41,7 +47,7 @@ export default function NavMenuCards({ layoutId = 'nav-active' }: { layoutId?: s
             )}
             <span className="relative z-10 flex items-center gap-2">
               {showIcon && <Icon size={20} stroke={1.6} aria-hidden="true" />}
-              {showLabel && <span>{item.label}</span>}
+              {showLabel && <span className={labelResponsive}>{item.label}</span>}
             </span>
           </NavLink>
         )

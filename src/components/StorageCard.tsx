@@ -1,16 +1,31 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { host } from '../host'
+import { getDownloadDirOverride, setDownloadDirOverride } from '../lib/downloadPrefs'
 
 const STEP_BTN_CLASS =
   'grid h-8 w-8 place-items-center rounded-lg border border-[var(--glass-border)] bg-[var(--input-bg)] text-sm font-bold text-[var(--text)] transition-colors hover:bg-[var(--input-bg-hover)]'
 
 /**
- * Storage & performance prefs. Path/limits are display-only placeholders
- * until the desktop shell exposes a real folder picker and task queue —
- * consistent with every other settings card pre-Alpha.
+ * Storage & performance prefs. Download folder is wired to the real desktop
+ * folder picker; max concurrent tasks / cache are still placeholders until
+ * those systems exist.
  */
 // @category: settings/storage-performance
 export default function StorageCard() {
   const [maxTasks, setMaxTasks] = useState(2)
+  const [override, setOverride] = useState(getDownloadDirOverride())
+  const [defaultDir, setDefaultDir] = useState('~/Downloads/OPNduck')
+
+  useEffect(() => {
+    if (host.isDesktop) host.tasks.getDefaultDownloadDir().then(setDefaultDir)
+  }, [])
+
+  async function browse() {
+    const dir = await host.pickFolder()
+    if (!dir) return
+    setDownloadDirOverride(dir)
+    setOverride(dir)
+  }
 
   return (
     <div className="glass rounded-3xl p-5">
@@ -24,18 +39,31 @@ export default function StorageCard() {
           <div className="flex items-center gap-2">
             <input
               className="glass-input flex-1"
-              value="~/Downloads/OPNduck"
+              value={override ?? defaultDir}
               readOnly
               aria-label="Default download folder"
             />
             <button
               type="button"
               className="glass-btn shrink-0 px-3 py-2 text-xs"
-              disabled
-              title="Folder picker arrives with the desktop shell"
+              onClick={browse}
+              disabled={!host.isDesktop}
+              title={host.isDesktop ? undefined : 'Folder picker requires the desktop app'}
             >
               Browse
             </button>
+            {override && (
+              <button
+                type="button"
+                className="glass-btn shrink-0 px-3 py-2 text-xs"
+                onClick={() => {
+                  setDownloadDirOverride(null)
+                  setOverride(null)
+                }}
+              >
+                Reset
+              </button>
+            )}
           </div>
         </div>
 

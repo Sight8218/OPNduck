@@ -32,7 +32,7 @@ Current title/identity: **"OPNduck Desktop Suite"** 🦆, warm gradient branding
 | Styling | **Tailwind CSS v4** + CSS custom-property theme tokens | Theme switching via a single `data-theme` attribute. |
 | Animation | **Framer Motion** + CSS keyframes | GPU-accelerated, cheap. |
 | Foreground roadmap | Linux-first, **Windows-parallel from day 1**, macOS later | Dev happens on Linux (Arch). Cross-platform paths/scripts baked in. |
-| Version | **v0.2.0-Pre-Alpha** | Shell/GUI/settings only. Bump to **v0.2.0-Alpha** the moment real download/convert works. |
+| Version | **v0.2.0-Alpha** | Bumped once real yt-dlp downloading landed. Format Converter (FFmpeg) is next. |
 | License | **GPL-3.0**, copyright **Aaron Jonsson 2026** | Actual LICENSE in repo + GPL header on every source file. |
 
 **Version rule (user's, explicit):** Pre-Alpha = GUI + settings only. Alpha = at least
@@ -164,7 +164,7 @@ mount (`hideSplash()`).
 ## 11. Current repo state
 
 - Location: `/home/ducky/Work/opnduck/`
-- Version: `0.2.0-pre-alpha`
+- Version: `0.2.0-alpha` (bumped once yt-dlp downloading went live)
 - `npm run build`, `npm run lint` → **clean**. Dev server serves on `:1420`.
 - Git repo initialized on `main`, files staged, **NO commit yet** (first build complete;
   ready for an initial commit).

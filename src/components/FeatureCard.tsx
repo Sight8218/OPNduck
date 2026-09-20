@@ -17,9 +17,10 @@
  */
 
 
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import type { FeatureDefinition } from '../features/registry'
 import { useReduceMotion } from '../lib/motionPrefs'
+import { useTheme } from '../themes/useTheme'
 
 /**
  * Shared chrome for every adaptive card: glass body, header (icon + title +
@@ -35,12 +36,18 @@ export default function FeatureCard({
   children?: ReactNode
 }) {
   const { reduceMotion } = useReduceMotion()
+  const { theme } = useTheme()
+  // Per-feature accent tints (warm orange, red, ...) are a Glass-theme flourish
+  // only — Monochrome is strict black & white, so cards there just inherit the
+  // theme's own neutral --card-glow instead of a hardcoded color.
+  const style: CSSProperties =
+    theme === 'monochrome' ? {} : { ['--card-glow' as string]: feature.accent ?? 'var(--card-glow)' }
   return (
     <section
       className={`glass flex flex-col rounded-3xl p-5 transition-all duration-300 ease-out ${
         reduceMotion ? '' : 'hover:-translate-y-1 hover:shadow-[0_4px_22px_-6px_var(--card-glow)]'
       }`}
-      style={{ ['--card-glow' as string]: feature.accent ?? 'var(--card-glow)' }}
+      style={style}
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">

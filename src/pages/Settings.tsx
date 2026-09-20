@@ -49,26 +49,20 @@ export default function Settings() {
   }
 
   useEffect(() => {
+    // A fixed "top line" just below the sticky area: the active category is
+    // the last one whose top has scrolled up past that line. Using the
+    // viewport midpoint instead broke on short sections (e.g. Keybinds) —
+    // scrollIntoView aligns a section's top near this same line, but if the
+    // section is shorter than half the viewport its bottom never reaches the
+    // midpoint, so the midpoint sits in the *next* section and the nav jumps
+    // straight past the one you just clicked.
+    const TOP_LINE = 110
     const onScroll = () => {
-      // Whichever section's box actually contains the vertical middle of the
-      // viewport is "the one you're looking at" — a fixed distance-from-top
-      // threshold instead falsely jumps to the next category the moment it
-      // peeks in at the top, well before it's actually what's on screen, and
-      // could skip a section entirely if it's shorter than the threshold.
-      const midpoint = window.innerHeight / 2
       let current = CATEGORIES[0].id
       for (const c of CATEGORIES) {
         const el = sectionRefs.current[c.id]
         if (!el) continue
-        const rect = el.getBoundingClientRect()
-        if (rect.top <= midpoint && rect.bottom >= midpoint) {
-          current = c.id
-          break
-        }
-        // Past this section's bottom already: keep it as the running
-        // candidate in case nothing fully straddles the midpoint (e.g. the
-        // last, short section once you've scrolled past its own middle).
-        if (rect.top <= midpoint) current = c.id
+        if (el.getBoundingClientRect().top <= TOP_LINE) current = c.id
       }
       setActiveId((prev) => (prev === current ? prev : current))
     }

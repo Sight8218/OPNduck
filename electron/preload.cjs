@@ -28,4 +28,18 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     close: () => ipcRenderer.send('window:close'),
   },
   pickFile: (options) => ipcRenderer.invoke('dialog:pickFile', options ?? null),
+  pickFolder: () => ipcRenderer.invoke('dialog:pickFolder'),
+  checkYtDlp: () => ipcRenderer.invoke('system:checkYtDlp'),
+  tasks: {
+    startDownload: (req) => ipcRenderer.invoke('tasks:start', req),
+    cancel: (taskId) => ipcRenderer.send('tasks:cancel', taskId),
+    list: () => ipcRenderer.invoke('tasks:list'),
+    onUpdate: (listener) => {
+      const handler = (_e, tasks) => listener(tasks)
+      ipcRenderer.on('tasks:update', handler)
+      return () => ipcRenderer.removeListener('tasks:update', handler)
+    },
+    getDefaultDownloadDir: () => ipcRenderer.invoke('tasks:defaultDownloadDir'),
+    probe: (req) => ipcRenderer.invoke('tasks:probe', req),
+  },
 })

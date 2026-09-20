@@ -4,6 +4,52 @@ All notable changes to OPNduck are documented in this file. Generated with
 [git-cliff](https://github.com/orhun/git-cliff) from Conventional Commit
 history; entries are curated for readability.
 
+## [0.2.0-Alpha] - 2026-09-20
+
+First release with a real, working feature: the Downloader now drives an
+actual `yt-dlp` process on the system PATH instead of being a UI stub. Per
+the project's own versioning rule, this is what moves OPNduck out of
+Pre-Alpha.
+
+### Added
+
+- Real media downloading via `yt-dlp` (system PATH, not bundled), wired
+  through a new `Host.tasks` interface — the same seam the eventual Tauri
+  adapter will implement.
+- Full download queue: multiple concurrent downloads, per-item cancel, live
+  progress, shown both inline on the Downloader card and on the Downloads
+  page.
+- Video quality (Best/2160p/1080p/720p/480p/360p) and MP3 bitrate
+  (Best/320k/192k/128k) selection, plus an approximate file-size preview
+  before starting a download, all via a `yt-dlp --dump-json` probe.
+- Video/audio thumbnails on the Downloader card and Downloads queue.
+- Format/quality/size metadata shown as small tag chips.
+- A default-download-folder setting (Settings > Storage & Performance),
+  with a real native folder picker.
+- A plain-language install-command banner on the Downloader card when
+  `yt-dlp` isn't found on PATH.
+
+### Fixed
+
+- Per-feature card accent glow bled a fixed warm color into the Monochrome
+  theme instead of staying neutral.
+- Settings category-rail scrollspy jumped to the wrong (next) category when
+  clicking a short section like Keybinds.
+- Page-slide transition had degraded to a fade-only animation — a shared
+  "settled" flag governing a post-animation `transform: none` reset was
+  stale on the very first frame of every navigation.
+- Top bar could overflow past the window edge and clip content unpredictably
+  at ordinary window widths; nav labels now collapse to icon-only below the
+  `xl` breakpoint, and the header now has a hard `overflow-hidden` backstop.
+- Hamburger menu's dropdown was being clipped by an ancestor's
+  `overflow-hidden` — portaled to `document.body` instead, same fix already
+  used for the Settings rail.
+- Window minimum size could be ignored by the compositor on some
+  Linux/Wayland setups (a known Electron limitation for frameless windows);
+  now force-clamped in the main process.
+- Scrollbars removed entirely, app-wide, instead of chasing further
+  per-theme scrollbar-color inconsistencies.
+
 ## [0.2.0-Pre-Alpha] - 2026-09-02
 
 First tagged release. Full rewrite of the frontend shell on the new "Liquid
