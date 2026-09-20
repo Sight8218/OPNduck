@@ -57,11 +57,11 @@ export default function GlassSelect<T extends string>({
           disabled ? 'cursor-not-allowed opacity-50' : ''
         }`}
       >
-        <span className={selected ? '' : 'text-[var(--text-faint)]'}>
+        <span className={`min-w-0 truncate ${selected ? '' : 'text-[var(--text-faint)]'}`}>
           {selected?.label ?? 'Select…'}
         </span>
         <span
-          className="text-[var(--text-dim)] transition-transform duration-200"
+          className="shrink-0 text-[var(--text-dim)] transition-transform duration-200"
           style={{ transform: open ? 'rotate(180deg)' : 'none' }}
         >
           ▾
