@@ -17,12 +17,18 @@
  */
 
 import type { ReactNode } from 'react'
+import { motion } from 'framer-motion'
 
 /** Small squircle-cornered metadata chip — format/quality/size labels on task rows and cards. */
 export default function Tag({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-[7px] border border-[var(--glass-border)] bg-[var(--input-bg)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--text-dim)]">
+    <motion.span
+      initial={{ opacity: 0, scale: 0.75 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 28 }}
+      className="inline-flex items-center rounded-[7px] border border-[var(--glass-border)] bg-[var(--input-bg)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--text-dim)]"
+    >
       {children}
-    </span>
+    </motion.span>
   )
 }

@@ -86,7 +86,7 @@ export default function HamburgerMenu() {
                 Pages
               </p>
               <div className="mb-1 flex flex-col gap-0.5">
-                {NAV_ITEMS.map((item) => {
+                {NAV_ITEMS.map((item, i) => {
                   const Icon = item.icon
                   return (
                     <NavLink
@@ -96,12 +96,13 @@ export default function HamburgerMenu() {
                       role="menuitem"
                       onClick={() => setOpen(false)}
                       className={({ isActive }) =>
-                        `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        `pop-in flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                           isActive
                             ? 'bg-[var(--input-bg)] text-[var(--text)]'
                             : 'text-[var(--text-dim)] hover:bg-[var(--input-bg)] hover:text-[var(--text)]'
                         }`
                       }
+                      style={{ ['--pop-delay' as string]: `${i * 30}ms` }}
                     >
                       <Icon size={18} stroke={1.8} aria-hidden="true" />
                       {item.label}
@@ -116,20 +117,28 @@ export default function HamburgerMenu() {
                 Socials
               </p>
               <div className="flex flex-col gap-0.5">
-                {SOCIALS.map((s) => (
+                {SOCIALS.map((s, i) => (
                   <button
                     key={s.url}
                     type="button"
                     role="menuitem"
                     onClick={() => window.open(s.url, '_blank', 'noopener,noreferrer')}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-[var(--text-dim)] transition-colors hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                    className="pop-in flex items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-[var(--text-dim)] transition-colors hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
+                    style={{ ['--pop-delay' as string]: `${(NAV_ITEMS.length + i) * 30}ms` }}
                   >
-                    <img
-                      src={s.icon}
-                      alt=""
+                    <span
                       aria-hidden="true"
-                      className="h-[18px] w-[18px] object-contain"
-                      style={{ filter: 'invert(1)' }}
+                      className="block h-[18px] w-[18px] shrink-0 bg-current"
+                      style={{
+                        WebkitMaskImage: `url(${s.icon})`,
+                        maskImage: `url(${s.icon})`,
+                        WebkitMaskSize: 'contain',
+                        maskSize: 'contain',
+                        WebkitMaskRepeat: 'no-repeat',
+                        maskRepeat: 'no-repeat',
+                        WebkitMaskPosition: 'center',
+                        maskPosition: 'center',
+                      }}
                     />
                     {s.label}
                   </button>

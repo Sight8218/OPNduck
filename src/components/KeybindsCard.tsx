@@ -105,7 +105,7 @@ export default function KeybindsCard() {
               <kbd
                 className={`rounded-md border px-2 py-1 font-mono text-xs tracking-wider ${
                   capturing
-                    ? 'border-[var(--input-border-focus)] bg-[var(--input-bg-hover)] text-[var(--text)]'
+                    ? 'kbd-listening border-[var(--input-border-focus)] bg-[var(--input-bg-hover)] text-[var(--text)]'
                     : 'border-[var(--glass-border)] bg-[var(--input-bg)] text-[var(--text)]'
                 }`}
               >

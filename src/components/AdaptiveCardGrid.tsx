@@ -31,13 +31,17 @@ export default function AdaptiveCardGrid() {
 
   return (
     <div className={`grid gap-5 ${cols}`}>
-      {features.map((feature) => {
+      {features.map((feature, i) => {
         const Card = feature.render
         // A lone card gets extra breathing room (max-width so it doesn't stretch
         // awkwardly full-bleed).
         const wide = count === 1 ? 'xl:max-w-3xl xl:mx-auto' : ''
         return (
-          <div key={feature.id} className={wide}>
+          <div
+            key={feature.id}
+            className={`pop-in ${wide}`}
+            style={{ ['--pop-delay' as string]: `${i * 60}ms` }}
+          >
             <Card feature={feature} />
           </div>
         )

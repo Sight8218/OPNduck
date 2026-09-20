@@ -165,7 +165,9 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
         <div className="flex flex-col gap-1">
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--input-bg)]">
             <div
-              className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300"
+              className={`h-full rounded-full bg-[var(--accent)] transition-[width] duration-300 ${
+                task.status === 'running' ? 'progress-shimmer' : ''
+              }`}
               style={{ width: `${Math.round(task.progress * 100)}%` }}
             />
           </div>

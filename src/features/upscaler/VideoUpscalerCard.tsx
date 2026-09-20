@@ -149,7 +149,7 @@ export default function VideoUpscalerCard({ feature }: { feature: FeatureDefinit
                 <div
                   className={`h-full rounded-full transition-[width] duration-300 ${
                     t.status === 'error' ? 'bg-red-500' : 'bg-[var(--accent)]'
-                  }`}
+                  } ${t.status === 'running' ? 'progress-shimmer' : ''}`}
                   style={{ width: `${Math.round(t.progress * 100)}%` }}
                 />
               </div>

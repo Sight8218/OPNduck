@@ -16,6 +16,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { AnimatePresence, motion } from 'framer-motion'
 import Tag from '../components/Tag'
 import Thumbnail from '../components/Thumbnail'
 import { host, type TaskState } from '../host'
@@ -37,7 +38,14 @@ function TaskRow({ task }: { task: TaskState }) {
   const running = task.status === 'queued' || task.status === 'running'
   const size = formatBytes(task.sizeBytes)
   return (
-    <div className="glass flex flex-col gap-2 rounded-2xl p-4">
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 14, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 24, scale: 0.98, transition: { duration: 0.18 } }}
+      transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+      className="glass flex flex-col gap-2 rounded-2xl p-4"
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <Thumbnail url={task.thumbnailUrl} className="h-10 w-[72px] shrink-0 rounded-lg" />
@@ -71,12 +79,12 @@ function TaskRow({ task }: { task: TaskState }) {
         <div
           className={`h-full rounded-full transition-[width] duration-300 ${
             task.status === 'error' ? 'bg-red-500' : 'bg-[var(--accent)]'
-          }`}
+          } ${task.status === 'running' ? 'progress-shimmer' : ''}`}
           style={{ width: `${Math.round(task.progress * 100)}%` }}
         />
       </div>
       {task.error && <span className="text-xs text-red-400">{task.error}</span>}
-    </div>
+    </motion.div>
   )
 }
 
@@ -97,9 +105,11 @@ export default function Library() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {tasks.map((t) => (
-            <TaskRow key={t.id} task={t} />
-          ))}
+          <AnimatePresence initial={false}>
+            {tasks.map((t) => (
+              <TaskRow key={t.id} task={t} />
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>

@@ -36,7 +36,7 @@ export default function NavMenuCards({ layoutId = 'nav-active' }: { layoutId?: s
             to={item.to}
             end={item.end}
             aria-current={isActive ? 'page' : undefined}
-            className="relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--text-dim)] transition-colors hover:text-[var(--text)]"
+            className="group relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--text-dim)] transition-colors hover:text-[var(--text)]"
           >
             {isActive && (
               <motion.span
@@ -46,7 +46,14 @@ export default function NavMenuCards({ layoutId = 'nav-active' }: { layoutId?: s
               />
             )}
             <span className="relative z-10 flex items-center gap-2">
-              {showIcon && <Icon size={20} stroke={1.6} aria-hidden="true" />}
+              {showIcon && (
+                <Icon
+                  size={20}
+                  stroke={1.6}
+                  aria-hidden="true"
+                  className="transition-transform duration-200 ease-out group-hover:scale-[1.15] group-active:scale-90"
+                />
+              )}
               {showLabel && <span className={labelResponsive}>{item.label}</span>}
             </span>
           </NavLink>

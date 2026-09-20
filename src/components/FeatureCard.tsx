@@ -37,9 +37,12 @@ export default function FeatureCard({
 }) {
   const { reduceMotion } = useReduceMotion()
   const { theme } = useTheme()
-  // Per-feature accent tints (warm orange, red, ...) are a Blarange-theme
-  // flourish only — Monochrome is strict black & white, so cards there just
-  // inherit the theme's own neutral --card-glow instead of a hardcoded color.
+  // Core cards no longer set `feature.accent` — every Home card glows the
+  // same theme color (--card-glow) so the grid reads as one cohesive set
+  // instead of a different hue per card. `accent` is still in the plugin
+  // API for community cards that want to stand out, hence the fallback
+  // rather than deleting the field outright; Monochrome ignores it either
+  // way since it's strict black & white.
   const style: CSSProperties =
     theme === 'monochrome' ? {} : { ['--card-glow' as string]: feature.accent ?? 'var(--card-glow)' }
   return (

@@ -15,15 +15,25 @@ export default function SocialLinks({ spacing = 'gap-11' }: { spacing?: string }
           title={s.label}
           aria-label={`Open ${s.label}`}
           onClick={() => window.open(s.url, '_blank', 'noopener,noreferrer')}
-          className="rounded-md transition-all duration-150 hover:scale-110"
+          className="rounded-md text-[var(--text-dim)] transition-all duration-150 hover:scale-110 hover:text-[var(--accent)]"
           style={{ filter: 'drop-shadow(0 0 9px var(--card-glow))' }}
         >
-          <img
-            src={s.icon}
-            alt=""
+          {/* Recolored via mask-image + currentColor instead of a hardcoded
+              white invert() — so these brand PNGs actually retint per-theme
+              (and on hover) instead of always rendering flat white. */}
+          <span
             aria-hidden="true"
-            className="h-7 w-7 object-contain"
-            style={{ filter: 'invert(1)' }}
+            className="block h-7 w-7 bg-current"
+            style={{
+              WebkitMaskImage: `url(${s.icon})`,
+              maskImage: `url(${s.icon})`,
+              WebkitMaskSize: 'contain',
+              maskSize: 'contain',
+              WebkitMaskRepeat: 'no-repeat',
+              maskRepeat: 'no-repeat',
+              WebkitMaskPosition: 'center',
+              maskPosition: 'center',
+            }}
           />
         </button>
       ))}
