@@ -1,11 +1,32 @@
 import { featureRegistry } from '../features/registry'
 
 /**
+ * Picks the xl column count (2 or 3) that leaves the most-filled last row,
+ * so e.g. 5 cards become a 3+2 grid instead of a lone card orphaned alone
+ * on its own row after a full row of 4. Ties (an evenly-divisible count,
+ * like 6) prefer the wider column count.
+ */
+function bestColumnCount(n: number, max: number): number {
+  let best = 2
+  let bestFill = -1
+  for (let c = 2; c <= Math.min(n, max); c++) {
+    const remainder = n % c
+    const lastRowFill = remainder === 0 ? 1 : remainder / c
+    if (lastRowFill >= bestFill) {
+      bestFill = lastRowFill
+      best = c
+    }
+  }
+  return best
+}
+
+/**
  * Home dashboard grid.
  * Renders one card per enabled feature in the registry and adapts the column
  * count to how many cards are present — a single card spans wide, several
- * cards flow into 2–3 columns. Cards re-flow automatically as features/plugins
- * are added or removed ("adaptive" by construction).
+ * cards flow into 2–3 columns, picked to keep the last row as full as
+ * possible. Cards re-flow automatically as features/plugins are added or
+ * removed ("adaptive" by construction).
  */
 export default function AdaptiveCardGrid() {
   const features = featureRegistry.filter((f) => f.enabled)
@@ -19,15 +40,15 @@ export default function AdaptiveCardGrid() {
     )
   }
 
-  // Adaptive column layout based on card count.
+  // Adaptive column layout based on card count — capped at 3 columns so
+  // cards keep enough width for their controls (a 4th column was crowding
+  // titles into wrapping onto two lines).
   const cols =
     count === 1
       ? 'grid-cols-1'
-      : count === 2
+      : bestColumnCount(count, 3) === 2
         ? 'grid-cols-1 md:grid-cols-2'
-        : count <= 4
-          ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
-          : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-4'
+        : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
 
   return (
     <div className={`grid gap-5 ${cols}`}>

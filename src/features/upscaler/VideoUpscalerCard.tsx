@@ -94,11 +94,6 @@ export default function VideoUpscalerCard({ feature }: { feature: FeatureDefinit
         </div>
       )}
 
-      <p className="text-xs text-[var(--text-dim)]">
-        Every frame gets AI-upscaled individually — expect this to take a while,
-        even for a short clip.
-      </p>
-
       <button type="button" className="glass-btn" onClick={addFiles} disabled={anyRunning}>
         Add videos…
       </button>

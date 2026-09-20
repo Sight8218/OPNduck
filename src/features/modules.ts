@@ -35,8 +35,7 @@ export function registerCoreFeatures(): void {
       id: 'downloader',
       title: 'Downloader',
       tagline: 'YouTube · TikTok · SoundCloud',
-      description:
-        'High-speed media downloads with high-quality MP4, MP3, MKV, MOV, FLAC and WAV output. Spotify links (experimental) get matched to the same song on YouTube — Spotify itself is DRM-protected, so this is never a direct Spotify download.',
+      description: 'Fast downloads in MP4, MP3, MKV, MOV, FLAC or WAV. Spotify links get YouTube-matched (experimental).',
       scope: 'universal',
       icon: '⇩',
       enabled: true,
@@ -47,8 +46,7 @@ export function registerCoreFeatures(): void {
       id: 'converter',
       title: 'Converter',
       tagline: 'MP4 · MKV · WebM · MOV',
-      description:
-        'Batch remux or transcode between containers — stream copy when no re-encode is needed, ffmpeg when it is.',
+      description: 'Batch remux or transcode between containers — no re-encode when it isn’t needed.',
       scope: 'universal',
       icon: '⇄',
       enabled: true,
@@ -59,8 +57,7 @@ export function registerCoreFeatures(): void {
       id: 'image-upscaler',
       title: 'AI Image Upscaler',
       tagline: 'Real-ESRGAN · up to 4×',
-      description:
-        'Rebuild detail and boost resolution up to 4× on stills (JPG/PNG/WebP) using your local GPU, via realesrgan-ncnn-vulkan.',
+      description: 'Boost still-image resolution up to 4× on your local GPU.',
       scope: 'desktop-exclusive',
       icon: '⇧',
       enabled: true,
@@ -71,8 +68,7 @@ export function registerCoreFeatures(): void {
       id: 'video-upscaler',
       title: 'AI Video Upscaler',
       tagline: 'Real-ESRGAN · up to 4×',
-      description:
-        'Rebuild detail and boost resolution on video, frame by frame — extracts every frame, AI-upscales each one, then reassembles with the original audio. Genuinely slow for long clips; that cost is per-frame, not shortcuttable.',
+      description: 'Boost video resolution up to 4×, frame by frame. Slow but genuinely per-frame AI, not a filter.',
       scope: 'desktop-exclusive',
       icon: '⇧',
       enabled: true,
@@ -83,8 +79,7 @@ export function registerCoreFeatures(): void {
       id: 'frame-interpolation',
       title: 'Frame Interpolation',
       tagline: 'RIFE · smoother motion',
-      description:
-        'Generates real in-between frames to raise a video’s frame rate 2× or 4× — extracts every frame, AI-interpolates the gaps, then reassembles at the higher rate with the original audio. Same per-frame cost as the upscalers; not shortcuttable.',
+      description: 'Generates real in-between frames to raise a video’s frame rate 2× or 4×.',
       scope: 'desktop-exclusive',
       icon: '⏩',
       enabled: true,

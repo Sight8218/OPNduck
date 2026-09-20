@@ -74,11 +74,6 @@ export default function InterpolationCard({ feature }: { feature: FeatureDefinit
         </div>
       )}
 
-      <p className="text-xs text-[var(--text-dim)]">
-        Generates real in-between frames for smoother motion — expect this to take a
-        while, even for a short clip.
-      </p>
-
       <button type="button" className="glass-btn" onClick={addFiles} disabled={anyRunning}>
         Add videos…
       </button>
