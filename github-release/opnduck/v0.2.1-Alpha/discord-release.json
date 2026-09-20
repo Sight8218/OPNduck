@@ -1,0 +1,28 @@
+{
+  "note": "DRAFT ONLY - not sent. Sending a Discord announcement is a separate, explicit Automated-mode action Aaron does himself; this run only drafts it.",
+  "project": "OPNduck",
+  "version": "v0.2.1-Alpha",
+  "content": "**OPNduck v0.2.1-Alpha** 🦆 - critical patch\n\nv0.2.0-Alpha was effectively unusable once actually installed (as opposed to run from the dev server) - reported after installing fresh on a Windows machine. This patches it.\n\n**Fixed**\n• Navigation was completely broken in the packaged app: `BrowserRouter` needs a real HTTP server to resolve routes, but a packaged Electron app loads `index.html` via `file://` with no server at all, so no page ever rendered and nav links did nothing. Switched to `HashRouter`, which needs no server.\n• Social icons were missing in the packaged app: hardcoded absolute icon paths (`/icons/x.png`) resolved to the OS filesystem root under `file://` instead of the app's asset root. Now built from Vite's `BASE_URL`.\n• Neither bug ever showed up in dev, because every test run up to this point used the Vite dev server, never the actual packaged build. Added renderer console-message forwarding to the Electron main process so a packaged app's JS errors are no longer invisible.\n\nIf you installed v0.2.0-Alpha and nothing worked, this is why - please grab v0.2.1-Alpha instead.",
+  "embeds": [
+    {
+      "title": "OPNduck v0.2.1-Alpha",
+      "url": null,
+      "footer": "Packaged installers below - built via electron-builder, checksums included.",
+      "fields": [
+        { "name": "Commit", "value": "985eb67" },
+        { "name": "Branch", "value": "main" },
+        { "name": "Artifacts", "value": "Linux: AppImage, pacman. Windows: NSIS installer, portable exe. SHA256SUMS.txt included." },
+        { "name": "Secret scan", "value": "Clean (gitleaks + trufflehog; same known false positive as v0.2.0-Alpha - a bundled icon-library symbol name, not a credential)" },
+        { "name": "Note", "value": "Windows artifacts are Wine-cross-compiled and manually verified on the Linux AppImage only so far - not yet independently confirmed on real Windows hardware." }
+      ]
+    }
+  ],
+  "asset_list": [
+    "release-build/OPNduck-0.2.1-alpha.AppImage",
+    "release-build/opnduck-desktop-0.2.1-alpha.pacman",
+    "release-build/OPNduck Setup 0.2.1-alpha.exe",
+    "release-build/OPNduck 0.2.1-alpha.exe",
+    "release-build/SHA256SUMS.txt"
+  ],
+  "changelog_excerpt_source": "github-release/opnduck/v0.2.1-Alpha/CHANGELOG.raw.md (curated version in repo root CHANGELOG.md, [0.2.1-Alpha] section)"
+}
