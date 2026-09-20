@@ -9,9 +9,9 @@ import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
 
 const MODEL_OPTIONS: { value: UpscaleModel; label: string }[] = [
-  { value: 'realesr-animevideov3', label: 'General (fast, 2×/3×/4×)' },
-  { value: 'realesrgan-x4plus', label: 'General photo (4× only)' },
-  { value: 'realesrgan-x4plus-anime', label: 'Anime (4× only)' },
+  { value: 'realesrgan-x4plus', label: 'Photo — strongest detail (4× only)' },
+  { value: 'realesr-animevideov3', label: 'Fast — anime/video-tuned (2×/3×/4×)' },
+  { value: 'realesrgan-x4plus-anime', label: 'Anime — illustrations (4× only)' },
 ]
 
 // realesrgan-x4plus and -anime only ever produce a 4x result.
@@ -32,8 +32,12 @@ function basename(fullPath: string): string {
 // @category: upscaler/image-upscaler-card
 export default function ImageUpscalerCard({ feature }: { feature: FeatureDefinition }) {
   const [files, setFiles] = useState<string[]>([])
-  const [model, setModel] = useState<UpscaleModel>('realesr-animevideov3')
-  const [scale, setScale] = useState<UpscaleScale>(2)
+  // Real photos are the default assumption — realesrgan-x4plus gives a much
+  // more visible improvement than the (faster, but anime/video-tuned)
+  // realesr-animevideov3, which can look like barely anything happened on
+  // an ordinary photo.
+  const [model, setModel] = useState<UpscaleModel>('realesrgan-x4plus')
+  const [scale, setScale] = useState<UpscaleScale>(4)
   const [submittedIds, setSubmittedIds] = useState<string[]>([])
   const [realesrgan, setRealesrgan] = useState<{ available: boolean; installHint: string } | null>(null)
 
