@@ -7,8 +7,8 @@
   "tag": {
     "name": "v0.2.1-Alpha",
     "exists": true,
-    "commit": "985eb67",
-    "note": "Created as an annotated tag at 985eb67 (HEAD of main at release time), matching cliff.toml's tag_pattern 'v[0-9]*' convention used by v0.2.0-Alpha. The pre-existing lightweight 'Pre-Alpha'/'Alpha' tags remain unrelated leftovers from the GitHub-repo reconciliation merge and were left untouched."
+    "commit": "eebbbb0",
+    "note": "Created as an annotated tag at eebbbb0 (includes the release-prep commit on top of the 985eb67 fix commit), matching cliff.toml's tag_pattern 'v[0-9]*' convention used by v0.2.0-Alpha. The pre-existing lightweight 'Pre-Alpha'/'Alpha' tags remain unrelated leftovers from the GitHub-repo reconciliation merge and were left untouched."
   },
   "commit": "985eb67ed753968bc552d7269853bdf6d12f2b62",
   "commit_subject": "Fix packaged app: HashRouter for file:// loading, relative icon paths",
@@ -92,8 +92,17 @@
       "files_already_updated_by_prior_commit_985eb67": ["package.json (version)", "CHANGELOG.md (curated [0.2.1-Alpha] entry)"]
     },
     "publication": {
-      "status": "pending",
-      "mode": "automated - explicit authorization for a patch release, publication steps run immediately after this manifest is written"
+      "status": "complete",
+      "mode": "automated (explicit authorization in the invoking prompt: patch release for a critical packaging bug, corrected version 0.2.0.1-Alpha -> 0.2.1-alpha per SemVer, no objection raised)",
+      "actions": [
+        "Committed release prep files (github-release/opnduck/v0.2.1-Alpha/) as eebbbb0",
+        "Created annotated tag v0.2.1-Alpha at eebbbb0 (cliff.toml tag_pattern 'v[0-9]*' convention; distinct from the pre-existing unrelated lightweight 'Alpha'/'Pre-Alpha' tags, left untouched)",
+        "Pushed main and v0.2.1-Alpha to origin (https://github.com/Sight8218/OPNduck.git)",
+        "Created GitHub release v0.2.1-Alpha via `gh release create` (--prerelease, --verify-tag) with the curated CHANGELOG.md [0.2.1-Alpha] entry as the release body, uploading all 4 distributables plus SHA256SUMS.txt",
+        "Verified via `gh release view --json assets,isPrerelease,tagName`: all 5 assets present, isPrerelease=true, tagName=v0.2.1-Alpha"
+      ],
+      "release_url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.2.1-Alpha",
+      "discord": "not sent - discord-release.json left as a local draft only, per instruction (Aaron posts it himself)"
     }
   },
   "artifacts": [
