@@ -17,16 +17,25 @@
  */
 
 
-import type { CSSProperties, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import type { FeatureDefinition } from '../features/registry'
 import { useReduceMotion } from '../lib/motionPrefs'
-import { useTheme } from '../themes/useTheme'
 
 /**
  * Shared chrome for every adaptive card: glass body, header (icon + title +
  * tagline + scope badge) and a footer. Feature-specific controls render in
- * the body via `children`. The hover lift + glow is purely decorative, so it
- * respects Settings > Appearance > Motion & Density > Reduce motion.
+ * the body via `children`.
+ *
+ * The hover glow is intentionally a single flat class, `card-glow-hover`
+ * (defined once in index.css against the theme's own --card-glow token) —
+ * no per-card CSS variable, no reading `feature.accent` here at all. That
+ * field used to drive a per-card inline-style override and, at various
+ * points, produced a different glow color per card (hardcoded accents,
+ * then a self-referential CSS variable that only accidentally resolved).
+ * Removed outright rather than patched again: every card now physically
+ * cannot glow anything but the current theme's one color. Purely
+ * decorative, so it respects Settings > Appearance > Motion & Density >
+ * Reduce motion.
  */
 export default function FeatureCard({
   feature,
@@ -36,24 +45,11 @@ export default function FeatureCard({
   children?: ReactNode
 }) {
   const { reduceMotion } = useReduceMotion()
-  const { theme } = useTheme()
-  // Core cards no longer set `feature.accent` — every Home card glows the
-  // same theme color (--card-glow, inherited straight from :root) so the
-  // grid reads as one cohesive set instead of a different hue per card.
-  // `accent` is still in the plugin API for community cards that want to
-  // stand out, so it's only applied here when a card actually sets one —
-  // setting `--card-glow: var(--card-glow)` as a "no override" fallback
-  // is a self-referential custom property (invalid at computed-value time)
-  // and not worth relying on browsers to resolve it the intuitive way.
-  // Monochrome ignores accents either way since it's strict black & white.
-  const style: CSSProperties =
-    theme !== 'monochrome' && feature.accent ? { ['--card-glow' as string]: feature.accent } : {}
   return (
     <section
       className={`glass flex flex-col rounded-3xl p-5 transition-all duration-300 ease-out ${
-        reduceMotion ? '' : 'hover:-translate-y-1 hover:shadow-[0_4px_22px_-6px_var(--card-glow)]'
+        reduceMotion ? '' : 'card-glow-hover'
       }`}
-      style={style}
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">

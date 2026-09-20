@@ -38,10 +38,12 @@ export default function NavBar() {
         <div className="titlebar-no-drag flex min-w-0 items-center">
           <HamburgerMenu />
           <span className={`hidden h-6 w-px shrink-0 bg-[var(--glass-border)] sm:block ${divider}`} />
-          {/* py-1.5 gives the icons' hover:scale-110 room to grow without its
-              top/bottom edge getting clipped by this wrapper's own bounds —
-              overflow-hidden here is only meant to clip width, not height. */}
-          <div className="min-w-0 overflow-hidden py-1.5">
+          {/* p-1.5 gives the icons' hover:scale-110 room to grow on every side
+              without getting clipped by this wrapper's own bounds — the
+              rightmost icon (Discord) has nothing past it to grow into, so it
+              needs the same right-side buffer as the top/bottom. overflow-
+              hidden here is only meant to clip width under real crowding. */}
+          <div className="min-w-0 overflow-hidden p-1.5">
             <SocialLinks spacing={socials} />
           </div>
         </div>
