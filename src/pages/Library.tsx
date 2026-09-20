@@ -25,6 +25,7 @@ import { useTasks } from '../lib/useTasks'
 const RUNNING_LABEL: Record<TaskState['kind'], string> = {
   download: 'Downloading',
   convert: 'Converting',
+  upscale: 'Upscaling',
 }
 
 function statusLabel(task: TaskState): string {

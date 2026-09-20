@@ -20,7 +20,8 @@
 import { registerFeatures } from './registry'
 import ConverterCard from './converter/ConverterCard'
 import DownloaderCard from './downloader/DownloaderCard'
-import UpscalerCard from './upscaler/UpscalerCard'
+import ImageUpscalerCard from './upscaler/ImageUpscalerCard'
+import VideoUpscalerCard from './upscaler/VideoUpscalerCard'
 
 /**
  * Registers the core tool cards into the adaptive registry.
@@ -56,16 +57,29 @@ export function registerCoreFeatures(): void {
       source: 'core',
     },
     {
-      id: 'upscaler',
-      title: 'AI Upscaler',
+      id: 'image-upscaler',
+      title: 'AI Image Upscaler',
       tagline: 'Real-ESRGAN · up to 4×',
       description:
-        'Rebuild detail and boost resolution up to 4× on your local GPU or CPU.',
+        'Rebuild detail and boost resolution up to 4× on stills (JPG/PNG/WebP) using your local GPU, via realesrgan-ncnn-vulkan.',
       scope: 'desktop-exclusive',
       icon: '⇧',
       accent: 'rgba(255, 107, 107, 0.45)',
       enabled: true,
-      render: UpscalerCard,
+      render: ImageUpscalerCard,
+      source: 'core',
+    },
+    {
+      id: 'video-upscaler',
+      title: 'AI Video Upscaler',
+      tagline: 'Real-ESRGAN · up to 4×',
+      description:
+        'Rebuild detail and boost resolution on video. Not wired up yet — real video upscaling needs a frame-extract/upscale/reassemble pipeline, coming as a follow-up.',
+      scope: 'desktop-exclusive',
+      icon: '⇧',
+      accent: 'rgba(255, 107, 107, 0.45)',
+      enabled: true,
+      render: VideoUpscalerCard,
       source: 'core',
     },
   ])

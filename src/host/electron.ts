@@ -17,7 +17,15 @@
  */
 
 
-import type { ConvertRequest, DownloadProbe, DownloadRequest, Host, TaskState, ToolStatus } from './index'
+import type {
+  ConvertRequest,
+  DownloadProbe,
+  DownloadRequest,
+  Host,
+  TaskState,
+  ToolStatus,
+  UpscaleRequest,
+} from './index'
 
 /**
  * The bridge exposed by electron/preload.cjs via contextIsolation.
@@ -33,9 +41,11 @@ interface ElectronBridge {
   pickFolder(): Promise<string | null>
   checkYtDlp(): Promise<ToolStatus>
   checkFfmpeg(): Promise<ToolStatus>
+  checkRealesrgan(): Promise<ToolStatus>
   tasks: {
     startDownload(req: DownloadRequest): Promise<string>
     startConvert(req: ConvertRequest): Promise<string>
+    startUpscale(req: UpscaleRequest): Promise<string>
     cancel(taskId: string): void
     list(): Promise<TaskState[]>
     onUpdate(listener: (tasks: TaskState[]) => void): () => void
@@ -75,9 +85,11 @@ export function detectElectronHost(): Host | null {
     pickFolder: () => bridge.pickFolder(),
     checkYtDlp: () => bridge.checkYtDlp(),
     checkFfmpeg: () => bridge.checkFfmpeg(),
+    checkRealesrgan: () => bridge.checkRealesrgan(),
     tasks: {
       startDownload: (req) => bridge.tasks.startDownload(req),
       startConvert: (req) => bridge.tasks.startConvert(req),
+      startUpscale: (req) => bridge.tasks.startUpscale(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
       list: () => cachedTasks,
       subscribe: (listener) => {

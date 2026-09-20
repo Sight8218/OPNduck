@@ -16,11 +16,13 @@ export default function GlassSelect<T extends string>({
   value,
   onChange,
   id,
+  disabled,
 }: {
   options: GlassSelectOption<T>[]
   value: T
   onChange: (v: T) => void
   id: string
+  disabled?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
@@ -29,6 +31,7 @@ export default function GlassSelect<T extends string>({
   const selected = options.find((o) => o.value === value)
 
   const toggle = () => {
+    if (disabled) return
     if (!open) setActive(Math.max(0, options.findIndex((o) => o.value === value)))
     setOpen((o) => !o)
   }
@@ -48,8 +51,11 @@ export default function GlassSelect<T extends string>({
         id={id}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-disabled={disabled}
         onClick={toggle}
-        className="glass-input flex w-full items-center justify-between text-left"
+        className={`glass-input flex w-full items-center justify-between text-left ${
+          disabled ? 'cursor-not-allowed opacity-50' : ''
+        }`}
       >
         <span className={selected ? '' : 'text-[var(--text-faint)]'}>
           {selected?.label ?? 'Select…'}

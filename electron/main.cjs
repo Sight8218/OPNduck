@@ -162,6 +162,34 @@ ipcMain.handle('system:checkFfmpeg', () => {
 })
 
 /**
+ * realesrgan-ncnn-vulkan is essentially never pre-installed anywhere (no
+ * winget/brew formula confirmed to exist for it) — Arch has an AUR package;
+ * everyone else gets pointed at the upstream releases page rather than a
+ * fabricated command.
+ */
+function realesrganInstallHint() {
+  if (process.platform === 'linux') return 'yay -S realesrgan-ncnn-vulkan-bin   (AUR; or see the link below on other distros)'
+  return 'Download from https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/releases'
+}
+
+ipcMain.handle('system:checkRealesrgan', () => {
+  return new Promise((resolve) => {
+    let child
+    try {
+      child = spawn('realesrgan-ncnn-vulkan', ['-h'])
+    } catch {
+      resolve({ available: false, installHint: realesrganInstallHint() })
+      return
+    }
+    // Unlike yt-dlp/ffmpeg, this binary exits non-zero even for -h — any exit
+    // at all (vs. an 'error' event, which only fires when the binary is
+    // genuinely missing) means it was found and ran.
+    child.on('error', () => resolve({ available: false, installHint: realesrganInstallHint() }))
+    child.on('close', () => resolve({ available: true, installHint: realesrganInstallHint() }))
+  })
+})
+
+/**
  * Spotify tracks are DRM-protected — yt-dlp has no Spotify extractor and
  * never will (there's no legitimate way to pull audio directly off it).
  * Best-effort experimental workaround: read the track's own public page
@@ -605,6 +633,98 @@ ipcMain.handle('tasks:startConvert', async (_e, req) => {
   return id
 })
 // --- end: converter/task-orchestration-main-process ---
+
+/* --- Task orchestration (realesrgan-ncnn-vulkan image upscaling) --- */
+// @category: upscaler/task-orchestration-main-process
+
+/** realesrgan-x4plus and -anime only support 4x; realesr-animevideov3 (the
+ *  default) supports 2x/3x/4x — the renderer is responsible for not letting
+ *  the user pick an invalid scale/model pair in the first place. No -m flag:
+ *  the binary finds its own bundled/packaged models without help, verified
+ *  against both a manual build layout and this system's AUR package. */
+function upscaleArgs(req, outputPath) {
+  return ['-i', req.inputPath, '-o', outputPath, '-s', String(req.scale), '-n', req.model, '-v']
+}
+
+ipcMain.handle('tasks:startUpscale', (_e, req) => {
+  const id = crypto.randomUUID()
+  const destDir = req.destination || defaultDownloadDir()
+  fs.mkdirSync(destDir, { recursive: true })
+
+  const ext = path.extname(req.inputPath).replace(/^\./, '').toLowerCase() || 'png'
+  const inputBase = path.basename(req.inputPath, path.extname(req.inputPath))
+  const outputPath = uniqueOutputPath(destDir, `${inputBase}-${req.scale}x`, ext)
+
+  tasks.set(id, {
+    state: {
+      id,
+      kind: 'upscale',
+      status: 'queued',
+      progress: 0,
+      label: path.basename(req.inputPath),
+      format: req.model,
+      quality: `${req.scale}×`,
+      sizeBytes: null,
+      sizeIsEstimate: false,
+      thumbnailUrl: null,
+      experimentalMatch: null,
+    },
+    child: null,
+    finalPath: outputPath,
+  })
+  broadcastTasks()
+
+  let child
+  try {
+    child = spawn('realesrgan-ncnn-vulkan', upscaleArgs(req, outputPath))
+  } catch (err) {
+    updateTask(id, { status: 'error', error: `Failed to start realesrgan-ncnn-vulkan: ${err.message}` })
+    return id
+  }
+
+  const entry = tasks.get(id)
+  entry.child = child
+  updateTask(id, { status: 'running' })
+
+  // Everything — GPU info, per-tile progress percentages, and the final
+  // "done" line — comes out on stderr, not stdout (verified directly).
+  let stderrTail = ''
+  child.stderr.on('data', (chunk) => {
+    const text = chunk.toString()
+    stderrTail = (stderrTail + text).slice(-2000)
+    const match = text.match(/(\d+(?:\.\d+)?)%/)
+    if (match) updateTask(id, { progress: Math.min(1, Number(match[1]) / 100) })
+  })
+  child.on('error', (err) => {
+    updateTask(id, { status: 'error', error: `realesrgan-ncnn-vulkan not found on PATH (${err.message})` })
+  })
+  child.on('close', (code, signal) => {
+    if (!tasks.has(id)) return
+    if (entry.state.status === 'canceled') return
+    if (signal || code !== 0) {
+      updateTask(id, {
+        status: 'error',
+        error: stderrTail.trim().split('\n').pop() || `realesrgan-ncnn-vulkan exited with code ${code}`,
+      })
+      return
+    }
+    let realSize = null
+    try {
+      realSize = fs.statSync(outputPath).size
+    } catch {
+      /* keep null if the output can't be read */
+    }
+    updateTask(id, {
+      status: 'done',
+      progress: 1,
+      label: path.basename(outputPath),
+      ...(realSize != null ? { sizeBytes: realSize } : {}),
+    })
+  })
+
+  return id
+})
+// --- end: upscaler/task-orchestration-main-process ---
 
 /* --- External links open in the OS browser, not inside the app window --- */
 app.on('web-contents-created', (_e, contents) => {
