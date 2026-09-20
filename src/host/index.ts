@@ -123,6 +123,7 @@ export interface HostTasks {
   startDownload(req: DownloadRequest): Promise<string>
   startConvert(req: ConvertRequest): Promise<string>
   startUpscale(req: UpscaleRequest): Promise<string>
+  startVideoUpscale(req: UpscaleRequest): Promise<string>
   cancel(taskId: string): void
   list(): TaskState[]
   /** Fires with the full task list on every change. Returns an unsubscribe fn. */
@@ -213,6 +214,27 @@ const browserTasks: HostTasks = {
         status: 'error',
         progress: 0,
         label: 'Image Upscaler requires the desktop app',
+        error: 'Desktop app required',
+        format: req.model,
+        quality: `${req.scale}×`,
+        sizeBytes: null,
+        sizeIsEstimate: false,
+        thumbnailUrl: null,
+        experimentalMatch: null,
+      },
+    ]
+    browserListeners.forEach((l) => l(browserTaskList))
+    return id
+  },
+  startVideoUpscale: async (req) => {
+    const id = crypto.randomUUID()
+    browserTaskList = [
+      {
+        id,
+        kind: 'upscale',
+        status: 'error',
+        progress: 0,
+        label: 'Video Upscaler requires the desktop app',
         error: 'Desktop app required',
         format: req.model,
         quality: `${req.scale}×`,

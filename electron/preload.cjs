@@ -37,6 +37,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     startDownload: (req) => ipcRenderer.invoke('tasks:start', req),
     startConvert: (req) => ipcRenderer.invoke('tasks:startConvert', req),
     startUpscale: (req) => ipcRenderer.invoke('tasks:startUpscale', req),
+    startVideoUpscale: (req) => ipcRenderer.invoke('tasks:startVideoUpscale', req),
     cancel: (taskId) => ipcRenderer.send('tasks:cancel', taskId),
     list: () => ipcRenderer.invoke('tasks:list'),
     onUpdate: (listener) => {

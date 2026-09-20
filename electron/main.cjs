@@ -19,6 +19,7 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
+const os = require('node:os')
 const { spawn } = require('node:child_process')
 const crypto = require('node:crypto')
 
@@ -725,6 +726,263 @@ ipcMain.handle('tasks:startUpscale', (_e, req) => {
   return id
 })
 // --- end: upscaler/task-orchestration-main-process ---
+
+/**
+ * Video upscaling — no single tool does this. The pipeline is:
+ *   1. ffmpeg extracts every frame to lossless PNGs.
+ *   2. realesrgan-ncnn-vulkan upscales the whole frame folder in one batch
+ *      call (it natively supports -i dir -o dir).
+ *   3. ffmpeg reassembles the upscaled frames at the source's original fps
+ *      and muxes the source's original audio back in.
+ * Real videos mean real frame counts (a 2-minute 30fps clip is ~3600
+ * frames) — this is slow and uses real disk space for the temp frames,
+ * by design; there's no shortcut around per-frame AI upscaling.
+ */
+// @category: upscaler/video-upscale-pipeline
+
+/** Runs one child process, wiring it into the task's cancel button (entry.child)
+ *  and forwarding each output chunk to onChunk for progress parsing. Resolves on
+ *  exit code 0, rejects with the tail of stderr (or stdout, if that's where a
+ *  given tool logs) otherwise. */
+function spawnTracked(cmd, args, entry, { onStdout, onStderr } = {}) {
+  return new Promise((resolve, reject) => {
+    let child
+    try {
+      child = spawn(cmd, args)
+    } catch (err) {
+      reject(err)
+      return
+    }
+    entry.child = child
+    let tail = ''
+    child.stdout?.on('data', (chunk) => {
+      const text = chunk.toString()
+      tail = (tail + text).slice(-2000)
+      onStdout?.(text)
+    })
+    child.stderr?.on('data', (chunk) => {
+      const text = chunk.toString()
+      tail = (tail + text).slice(-2000)
+      onStderr?.(text)
+    })
+    child.on('error', (err) => reject(err))
+    child.on('close', (code, signal) => {
+      if (signal || code !== 0) {
+        reject(new Error(tail.trim().split('\n').pop() || `${cmd} exited with code ${code}`))
+        return
+      }
+      resolve()
+    })
+  })
+}
+
+/** fps + frame count for the source video, or null if either can't be read. */
+function probeVideoMeta(inputPath) {
+  return new Promise((resolve) => {
+    let child
+    try {
+      child = spawn('ffprobe', [
+        '-v', 'quiet',
+        '-print_format', 'json',
+        '-show_format',
+        '-show_streams',
+        '-select_streams', 'v:0',
+        inputPath,
+      ])
+    } catch {
+      resolve(null)
+      return
+    }
+    let out = ''
+    child.stdout.on('data', (c) => {
+      out += c
+    })
+    child.on('error', () => resolve(null))
+    child.on('close', () => {
+      try {
+        const info = JSON.parse(out)
+        const stream = info.streams?.[0]
+        const duration = Number.parseFloat(info.format?.duration)
+        const [num, den] = String(stream?.r_frame_rate ?? '').split('/').map(Number)
+        const fps = den ? num / den : null
+        let frameCount = Number.parseInt(stream?.nb_frames, 10)
+        if (!Number.isFinite(frameCount) && fps && duration) frameCount = Math.round(fps * duration)
+        if (!fps || !Number.isFinite(frameCount) || frameCount <= 0) {
+          resolve(null)
+          return
+        }
+        resolve({ fps, frameCount })
+      } catch {
+        resolve(null)
+      }
+    })
+  })
+}
+
+function isCanceled(id) {
+  return tasks.get(id)?.state.status === 'canceled'
+}
+
+ipcMain.handle('tasks:startVideoUpscale', async (_e, req) => {
+  const id = crypto.randomUUID()
+  const destDir = req.destination || defaultDownloadDir()
+  fs.mkdirSync(destDir, { recursive: true })
+
+  const ext = path.extname(req.inputPath).replace(/^\./, '').toLowerCase() || 'mp4'
+  const inputBase = path.basename(req.inputPath, path.extname(req.inputPath))
+  const outputPath = uniqueOutputPath(destDir, `${inputBase}-${req.scale}x`, ext)
+
+  tasks.set(id, {
+    state: {
+      id,
+      kind: 'upscale',
+      status: 'queued',
+      progress: 0,
+      label: path.basename(req.inputPath),
+      format: req.model,
+      quality: `${req.scale}×`,
+      sizeBytes: null,
+      sizeIsEstimate: false,
+      thumbnailUrl: null,
+      experimentalMatch: null,
+    },
+    child: null,
+    finalPath: outputPath,
+  })
+  broadcastTasks()
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opnduck-upscale-'))
+  const framesDir = path.join(tempDir, 'frames')
+  const upscaledDir = path.join(tempDir, 'upscaled')
+  fs.mkdirSync(framesDir, { recursive: true })
+  fs.mkdirSync(upscaledDir, { recursive: true })
+  const cleanup = () => {
+    try {
+      fs.rmSync(tempDir, { recursive: true, force: true })
+    } catch {
+      /* best-effort — a leftover temp dir isn't worth failing the task over */
+    }
+  }
+
+  const meta = await probeVideoMeta(req.inputPath)
+  if (isCanceled(id)) {
+    cleanup()
+    return id
+  }
+  if (!meta) {
+    updateTask(id, { status: 'error', error: "Couldn't read this video's frame rate/frame count." })
+    cleanup()
+    return id
+  }
+
+  const entry = tasks.get(id)
+  updateTask(id, { status: 'running' })
+
+  // Phase budget: extraction 0-20%, upscaling 20-90%, reassembly 90-100%.
+  try {
+    await spawnTracked(
+      'ffmpeg',
+      ['-y', '-i', req.inputPath, '-progress', 'pipe:1', '-nostats', path.join(framesDir, '%08d.png')],
+      entry,
+      {
+        onStdout: (text) => {
+          const m = text.match(/frame=\s*(\d+)/)
+          if (m) updateTask(id, { progress: Math.min(0.2, (0.2 * Number(m[1])) / meta.frameCount) })
+        },
+      },
+    )
+  } catch (err) {
+    // A cancel mid-phase kills entry.child, which makes spawnTracked's
+    // promise reject just like a real failure would — don't let that
+    // overwrite the 'canceled' status tasks:cancel already set.
+    if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Frame extraction failed: ${err.message}` })
+    cleanup()
+    return id
+  }
+  if (isCanceled(id)) {
+    cleanup()
+    return id
+  }
+
+  try {
+    let doneCount = 0
+    await spawnTracked(
+      'realesrgan-ncnn-vulkan',
+      ['-i', framesDir, '-o', upscaledDir, '-s', String(req.scale), '-n', req.model, '-v'],
+      entry,
+      {
+        onStderr: (text) => {
+          // "-> ... done" lines mark whole-frame completion — far more useful
+          // for overall video progress than the per-tile percentage lines,
+          // which restart for every individual frame.
+          const matches = text.match(/ done\r?\n/g)
+          if (matches) {
+            doneCount += matches.length
+            updateTask(id, { progress: Math.min(0.9, 0.2 + (0.7 * doneCount) / meta.frameCount) })
+          }
+        },
+      },
+    )
+  } catch (err) {
+    if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Upscaling failed: ${err.message}` })
+    cleanup()
+    return id
+  }
+  if (isCanceled(id)) {
+    cleanup()
+    return id
+  }
+
+  try {
+    await spawnTracked(
+      'ffmpeg',
+      [
+        '-y',
+        '-framerate', String(meta.fps),
+        '-i', path.join(upscaledDir, '%08d.png'),
+        '-i', req.inputPath,
+        '-map', '0:v',
+        '-map', '1:a?',
+        '-c:v', 'libx264',
+        '-pix_fmt', 'yuv420p',
+        '-c:a', 'aac',
+        '-shortest',
+        '-progress', 'pipe:1',
+        '-nostats',
+        outputPath,
+      ],
+      entry,
+      {
+        onStdout: (text) => {
+          const m = text.match(/frame=\s*(\d+)/)
+          if (m) updateTask(id, { progress: Math.min(1, 0.9 + (0.1 * Number(m[1])) / meta.frameCount) })
+        },
+      },
+    )
+  } catch (err) {
+    if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Reassembly failed: ${err.message}` })
+    cleanup()
+    return id
+  }
+
+  cleanup()
+
+  let realSize = null
+  try {
+    realSize = fs.statSync(outputPath).size
+  } catch {
+    /* keep null if the output can't be read */
+  }
+  updateTask(id, {
+    status: 'done',
+    progress: 1,
+    label: path.basename(outputPath),
+    ...(realSize != null ? { sizeBytes: realSize } : {}),
+  })
+
+  return id
+})
+// --- end: upscaler/video-upscale-pipeline ---
 
 /* --- External links open in the OS browser, not inside the app window --- */
 app.on('web-contents-created', (_e, contents) => {

@@ -46,6 +46,7 @@ interface ElectronBridge {
     startDownload(req: DownloadRequest): Promise<string>
     startConvert(req: ConvertRequest): Promise<string>
     startUpscale(req: UpscaleRequest): Promise<string>
+    startVideoUpscale(req: UpscaleRequest): Promise<string>
     cancel(taskId: string): void
     list(): Promise<TaskState[]>
     onUpdate(listener: (tasks: TaskState[]) => void): () => void
@@ -90,6 +91,7 @@ export function detectElectronHost(): Host | null {
       startDownload: (req) => bridge.tasks.startDownload(req),
       startConvert: (req) => bridge.tasks.startConvert(req),
       startUpscale: (req) => bridge.tasks.startUpscale(req),
+      startVideoUpscale: (req) => bridge.tasks.startVideoUpscale(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
       list: () => cachedTasks,
       subscribe: (listener) => {

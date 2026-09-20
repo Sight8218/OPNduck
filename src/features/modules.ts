@@ -74,7 +74,7 @@ export function registerCoreFeatures(): void {
       title: 'AI Video Upscaler',
       tagline: 'Real-ESRGAN · up to 4×',
       description:
-        'Rebuild detail and boost resolution on video. Not wired up yet — real video upscaling needs a frame-extract/upscale/reassemble pipeline, coming as a follow-up.',
+        'Rebuild detail and boost resolution on video, frame by frame — extracts every frame, AI-upscales each one, then reassembles with the original audio. Genuinely slow for long clips; that cost is per-frame, not shortcuttable.',
       scope: 'desktop-exclusive',
       icon: '⇧',
       accent: 'rgba(255, 107, 107, 0.45)',
