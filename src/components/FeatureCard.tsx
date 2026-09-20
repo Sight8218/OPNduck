@@ -38,13 +38,16 @@ export default function FeatureCard({
   const { reduceMotion } = useReduceMotion()
   const { theme } = useTheme()
   // Core cards no longer set `feature.accent` — every Home card glows the
-  // same theme color (--card-glow) so the grid reads as one cohesive set
-  // instead of a different hue per card. `accent` is still in the plugin
-  // API for community cards that want to stand out, hence the fallback
-  // rather than deleting the field outright; Monochrome ignores it either
-  // way since it's strict black & white.
+  // same theme color (--card-glow, inherited straight from :root) so the
+  // grid reads as one cohesive set instead of a different hue per card.
+  // `accent` is still in the plugin API for community cards that want to
+  // stand out, so it's only applied here when a card actually sets one —
+  // setting `--card-glow: var(--card-glow)` as a "no override" fallback
+  // is a self-referential custom property (invalid at computed-value time)
+  // and not worth relying on browsers to resolve it the intuitive way.
+  // Monochrome ignores accents either way since it's strict black & white.
   const style: CSSProperties =
-    theme === 'monochrome' ? {} : { ['--card-glow' as string]: feature.accent ?? 'var(--card-glow)' }
+    theme !== 'monochrome' && feature.accent ? { ['--card-glow' as string]: feature.accent } : {}
   return (
     <section
       className={`glass flex flex-col rounded-3xl p-5 transition-all duration-300 ease-out ${

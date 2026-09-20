@@ -38,7 +38,10 @@ export default function NavBar() {
         <div className="titlebar-no-drag flex min-w-0 items-center">
           <HamburgerMenu />
           <span className={`hidden h-6 w-px shrink-0 bg-[var(--glass-border)] sm:block ${divider}`} />
-          <div className="min-w-0 overflow-hidden">
+          {/* py-1.5 gives the icons' hover:scale-110 room to grow without its
+              top/bottom edge getting clipped by this wrapper's own bounds —
+              overflow-hidden here is only meant to clip width, not height. */}
+          <div className="min-w-0 overflow-hidden py-1.5">
             <SocialLinks spacing={socials} />
           </div>
         </div>
@@ -79,7 +82,7 @@ export default function NavBar() {
         </div>
 
         {/* Right: the menu cards, then OS window controls when in the shell */}
-        <div className="titlebar-no-drag flex min-w-0 items-center justify-end gap-4 overflow-hidden pr-0">
+        <div className="titlebar-no-drag flex min-w-0 items-center justify-end gap-4 overflow-hidden py-1.5 pr-0">
           <NavMenuCards />
           <WindowControls />
         </div>
