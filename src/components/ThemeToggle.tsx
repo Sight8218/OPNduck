@@ -20,7 +20,7 @@
 import { THEMES, type Theme } from '../themes/theme'
 
 const THEME_LABELS: Record<Theme, { label: string; hint: string }> = {
-  glass: { label: 'Glass', hint: 'Premium frosted look over the fluid gradient. Default.' },
+  blarange: { label: 'Blarange', hint: 'Black + orange, matching the OPNduck site. Flat & clean. Default.' },
   monochrome: { label: 'Monochrome', hint: 'High-contrast black & white for readability.' },
 }
 

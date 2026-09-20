@@ -18,17 +18,23 @@
 
 
 @import 'tailwindcss';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/jetbrains-mono/600.css';
+@import '@fontsource/jetbrains-mono/700.css';
+@import '@fontsource/jetbrains-mono/800.css';
 @import './themes/tokens.css';
 
 /* ============================================================
    OPNduck — Global Design System
-   Liquid Glass primitives + fluid gradient background layer
+   Flat surface primitives ('.glass*' class names kept for
+   backwards compatibility — no blur/translucency is applied)
    ============================================================ */
 
 @layer base {
   :root {
     color-scheme: dark;
-    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -62,10 +68,9 @@ body {
 }
 
 /* ------------------------------------------------------------
-   The Fluid Gradient Background Layer
-   A fixed, full-viewport animated canvas of warm blobs. Only
-   active in Glass mode (--glass-on). Monochrome shows a solid
-   base color and disables the animation for performance.
+   The Background Layer
+   A fixed, full-viewport backdrop. Both themes are flat/solid
+   (--fluid-on: 0) — no animated blobs, no glass effects.
    ------------------------------------------------------------ */
 @layer components {
   .fluid-background {
@@ -83,10 +88,8 @@ body {
     transition: opacity 600ms ease;
   }
   .fluid-background::before {
-    /* A soft continuous wash so the whole viewport is gradiented — no dark
-       bands, flat solids or harsh seams. Theme-aware via --bg-wash (defined
-       per-theme in tokens.css); previously hardcoded to the Glass palette,
-       which bled orange into Monochrome too (--glass-on: 1 there as well). */
+    /* Theme-aware via --bg-wash (defined per-theme in tokens.css); both
+       themes currently set this to transparent, keeping the background flat. */
     content: '';
     position: absolute;
     inset: 0;
@@ -183,10 +186,10 @@ body {
 }
 
 /* ------------------------------------------------------------
-   Liquid Glass — the core reusable primitive
-   Frosted blur + translucent tint + 1px inner light-catch edge
-   + soft lift shadow. Monochrome keeps the shape but drops the
-   blur/tint for its flatter, high-contrast look.
+   .glass — the core reusable surface primitive
+   Solid background + 1px inner light-catch edge + soft lift
+   shadow. --glass-blur is 0px on both themes now (flat, no
+   backdrop blur); the class name is kept for compatibility.
    ------------------------------------------------------------ */
 @layer components {
   .glass {
@@ -281,7 +284,7 @@ body {
    Accessibility — respect system contrast preferences
    When the user requests more contrast, the Monochrome theme's
    already-grayscale palette is pushed to true black/white and
-   Glass's dim text is nudged brighter.
+   Blarange's dim text is nudged brighter.
    ------------------------------------------------------------ */
 @media (prefers-contrast: more) {
   [data-theme='monochrome'] {
@@ -292,9 +295,9 @@ body {
     --input-bg: #000000;
     --glass-border: #4d4d4d;
   }
-  [data-theme='glass'] {
-    --text-dim: rgba(255, 247, 240, 0.78);
-    --text-faint: rgba(255, 247, 240, 0.55);
+  [data-theme='blarange'] {
+    --text-dim: rgba(237, 230, 217, 0.78);
+    --text-faint: rgba(237, 230, 217, 0.55);
   }
 }
 

@@ -37,9 +37,9 @@ export default function FeatureCard({
 }) {
   const { reduceMotion } = useReduceMotion()
   const { theme } = useTheme()
-  // Per-feature accent tints (warm orange, red, ...) are a Glass-theme flourish
-  // only — Monochrome is strict black & white, so cards there just inherit the
-  // theme's own neutral --card-glow instead of a hardcoded color.
+  // Per-feature accent tints (warm orange, red, ...) are a Blarange-theme
+  // flourish only — Monochrome is strict black & white, so cards there just
+  // inherit the theme's own neutral --card-glow instead of a hardcoded color.
   const style: CSSProperties =
     theme === 'monochrome' ? {} : { ['--card-glow' as string]: feature.accent ?? 'var(--card-glow)' }
   return (

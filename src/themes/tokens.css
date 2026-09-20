@@ -18,10 +18,12 @@
 
 
 /* ============================================================
-   OPNduck Design System — "Liquid Glass" Theme Engine
+   OPNduck Design System — Theme Engine
    ------------------------------------------------------------
-   Two themes are driven by a `data-theme` attribute on <html>:
-     - glass      (default) — translucent frosted glass over a fluid gradient
+   Two themes are driven by a `data-theme` attribute on <html>,
+   both flat and solid — no blur, no translucency, no glassmorphism:
+     - blarange   (default) — black + orange, matching the marketing
+                    site's own palette exactly
      - monochrome — strict high-contrast black & white
    Every visual token is a CSS custom property so a single switch
    retints the whole app without touching component styles.
@@ -29,63 +31,59 @@
 
 @layer theme {
 :root,
-  [data-theme='glass'] {
-    /* Glass palette uses exactly three distinct colours everywhere —
-       #45272a, #1f0508 and #b35a2d. Surfaces are translucent so the animated
-       fluid gradient flows behind them (real glass), with blur for depth.
-       The only element with a visible multi-stop gradient is the OPNDuck mark. */
-    --glass-bg: rgba(69, 39, 42, 0.65);
-    --glass-bg-strong: rgba(58, 32, 35, 0.78);
-    --glass-tint: rgba(179, 90, 45, 0.12);
-    --glass-blur: 16px;
-    --glass-saturate: 1.25;
-    --glass-border: rgba(0, 0, 0, 0.55);
-    --glass-border-inner: rgba(179, 90, 45, 0.28);
-    --glass-shadow: 0 16px 40px -18px rgba(0, 0, 0, 0.7);
-    --card-glow: rgba(179, 90, 45, 0.55);
+  [data-theme='blarange'] {
+    /* Flat and clean, no blur/translucency — explicitly not glassmorphism.
+       Palette pulled directly from the marketing site's own solid card/
+       border colors: #e1892f/#f0a63b/#d97a25 orange, #17130f/#0f0c0a warm
+       black, #ede6d9 cream text. Structured the same way as Monochrome
+       (solid hex surfaces, 0 blur, no fluid blobs) — just orange instead
+       of gray. */
+    --glass-bg: #171310;
+    --glass-bg-strong: #0f0c0a;
+    --glass-tint: transparent;
+    --glass-blur: 0px;
+    --glass-saturate: 1;
+    --glass-border: rgba(225, 137, 47, 0.18);
+    --glass-border-inner: rgba(225, 137, 47, 0.25);
+    --glass-shadow: 0 10px 26px -16px rgba(0, 0, 0, 0.85);
+    --card-glow: rgba(225, 137, 47, 0.45);
 
     /* --- Interactive (solid darker inset) ------------------------------ */
-    --input-bg: rgba(31, 5, 8, 0.6);
-    --input-bg-hover: rgba(31, 5, 8, 0.74);
-    --input-border: rgba(179, 90, 45, 0.5);
-    --input-border-focus: rgba(179, 90, 45, 0.9);
-    --btn-bg: #b35a2d;
-    --btn-bg-hover: #c06a36;
-    --btn-text: #1f0508;
+    --input-bg: #0f0c0a;
+    --input-bg-hover: #171310;
+    --input-border: rgba(225, 137, 47, 0.35);
+    --input-border-focus: #e1892f;
+    --btn-bg: #e1892f;
+    --btn-bg-hover: #f0a63b;
+    --btn-text: #17130f;
 
-    /* --- Text (derived from the three colours) ------------------------- */
-    --text: #f3e9e4;
-    --text-dim: #c9b3a9;
-    --text-faint: #a08a7e;
+    /* --- Text (derived from the site's own text tiers) ------------------ */
+    --text: #ede6d9;
+    --text-dim: #a89a86;
+    --text-faint: #7d7364;
 
-    /* --- Accent (single brand colour) ---------------------------------- */
-    --accent: #b35a2d;
-    --accent-strong: #bd6736;
-    --accent-soft: #e08a52;
+    /* --- Accent (the site's own brand orange) ---------------------------- */
+    --accent: #e1892f;
+    --accent-strong: #f0a63b;
+    --accent-soft: #d97a25;
 
-    /* --- Fluid gradient background (only the three colours) ------------ */
-    /* Layered radial washes cover the whole viewport so the gradient is smooth
-       and continuous — no flat-solids or harsh seams anywhere. */
-    --bg-base: linear-gradient(180deg, #1d0c0f 0%, #150305 48%, #230e11 78%, #150305 100%);
-    --bg-solid: #150305;
-    --bg-scrim: rgba(0, 0, 0, 0.2);
-    --bg-wash:
-      radial-gradient(130% 110% at 18% 12%, rgba(179, 90, 45, 0.2), transparent 62%),
-      radial-gradient(140% 120% at 55% 45%, rgba(69, 39, 42, 0.34), transparent 60%),
-      radial-gradient(130% 130% at 88% 88%, rgba(179, 90, 45, 0.22), transparent 62%);
-    --fluid-opacity: 0.23;
-    --bg-grad-a: radial-gradient(130% 110% at 8% 6%,  rgba(179, 90, 45, 0.34) 0%, transparent 60%);
-    --bg-grad-b: radial-gradient(120% 120% at 92% 12%, rgba(69, 39, 42, 0.55) 0%, transparent 58%);
-    --bg-grad-c: radial-gradient(140% 120% at 88% 92%, rgba(179, 90, 45, 0.32) 0%, transparent 62%);
-    --bg-grad-d: radial-gradient(150% 130% at 10% 96%, rgba(69, 39, 42, 0.5) 0%, transparent 58%);
-    --fluid-1: rgba(69, 39, 42, 0.9);
-    --fluid-2: rgba(179, 90, 45, 0.85);
-    --fluid-3: rgba(69, 39, 42, 0.95);
-    --fluid-4: rgba(179, 90, 45, 0.75);
-    --fluid-5: rgba(69, 39, 42, 0.9);
-    --fluid-6: rgba(179, 90, 45, 0.8);
+    /* --- Background — flat, no animated blobs, no film grain ------------ */
+    --bg-base: linear-gradient(180deg, #17130f 0%, #120f0c 60%, #0f0c0a 100%);
+    --bg-solid: #17130f;
+    --bg-scrim: transparent;
+    --bg-wash: transparent;
+    --bg-grad-a: linear-gradient(transparent, transparent);
+    --bg-grad-b: linear-gradient(transparent, transparent);
+    --bg-grad-c: linear-gradient(transparent, transparent);
+    --bg-grad-d: linear-gradient(transparent, transparent);
+    --fluid-1: transparent;
+    --fluid-2: transparent;
+    --fluid-3: transparent;
+    --fluid-4: transparent;
+    --fluid-5: transparent;
+    --fluid-6: transparent;
     --glass-on: 1;
-    --fluid-on: 1;
+    --fluid-on: 0;
     --grain-on: 0;
   }
 
@@ -117,9 +115,10 @@
     --accent-strong: #ffffff;
     --accent-soft: #9f9f9f;
 
-    /* Monochrome gradient background — a cool silver-to-charcoal depth that is
-       distinct from the warm Glass wash. No blobs (--fluid-on: 0); the gentle
-       depth stays subtle so the drifting film grain is clearly visible. */
+    /* Monochrome gradient background — a cool silver-to-charcoal depth,
+       distinct from Blarange's warm black/orange. No blobs (--fluid-on: 0);
+       the gentle depth stays subtle so the drifting film grain is clearly
+       visible. */
     --bg-base: linear-gradient(180deg, #222222 0%, #141414 42%, #0a0a0a 72%, #030303 100%);
     --bg-solid: #141414;
     --bg-scrim: transparent;

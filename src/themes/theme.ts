@@ -17,9 +17,9 @@
  */
 
 
-export type Theme = 'glass' | 'monochrome'
+export type Theme = 'blarange' | 'monochrome'
 
-export const THEMES: Theme[] = ['glass', 'monochrome']
+export const THEMES: Theme[] = ['blarange', 'monochrome']
 
 const STORAGE_KEY = 'opnduck.theme'
 
@@ -35,12 +35,12 @@ export function applyTheme(theme: Theme): void {
 }
 
 export function readStoredTheme(): Theme {
-  if (typeof window === 'undefined') return 'glass'
+  if (typeof window === 'undefined') return 'blarange'
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored && (THEMES as string[]).includes(stored)) return stored as Theme
   } catch {
     /* fall through to default */
   }
-  return 'glass'
+  return 'blarange'
 }
