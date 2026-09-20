@@ -1,7 +1,7 @@
 {
   "name": "opnduck-desktop",
   "private": true,
-  "version": "0.2.0-alpha",
+  "version": "0.2.1-alpha",
   "type": "module",
   "description": "OPNduck — a local-first, open-source media processing suite. Alpha: real yt-dlp media downloading, plus the GUI, settings, and design system. Linux-first, Windows-parallel.",
   "license": "GPL-3.0-or-later",

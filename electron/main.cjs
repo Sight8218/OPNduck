@@ -64,6 +64,15 @@ function createWindow() {
     if (newBounds.width < 940 || newBounds.height < 600) event.preventDefault()
   })
 
+  // Forward renderer console output to the main process's own stdout/stderr —
+  // otherwise a packaged app's console.error is invisible with no devtools
+  // window to open, which is exactly the situation that let the file://
+  // BrowserRouter/absolute-icon-path bugs ship unnoticed.
+  win.webContents.on('console-message', (event) => {
+    const levels = ['log', 'warning', 'error', 'debug']
+    console.log(`[renderer:${levels[event.level] ?? event.level}]`, event.message)
+  })
+
   win.loadURL(rendererURL())
   return win
 }

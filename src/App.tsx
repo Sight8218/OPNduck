@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Navigate, Route } from 'react-router-dom'
+import { HashRouter, Navigate, Route } from 'react-router-dom'
 import CommandPalette from './components/CommandPalette'
 import FluidBackground from './components/FluidBackground'
 import NavBar from './components/NavBar'
@@ -37,7 +37,14 @@ export default function App() {
   }, [])
 
   return (
-    <BrowserRouter>
+    // BrowserRouter needs a real HTTP server to resolve paths like /downloads.
+    // The packaged app loads index.html straight off disk via file:// (no
+    // server at all), where BrowserRouter can't match any route — nothing
+    // renders past the first paint and in-app navigation does nothing.
+    // HashRouter keeps all routing state after a `#`, which is pure
+    // client-side and needs no server, so it works identically in the Vite
+    // dev server, the browser preview, and the packaged file:// app.
+    <HashRouter>
       <DevModeProvider>
         <ReduceMotionProvider>
           <NavProvider>
@@ -60,6 +67,6 @@ export default function App() {
           </NavProvider>
         </ReduceMotionProvider>
       </DevModeProvider>
-    </BrowserRouter>
+    </HashRouter>
   )
 }

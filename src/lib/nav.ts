@@ -37,13 +37,21 @@ export interface SocialItem {
   icon: string
 }
 
+// Vite's `base: './'` (set for the packaged app, which loads over `file://`
+// and can't resolve root-absolute paths) only rewrites paths it can see at
+// build time — import statements and references inside index.html. These
+// are plain runtime strings pointing at public/, so they need the same base
+// prefix applied by hand via `import.meta.env.BASE_URL` ('/' in dev,
+// './' in the built app) or they 404 under file://.
+const ICON_BASE = `${import.meta.env.BASE_URL}icons/`
+
 export const SOCIALS: SocialItem[] = [
-  { label: 'Linktree', url: 'https://linktr.ee/DuckyDuckson', icon: '/icons/linktree.png' },
-  { label: 'X (Twitter)', url: 'https://x.com/Ducky_swe', icon: '/icons/x.png' },
-  { label: 'YouTube', url: 'https://www.youtube.com/@Ducky_Swe', icon: '/icons/youtube.png' },
-  { label: 'TikTok', url: 'https://www.tiktok.com/@mr.ducky.editz', icon: '/icons/tiktok.png' },
-  { label: 'GitHub', url: 'https://github.com/Sight8218', icon: '/icons/github.png' },
-  { label: 'Discord', url: 'https://discord.gg/B2uqWRNykm', icon: '/icons/discord.png' },
+  { label: 'Linktree', url: 'https://linktr.ee/DuckyDuckson', icon: `${ICON_BASE}linktree.png` },
+  { label: 'X (Twitter)', url: 'https://x.com/Ducky_swe', icon: `${ICON_BASE}x.png` },
+  { label: 'YouTube', url: 'https://www.youtube.com/@Ducky_Swe', icon: `${ICON_BASE}youtube.png` },
+  { label: 'TikTok', url: 'https://www.tiktok.com/@mr.ducky.editz', icon: `${ICON_BASE}tiktok.png` },
+  { label: 'GitHub', url: 'https://github.com/Sight8218', icon: `${ICON_BASE}github.png` },
+  { label: 'Discord', url: 'https://discord.gg/B2uqWRNykm', icon: `${ICON_BASE}discord.png` },
 ]
 
 /** Icon used for the hamburger menu toggle (classic three lines). */

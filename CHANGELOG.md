@@ -4,6 +4,36 @@ All notable changes to OPNduck are documented in this file. Generated with
 [git-cliff](https://github.com/orhun/git-cliff) from Conventional Commit
 history; entries are curated for readability.
 
+## [0.2.1-Alpha] - 2026-09-20
+
+Critical packaging bug: the app was effectively unusable once actually
+installed (as opposed to run from the dev server) — reported after
+installing v0.2.0-Alpha fresh on a Windows machine.
+
+### Fixed
+
+- **Navigation completely broken in the packaged app.** `App.tsx` used
+  React Router's `BrowserRouter`, which needs a real HTTP server to resolve
+  URL paths. The packaged app loads `index.html` straight off disk via
+  `file://` — no server at all — so no route ever matched: no cards
+  rendered on any page, and clicking a nav link did nothing. Switched to
+  `HashRouter`, which is pure client-side routing and needs no server, so
+  it works identically in the Vite dev server, the browser preview, and the
+  packaged `file://` app.
+- **Social icons missing in the packaged app.** The social-link icons in
+  `src/lib/nav.ts` were referenced by hardcoded absolute paths
+  (`/icons/x.png`), which resolve against a real server's root in dev but
+  resolve to the OS filesystem root under `file://` (e.g. `C:\icons\x.png`
+  on Windows) — a 404. Now built from Vite's `BASE_URL`, correct in both
+  environments.
+- Neither bug was ever visible during development because this project's
+  entire test cycle up to this point ran against the Vite dev server
+  (`http://localhost:1420`), never the actual packaged build. Added
+  renderer console forwarding to the Electron main process
+  (`electron/main.cjs`) so a packaged app's JS errors are no longer
+  silently invisible with nowhere to look — exactly how this shipped
+  unnoticed in the first place.
+
 ## [0.2.0-Alpha] - 2026-09-20
 
 First release with a real, working feature: the Downloader now drives an
