@@ -17,13 +17,7 @@
  */
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-
-/**
- * Fixed dev/debug-mode keybinding. Intentionally non-changeable for now so the
- * README/status docs can document a single stable shortcut. A keybindings menu
- * will arrive later and make binds configurable.
- */
-export const DEV_BIND = 'Ctrl+Shift+D'
+import { matchesBinding } from './keybinds'
 
 const STORAGE_KEY = 'opnduck.devmode'
 
@@ -48,7 +42,7 @@ export function DevModeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'd') {
+      if (matchesBinding(e, 'dev-mode-toggle')) {
         e.preventDefault()
         setDevMode((prev) => {
           const next = !prev

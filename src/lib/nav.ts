@@ -1,6 +1,6 @@
 import {
   IconHome2,
-  IconDownload,
+  IconLibrary,
   IconPlug,
   IconSettings,
   IconMenu2,
@@ -25,7 +25,7 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { index: 0, to: '/', label: 'Home', end: true, icon: IconHome2 },
-  { index: 1, to: '/downloads', label: 'Downloads', end: false, icon: IconDownload },
+  { index: 1, to: '/library', label: 'Library', end: false, icon: IconLibrary },
   { index: 2, to: '/plugins', label: 'Plugins', end: false, icon: IconPlug },
   { index: 3, to: '/settings', label: 'Settings', end: false, icon: IconSettings },
 ]

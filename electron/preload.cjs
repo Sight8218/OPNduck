@@ -28,10 +28,13 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     close: () => ipcRenderer.send('window:close'),
   },
   pickFile: (options) => ipcRenderer.invoke('dialog:pickFile', options ?? null),
+  pickFiles: (options) => ipcRenderer.invoke('dialog:pickFiles', options ?? null),
   pickFolder: () => ipcRenderer.invoke('dialog:pickFolder'),
   checkYtDlp: () => ipcRenderer.invoke('system:checkYtDlp'),
+  checkFfmpeg: () => ipcRenderer.invoke('system:checkFfmpeg'),
   tasks: {
     startDownload: (req) => ipcRenderer.invoke('tasks:start', req),
+    startConvert: (req) => ipcRenderer.invoke('tasks:startConvert', req),
     cancel: (taskId) => ipcRenderer.send('tasks:cancel', taskId),
     list: () => ipcRenderer.invoke('tasks:list'),
     onUpdate: (listener) => {

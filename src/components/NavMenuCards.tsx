@@ -4,7 +4,7 @@ import { NAV_ITEMS } from '../lib/nav'
 import { useNavDisplay } from '../lib/navContext'
 
 /**
- * The four menu cards (Home · Downloads · Plugins · Settings) with a single
+ * The four menu cards (Home · Library · Plugins · Settings) with a single
  * sliding active indicator that glides between cards like the AI-upscaler
  * selector. Icon visibility follows the nav-display mode (text/hybrid/icon).
  */

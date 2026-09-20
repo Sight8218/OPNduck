@@ -77,7 +77,8 @@ Themes are implemented as CSS custom-property tokens switched by a single
 ## 🌟 Key Feature Modules
 
 1. **Media Downloader**: Download individual video/audio files or entire playlists from
-   YouTube, TikTok, SoundCloud, and Spotify up to 8K resolution.
+   YouTube, TikTok, and SoundCloud up to 8K resolution. (Not Spotify — its tracks are
+   DRM-protected and there's no legitimate way to pull audio directly from it.)
 2. **Universal Transcoder**: Convert media formats using hardware-accelerated local
    FFmpeg pipelines. Supports both individual files and batch folder directories.
 3. **AI Video Interpolator**: Increase frame rates (e.g. 24fps to 60fps) using local

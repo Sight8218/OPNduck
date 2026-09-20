@@ -22,12 +22,14 @@ import { host, type TaskState } from '../host'
 import { formatBytes } from '../lib/formatBytes'
 import { useTasks } from '../lib/useTasks'
 
-const STATUS_LABEL: Record<TaskState['status'], string> = {
-  queued: 'Queued',
-  running: 'Downloading',
-  done: 'Done',
-  error: 'Error',
-  canceled: 'Canceled',
+const RUNNING_LABEL: Record<TaskState['kind'], string> = {
+  download: 'Downloading',
+  convert: 'Converting',
+}
+
+function statusLabel(task: TaskState): string {
+  if (task.status === 'running') return RUNNING_LABEL[task.kind]
+  return { queued: 'Queued', done: 'Done', error: 'Error', canceled: 'Canceled' }[task.status]
 }
 
 function TaskRow({ task }: { task: TaskState }) {
@@ -41,7 +43,7 @@ function TaskRow({ task }: { task: TaskState }) {
           <span className="truncate text-sm font-medium">{task.label}</span>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <span className="text-xs text-[var(--text-dim)]">{STATUS_LABEL[task.status]}</span>
+          <span className="text-xs text-[var(--text-dim)]">{statusLabel(task)}</span>
           {running && (
             <button
               type="button"
@@ -62,6 +64,7 @@ function TaskRow({ task }: { task: TaskState }) {
             {size}
           </Tag>
         )}
+        {task.experimentalMatch && <Tag>{task.experimentalMatch}</Tag>}
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--input-bg)]">
         <div
@@ -76,20 +79,20 @@ function TaskRow({ task }: { task: TaskState }) {
   )
 }
 
-// @category: downloader/downloads-queue-page
-export default function Downloads() {
+// @category: library/library-queue-page
+export default function Library() {
   const tasks = useTasks()
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <h1 className="mb-1 text-2xl font-extrabold sm:text-3xl">Downloads</h1>
+      <h1 className="mb-1 text-2xl font-extrabold sm:text-3xl">Library</h1>
       <p className="mb-6 text-sm text-[var(--text-dim)]">
-        Track and manage your download queue.
+        Track and manage your downloads and conversions.
       </p>
 
       {tasks.length === 0 ? (
         <div className="glass flex items-center justify-center rounded-3xl p-10 text-sm text-[var(--text-dim)]">
-          No downloads yet — start one from the Downloader card on Home.
+          Nothing here yet — start a download or conversion from Home.
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -101,4 +104,4 @@ export default function Downloads() {
     </div>
   )
 }
-// --- end: downloader/downloads-queue-page ---
+// --- end: library/library-queue-page ---

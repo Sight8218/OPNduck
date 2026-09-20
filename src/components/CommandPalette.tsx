@@ -2,6 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { featureRegistry } from '../features/registry'
+import { host } from '../host'
+import { matchesBinding } from '../lib/keybinds'
+import { detectSmartKind } from '../lib/paletteDetect'
+import SmartDownloadPanel from './SmartDownloadPanel'
+import SmartFilePanel from './SmartFilePanel'
 
 interface PaletteItem {
   id: string
@@ -12,7 +17,7 @@ interface PaletteItem {
 }
 
 /**
- * Command palette — Ctrl+K (Cmd+K on macOS).
+ * Command palette — rebindable in Settings > Keybinds (default Ctrl+Space).
  * Searches over routes and installed features/plugins. Glass-styled,
  * theme-aware, keyboard navigable.
  */
@@ -22,20 +27,28 @@ export default function CommandPalette() {
   const [active, setActive] = useState(0)
   const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement>(null)
+  // The keydown listener below is added once and never sees state updates
+  // through its own closure, so it needs a live read of `open` — a ref kept
+  // in sync via effect, not the `open` value captured when the listener was
+  // attached.
+  const openRef = useRef(false)
+  useEffect(() => {
+    openRef.current = open
+  }, [open])
+
+  function openFresh() {
+    setQuery('')
+    setActive(0)
+    setOpen(true)
+    setTimeout(() => inputRef.current?.focus(), 10)
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      if (matchesBinding(e, 'command-palette')) {
         e.preventDefault()
-        setOpen((o) => {
-          if (!o) {
-            // Reset query + focus when opening.
-            setQuery('')
-            setActive(0)
-            setTimeout(() => inputRef.current?.focus(), 10)
-          }
-          return !o
-        })
+        if (openRef.current) setOpen(false)
+        else openFresh()
       } else if (e.key === 'Escape') {
         setOpen(false)
       }
@@ -44,10 +57,15 @@ export default function CommandPalette() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Live-detects a pasted URL or media file path so the palette can swap to a
+  // quick-action panel instead of the normal search list. Desktop-only since
+  // neither download nor convert can do anything in the browser preview.
+  const smartKind = useMemo(() => (host.isDesktop ? detectSmartKind(query) : null), [query])
+
   const items = useMemo<PaletteItem[]>(() => {
     const routes: PaletteItem[] = [
       { id: 'route-', label: 'Home', hint: 'Dashboard', type: 'route', action: () => '/' },
-      { id: 'route-/downloads', label: 'Downloads', type: 'route', action: () => '/downloads' },
+      { id: 'route-/library', label: 'Library', type: 'route', action: () => '/library' },
       { id: 'route-/plugins', label: 'Plugins', type: 'route', action: () => '/plugins' },
       { id: 'route-/settings', label: 'Settings', type: 'route', action: () => '/settings' },
     ]
@@ -76,7 +94,16 @@ export default function CommandPalette() {
     if (item.type === 'route') {
       const to = item.action ? String(item.action()) : '/'
       navigate(to)
+    } else {
+      // Feature entries (Downloader, Converter, ...) don't have their own
+      // route — they're cards on Home. Previously this did nothing at all.
+      navigate('/')
     }
+  }
+
+  function closeAfterSmartAction() {
+    setOpen(false)
+    setQuery('')
   }
 
   return (
@@ -99,6 +126,7 @@ export default function CommandPalette() {
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
             onKeyDown={(e) => {
+              if (smartKind) return // list navigation doesn't apply to the quick-action panel
               if (e.key === 'ArrowDown') {
                 e.preventDefault()
                 setActive((a) => Math.min(a + 1, items.length - 1))
@@ -124,32 +152,38 @@ export default function CommandPalette() {
                 ESC
               </kbd>
             </div>
-            <ul className="max-h-72 overflow-y-auto p-2">
-              {items.length === 0 && (
-                <li className="px-3 py-4 text-center text-sm text-[var(--text-dim)]">
-                  No results for “{query}”
-                </li>
-              )}
-              {items.map((item, idx) => (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    onMouseEnter={() => setActive(idx)}
-                    onClick={() => choose(item)}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
-                      idx === safeActive
-                        ? 'bg-[var(--input-bg)] text-[var(--text)]'
-                        : 'text-[var(--text-dim)]'
-                    }`}
-                  >
-                    <span className="font-medium">{item.label}</span>
-                    {item.hint && (
-                      <span className="text-xs text-[var(--text-faint)]">{item.hint}</span>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {smartKind === 'url' && <SmartDownloadPanel url={query.trim()} onDone={closeAfterSmartAction} />}
+            {(smartKind === 'video' || smartKind === 'audio') && (
+              <SmartFilePanel path={query.trim()} kind={smartKind} onDone={closeAfterSmartAction} />
+            )}
+            {!smartKind && (
+              <ul className="max-h-72 overflow-y-auto p-2">
+                {items.length === 0 && (
+                  <li className="px-3 py-4 text-center text-sm text-[var(--text-dim)]">
+                    No results for “{query}”
+                  </li>
+                )}
+                {items.map((item, idx) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onMouseEnter={() => setActive(idx)}
+                      onClick={() => choose(item)}
+                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
+                        idx === safeActive
+                          ? 'bg-[var(--input-bg)] text-[var(--text)]'
+                          : 'text-[var(--text-dim)]'
+                      }`}
+                    >
+                      <span className="font-medium">{item.label}</span>
+                      {item.hint && (
+                        <span className="text-xs text-[var(--text-faint)]">{item.hint}</span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </motion.div>
         </motion.div>
       )}

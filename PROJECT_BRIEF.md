@@ -43,8 +43,8 @@ real video downloading works. Respect this.
 ## 3. Feature split (platform architecture)
 
 **Universal (Web & Desktop):**
-- Media Downloader — YouTube, TikTok, SoundCloud, Spotify; outputs MP4, MP3, MKV, MOV,
-  FLAC, WAV; up to 8K.
+- Media Downloader — YouTube, TikTok, SoundCloud; outputs MP4, MP3, MKV, MOV,
+  FLAC, WAV; up to 8K. (Not Spotify — DRM-protected, no legitimate extraction path.)
 - Format Converter — universal video/audio/image conversion.
 
 **Desktop-exclusive (hardware intensive):**

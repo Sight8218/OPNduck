@@ -3,11 +3,12 @@ import { createPortal } from 'react-dom'
 import { IconAdjustmentsHorizontal, IconCpu, IconInfoCircle, IconKeyboard } from '@tabler/icons-react'
 import HardwareAllocation from '../components/HardwareAllocation'
 import InfoCard from '../components/InfoCard'
+import KeybindsCard from '../components/KeybindsCard'
 import NavDisplayCard from '../components/NavDisplayCard'
 import MotionCard from '../components/MotionCard'
 import StorageCard from '../components/StorageCard'
 import DevTools from '../components/DevTools'
-import { DEV_BIND, useDevMode } from '../lib/devMode'
+import { useDevMode } from '../lib/devMode'
 import SettingsNav, { type SettingsCategory } from '../components/SettingsNav'
 import ThemeToggle from '../components/ThemeToggle'
 import { useTheme } from '../themes/useTheme'
@@ -120,30 +121,7 @@ export default function Settings() {
             className="scroll-mt-24 flex flex-col gap-6"
           >
             <CategoryLabel label="Keybinds" />
-            <div className="flex flex-col gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-4">
-              <span className="text-sm font-semibold text-[var(--text)]">Keybinds</span>
-              <div className="flex items-center justify-between gap-3 border-b border-[var(--glass-border)] pb-3">
-                <div className="flex flex-col">
-                  <span className="text-sm text-[var(--text)]">Command palette</span>
-                  <span className="text-xs text-[var(--text-dim)]">Jump to any page or action.</span>
-                </div>
-                <kbd className="rounded-md border border-[var(--glass-border)] bg-[var(--input-bg)] px-2 py-1 font-mono text-xs tracking-wider text-[var(--text)]">
-                  Ctrl+K
-                </kbd>
-              </div>
-              <div className="flex items-center justify-between gap-3 border-b border-[var(--glass-border)] pb-3">
-                <div className="flex flex-col">
-                  <span className="text-sm text-[var(--text)]">Toggle developer / debug mode</span>
-                  <span className="text-xs text-[var(--text-dim)]">Fixed for now (not changeable)</span>
-                </div>
-                <kbd className="rounded-md border border-[var(--glass-border)] bg-[var(--input-bg)] px-2 py-1 font-mono text-xs tracking-wider text-[var(--text)]">
-                  {DEV_BIND}
-                </kbd>
-              </div>
-              <p className="text-xs text-[var(--text-dim)]">
-                More changeable keybinds arrive with the keybindings menu later.
-              </p>
-            </div>
+            <KeybindsCard />
           </section>
           <section
             id="settings-system"

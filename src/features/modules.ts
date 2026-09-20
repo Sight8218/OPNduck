@@ -18,6 +18,7 @@
 
 
 import { registerFeatures } from './registry'
+import ConverterCard from './converter/ConverterCard'
 import DownloaderCard from './downloader/DownloaderCard'
 import UpscalerCard from './upscaler/UpscalerCard'
 
@@ -31,14 +32,27 @@ export function registerCoreFeatures(): void {
     {
       id: 'downloader',
       title: 'Downloader',
-      tagline: 'YouTube · TikTok · SoundCloud · Spotify',
+      tagline: 'YouTube · TikTok · SoundCloud',
       description:
-        'High-speed media downloads with high-quality MP4, MP3, MKV, MOV, FLAC and WAV output.',
+        'High-speed media downloads with high-quality MP4, MP3, MKV, MOV, FLAC and WAV output. Spotify links (experimental) get matched to the same song on YouTube — Spotify itself is DRM-protected, so this is never a direct Spotify download.',
       scope: 'universal',
       icon: '⇩',
       accent: 'rgba(255, 145, 0, 0.45)',
       enabled: true,
       render: DownloaderCard,
+      source: 'core',
+    },
+    {
+      id: 'converter',
+      title: 'Converter',
+      tagline: 'MP4 · MKV · WebM · MOV',
+      description:
+        'Batch remux or transcode between containers — stream copy when no re-encode is needed, ffmpeg when it is.',
+      scope: 'universal',
+      icon: '⇄',
+      accent: 'rgba(120, 190, 255, 0.45)',
+      enabled: true,
+      render: ConverterCard,
       source: 'core',
     },
     {

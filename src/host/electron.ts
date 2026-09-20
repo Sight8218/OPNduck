@@ -17,7 +17,7 @@
  */
 
 
-import type { DownloadProbe, DownloadRequest, Host, TaskState, YtDlpStatus } from './index'
+import type { ConvertRequest, DownloadProbe, DownloadRequest, Host, TaskState, ToolStatus } from './index'
 
 /**
  * The bridge exposed by electron/preload.cjs via contextIsolation.
@@ -29,10 +29,13 @@ interface ElectronBridge {
   isDesktop: true
   window: { minimize(): void; maximize(): void; close(): void }
   pickFile(options?: { extensions?: string[] }): Promise<string | null>
+  pickFiles(options?: { extensions?: string[] }): Promise<string[] | null>
   pickFolder(): Promise<string | null>
-  checkYtDlp(): Promise<YtDlpStatus>
+  checkYtDlp(): Promise<ToolStatus>
+  checkFfmpeg(): Promise<ToolStatus>
   tasks: {
     startDownload(req: DownloadRequest): Promise<string>
+    startConvert(req: ConvertRequest): Promise<string>
     cancel(taskId: string): void
     list(): Promise<TaskState[]>
     onUpdate(listener: (tasks: TaskState[]) => void): () => void
@@ -68,10 +71,13 @@ export function detectElectronHost(): Host | null {
       close: () => bridge.window.close(),
     },
     pickFile: (options) => bridge.pickFile(options),
+    pickFiles: (options) => bridge.pickFiles(options),
     pickFolder: () => bridge.pickFolder(),
     checkYtDlp: () => bridge.checkYtDlp(),
+    checkFfmpeg: () => bridge.checkFfmpeg(),
     tasks: {
       startDownload: (req) => bridge.tasks.startDownload(req),
+      startConvert: (req) => bridge.tasks.startConvert(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
       list: () => cachedTasks,
       subscribe: (listener) => {

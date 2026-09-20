@@ -106,7 +106,7 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
       <input
         className="glass-input"
         type="url"
-        placeholder="Paste a YouTube, TikTok, SoundCloud or Spotify link…"
+        placeholder="Paste a YouTube, TikTok, SoundCloud — or Spotify track (experimental) — link…"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
         disabled={running}
@@ -189,6 +189,7 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
                     {formatBytes(task.sizeBytes)}
                   </Tag>
                 )}
+                {task.experimentalMatch && <Tag>{task.experimentalMatch}</Tag>}
               </>
             )}
           </div>

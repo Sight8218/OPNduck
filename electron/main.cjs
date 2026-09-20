@@ -97,6 +97,18 @@ ipcMain.handle('dialog:pickFile', async (e, opts) => {
   return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
 })
 
+ipcMain.handle('dialog:pickFiles', async (e, opts) => {
+  const win = BrowserWindow.fromWebContents(e.sender)
+  const filters = opts?.extensions?.length
+    ? [{ name: 'Files', extensions: opts.extensions }]
+    : undefined
+  const res = await dialog.showOpenDialog(win ?? undefined, {
+    properties: ['openFile', 'multiSelections'],
+    filters,
+  })
+  return res.canceled || res.filePaths.length === 0 ? null : res.filePaths
+})
+
 ipcMain.handle('dialog:pickFolder', async (e) => {
   const win = BrowserWindow.fromWebContents(e.sender)
   const res = await dialog.showOpenDialog(win ?? undefined, { properties: ['openDirectory'] })
@@ -127,6 +139,72 @@ ipcMain.handle('system:checkYtDlp', () => {
     child.on('close', (code) => resolve({ available: code === 0, installHint: ytDlpInstallHint() }))
   })
 })
+
+/** Same idea as yt-dlp: ffmpeg isn't bundled either. */
+function ffmpegInstallHint() {
+  if (process.platform === 'win32') return 'winget install Gyan.FFmpeg'
+  if (process.platform === 'darwin') return 'brew install ffmpeg'
+  return 'sudo pacman -S ffmpeg   (or your distro\'s package manager)'
+}
+
+ipcMain.handle('system:checkFfmpeg', () => {
+  return new Promise((resolve) => {
+    let child
+    try {
+      child = spawn('ffmpeg', ['-version'])
+    } catch {
+      resolve({ available: false, installHint: ffmpegInstallHint() })
+      return
+    }
+    child.on('error', () => resolve({ available: false, installHint: ffmpegInstallHint() }))
+    child.on('close', (code) => resolve({ available: code === 0, installHint: ffmpegInstallHint() }))
+  })
+})
+
+/**
+ * Spotify tracks are DRM-protected — yt-dlp has no Spotify extractor and
+ * never will (there's no legitimate way to pull audio directly off it).
+ * Best-effort experimental workaround: read the track's own public page
+ * metadata — title and the "Artist · Album · Song · Year" line from its
+ * og: tags, the same info a link-preview embed would show, no auth and no
+ * DRM touched — then search YouTube for the same song via yt-dlp's built-in
+ * ytsearch. This is NOT a download from Spotify; every caller must label
+ * the result accordingly (TaskState.experimentalMatch) rather than implying
+ * it came from Spotify.
+ */
+// @category: downloader/spotify-youtube-match
+const SPOTIFY_TRACK_RE = /open\.spotify\.com\/(?:intl-\w+\/)?track\/[a-zA-Z0-9]+/
+const SPOTIFY_OTHER_RE = /open\.spotify\.com\/(?:intl-\w+\/)?(album|playlist|artist|show|episode)\//
+
+/** Returns null for a non-Spotify URL, { error } for an unsupported Spotify
+ *  link type or a lookup failure, or { query, label } once resolved. */
+async function resolveSpotifyTrack(url) {
+  const other = url.match(SPOTIFY_OTHER_RE)
+  if (other) {
+    return {
+      error: `Spotify ${other[1]} links aren't supported yet — only single tracks (experimental YouTube match).`,
+    }
+  }
+  if (!SPOTIFY_TRACK_RE.test(url)) return null
+
+  let html
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } })
+    html = await res.text()
+  } catch (err) {
+    return { error: `Couldn't reach Spotify to identify the track: ${err.message}` }
+  }
+
+  const title = html.match(/<meta property="og:title" content="([^"]*)"/)?.[1]
+  const desc = html.match(/<meta property="og:description" content="([^"]*)"/)?.[1]
+  const artist = desc?.split(' · ')[0]
+  if (!title || !artist) {
+    return { error: "Couldn't read this track's info from Spotify — the page format may have changed." }
+  }
+
+  return { query: `ytsearch1:${artist} - ${title}`, label: `${artist} - ${title}` }
+}
+// --- end: downloader/spotify-youtube-match ---
 
 /* --- Task orchestration (yt-dlp downloads) --- */
 // @category: downloader/task-orchestration-main-process
@@ -183,11 +261,15 @@ function formatArgs(req) {
  * itself, so a task always gets this info regardless of whether the UI's
  * debounced preview had time to resolve before Run Task was clicked.
  */
-function probeInfo(req) {
+async function probeInfo(req) {
+  const spotify = await resolveSpotifyTrack(req.url)
+  if (spotify?.error) return { title: spotify.error, approxSizeBytes: null, thumbnailUrl: null }
+  const effectiveUrl = spotify?.query ?? req.url
+
   return new Promise((resolve) => {
     let child
     try {
-      child = spawn('yt-dlp', ['--dump-json', '--no-warnings', '--no-playlist', req.url])
+      child = spawn('yt-dlp', ['--dump-json', '--no-warnings', '--no-playlist', effectiveUrl])
     } catch {
       resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null })
       return
@@ -201,7 +283,7 @@ function probeInfo(req) {
       try {
         const info = JSON.parse(out.trim().split('\n')[0])
         resolve({
-          title: info.title ?? req.url,
+          title: spotify ? `${spotify.label} (YouTube match)` : (info.title ?? req.url),
           approxSizeBytes: estimateSize(info, req),
           thumbnailUrl: info.thumbnail ?? null,
         })
@@ -254,7 +336,7 @@ function estimateSize(info, req) {
   return vSize == null && aSize == null ? null : (vSize ?? 0) + (aSize ?? 0)
 }
 
-ipcMain.handle('tasks:start', (_e, req) => {
+ipcMain.handle('tasks:start', async (_e, req) => {
   const id = crypto.randomUUID()
   const destDir = req.destination || defaultDownloadDir()
   fs.mkdirSync(destDir, { recursive: true })
@@ -271,11 +353,20 @@ ipcMain.handle('tasks:start', (_e, req) => {
       sizeBytes: req.approxSizeBytes ?? null,
       sizeIsEstimate: true,
       thumbnailUrl: req.thumbnailUrl ?? null,
+      experimentalMatch: null,
     },
     child: null,
     finalPath: null,
   })
   broadcastTasks()
+
+  const spotify = await resolveSpotifyTrack(req.url)
+  if (spotify?.error) {
+    updateTask(id, { status: 'error', error: spotify.error })
+    return id
+  }
+  const effectiveUrl = spotify?.query ?? req.url
+  if (spotify) updateTask(id, { label: spotify.label, experimentalMatch: 'YT Match (Experimental)' })
 
   // Backfill size/thumbnail if the renderer's own preview never got to run
   // (Run Task clicked before that ~700ms debounce), or came back empty. This
@@ -298,7 +389,7 @@ ipcMain.handle('tasks:start', (_e, req) => {
     '--newline',
     '-o',
     path.join(destDir, '%(title)s.%(ext)s'),
-    req.url,
+    effectiveUrl,
   ]
 
   let child
@@ -366,6 +457,154 @@ ipcMain.on('tasks:cancel', (_e, id) => {
 ipcMain.handle('tasks:list', () => [...tasks.values()].map((t) => t.state))
 ipcMain.handle('tasks:defaultDownloadDir', () => defaultDownloadDir())
 // --- end: downloader/task-orchestration-main-process ---
+
+/* --- Task orchestration (ffmpeg conversions) --- */
+// @category: converter/task-orchestration-main-process
+const CONTAINER_EXT = { MP4: 'mp4', MKV: 'mkv', WEBM: 'webm', MOV: 'mov' }
+
+/** One fixed codec pair per container for transcode mode — no separate codec pickers. */
+const TRANSCODE_CODECS = {
+  MP4: { v: 'libx264', a: 'aac' },
+  MKV: { v: 'libx264', a: 'aac' },
+  MOV: { v: 'libx264', a: 'aac' },
+  WEBM: { v: 'libvpx-vp9', a: 'libopus' },
+}
+
+/** Never overwrites an existing file — appends " (1)", " (2)", etc. like a browser download. */
+function uniqueOutputPath(destDir, baseName, ext) {
+  let candidate = path.join(destDir, `${baseName}.${ext}`)
+  for (let n = 1; fs.existsSync(candidate); n++) {
+    candidate = path.join(destDir, `${baseName} (${n}).${ext}`)
+  }
+  return candidate
+}
+
+/** Source duration in seconds via ffprobe, or null if it can't be determined —
+ *  needed to turn ffmpeg's `out_time_ms` progress output into a percentage. */
+function probeDuration(inputPath) {
+  return new Promise((resolve) => {
+    let child
+    try {
+      child = spawn('ffprobe', ['-v', 'quiet', '-print_format', 'json', '-show_format', inputPath])
+    } catch {
+      resolve(null)
+      return
+    }
+    let out = ''
+    child.stdout.on('data', (c) => {
+      out += c
+    })
+    child.on('error', () => resolve(null))
+    child.on('close', () => {
+      try {
+        const seconds = Number.parseFloat(JSON.parse(out).format?.duration)
+        resolve(Number.isFinite(seconds) ? seconds : null)
+      } catch {
+        resolve(null)
+      }
+    })
+  })
+}
+
+/** -map 0 keeps every stream (not just the first video/audio track). -progress pipe:1
+ *  -nostats makes ffmpeg emit clean `key=value` lines on stdout instead of the
+ *  human-readable stats line on stderr, which is far more fragile to parse. */
+function convertArgs(req, outputPath) {
+  const base = ['-y', '-i', req.inputPath, '-map', '0']
+  if (req.mode === 'remux') return [...base, '-c', 'copy', '-progress', 'pipe:1', '-nostats', outputPath]
+  const codecs = TRANSCODE_CODECS[req.container]
+  return [...base, '-c:v', codecs.v, '-c:a', codecs.a, '-progress', 'pipe:1', '-nostats', outputPath]
+}
+
+ipcMain.handle('tasks:startConvert', async (_e, req) => {
+  const id = crypto.randomUUID()
+  const destDir = req.destination || defaultDownloadDir()
+  fs.mkdirSync(destDir, { recursive: true })
+
+  const ext = CONTAINER_EXT[req.container]
+  if (!ext) throw new Error(`Unsupported container: ${req.container}`)
+  const inputBase = path.basename(req.inputPath, path.extname(req.inputPath))
+  const outputPath = uniqueOutputPath(destDir, inputBase, ext)
+
+  tasks.set(id, {
+    state: {
+      id,
+      kind: 'convert',
+      status: 'queued',
+      progress: 0,
+      label: path.basename(req.inputPath),
+      format: req.container,
+      quality: req.mode === 'remux' ? 'Remux' : 'Transcode',
+      sizeBytes: null,
+      sizeIsEstimate: true,
+      thumbnailUrl: null,
+    },
+    child: null,
+    finalPath: outputPath,
+  })
+  broadcastTasks()
+
+  const duration = await probeDuration(req.inputPath)
+  if (!tasks.has(id)) return id // canceled while the duration probe was running
+
+  let child
+  try {
+    child = spawn('ffmpeg', convertArgs(req, outputPath))
+  } catch (err) {
+    updateTask(id, { status: 'error', error: `Failed to start ffmpeg: ${err.message}` })
+    return id
+  }
+
+  const entry = tasks.get(id)
+  entry.child = child
+  updateTask(id, { status: 'running' })
+
+  let stderrTail = ''
+  let stdoutBuf = ''
+  child.stdout.on('data', (chunk) => {
+    stdoutBuf += chunk.toString()
+    const lines = stdoutBuf.split('\n')
+    stdoutBuf = lines.pop() ?? ''
+    for (const line of lines) {
+      const match = line.match(/^out_time_ms=(\d+)/)
+      if (match && duration) {
+        updateTask(id, { progress: Math.min(1, Number(match[1]) / 1e6 / duration) })
+      }
+    }
+  })
+  child.stderr.on('data', (chunk) => {
+    stderrTail = (stderrTail + chunk.toString()).slice(-2000)
+  })
+  child.on('error', (err) => {
+    updateTask(id, { status: 'error', error: `ffmpeg not found on PATH (${err.message})` })
+  })
+  child.on('close', (code, signal) => {
+    if (!tasks.has(id)) return
+    if (entry.state.status === 'canceled') return
+    if (signal || code !== 0) {
+      updateTask(id, {
+        status: 'error',
+        error: stderrTail.trim().split('\n').pop() || `ffmpeg exited with code ${code}`,
+      })
+      return
+    }
+    let realSize = null
+    try {
+      realSize = fs.statSync(outputPath).size
+    } catch {
+      /* keep null if the output can't be read */
+    }
+    updateTask(id, {
+      status: 'done',
+      progress: 1,
+      label: path.basename(outputPath),
+      ...(realSize != null ? { sizeBytes: realSize, sizeIsEstimate: false } : {}),
+    })
+  })
+
+  return id
+})
+// --- end: converter/task-orchestration-main-process ---
 
 /* --- External links open in the OS browser, not inside the app window --- */
 app.on('web-contents-created', (_e, contents) => {

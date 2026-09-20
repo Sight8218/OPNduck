@@ -63,29 +63,52 @@ export interface DownloadProbe {
   thumbnailUrl: string | null
 }
 
+/** Output container for the Converter. Transcode picks one default codec per container. */
+export type ContainerFormat = 'MP4' | 'MKV' | 'WEBM' | 'MOV'
+
+/** 'remux' = stream copy, no re-encode (fast, only works if the source codec fits the
+ *  container). 'transcode' = re-encode with a fixed default codec per container. */
+export type ConvertMode = 'remux' | 'transcode'
+
+export interface ConvertRequest {
+  inputPath: string
+  container: ContainerFormat
+  mode: ConvertMode
+  /** Overrides the Settings default destination for this one job. */
+  destination?: string
+}
+
+export type TaskKind = 'download' | 'convert'
 export type TaskStatus = 'queued' | 'running' | 'done' | 'error' | 'canceled'
 
 export interface TaskState {
   id: string
-  /** Room for 'convert' | 'upscale' once those backends land. */
-  kind: 'download'
+  kind: TaskKind
   status: TaskStatus
   /** 0-1 */
   progress: number
-  /** Url or resolved title once yt-dlp reports one. */
+  /** Url/title for a download, source file name for a conversion. */
   label: string
   error?: string
-  format: DownloadFormat
-  /** Human label for the chosen video/audio quality, e.g. "1080p" or "192k". */
+  /** Format/container tag shown in the UI, e.g. "MP4" or "192k". */
+  format: string
+  /** Human label for quality/mode, e.g. "1080p", "192k", or "Remux"/"Transcode". */
   quality: string
   sizeBytes: number | null
   /** True until sizeBytes is replaced by the real file size on completion. */
   sizeIsEstimate: boolean
+  /** Always null for conversions — no natural thumbnail source. */
   thumbnailUrl: string | null
+  /** Set when this "download" is actually a YouTube search matched from a
+   *  Spotify track link (Spotify itself is DRM-protected — see main.cjs's
+   *  resolveSpotifyTrack). Non-null means the UI MUST show this as a
+   *  distinct tag rather than implying the file came from Spotify. */
+  experimentalMatch: string | null
 }
 
 export interface HostTasks {
   startDownload(req: DownloadRequest): Promise<string>
+  startConvert(req: ConvertRequest): Promise<string>
   cancel(taskId: string): void
   list(): TaskState[]
   /** Fires with the full task list on every change. Returns an unsubscribe fn. */
@@ -96,7 +119,7 @@ export interface HostTasks {
   probe(req: DownloadRequest): Promise<DownloadProbe>
 }
 
-export interface YtDlpStatus {
+export interface ToolStatus {
   available: boolean
   /** A copy-pasteable install command for the current OS. */
   installHint: string
@@ -109,10 +132,14 @@ export interface Host {
   window: HostWindowControls
   /** Open a native file picker. Returns a path or null when cancelled. */
   pickFile(options?: { extensions?: string[] }): Promise<string | null>
+  /** Open a native multi-file picker. Returns paths or null when cancelled. */
+  pickFiles(options?: { extensions?: string[] }): Promise<string[] | null>
   /** Open a native folder picker. Returns a path or null when cancelled. */
   pickFolder(): Promise<string | null>
   /** yt-dlp isn't bundled — checks whether it's on PATH, with an install hint if not. */
-  checkYtDlp(): Promise<YtDlpStatus>
+  checkYtDlp(): Promise<ToolStatus>
+  /** ffmpeg isn't bundled either — same check, for the Converter. */
+  checkFfmpeg(): Promise<ToolStatus>
   tasks: HostTasks
 }
 
@@ -133,6 +160,28 @@ const browserTasks: HostTasks = {
         sizeBytes: null,
         sizeIsEstimate: false,
         thumbnailUrl: null,
+        experimentalMatch: null,
+      },
+    ]
+    browserListeners.forEach((l) => l(browserTaskList))
+    return id
+  },
+  startConvert: async (req) => {
+    const id = crypto.randomUUID()
+    browserTaskList = [
+      {
+        id,
+        kind: 'convert',
+        status: 'error',
+        progress: 0,
+        label: 'Converter requires the desktop app',
+        error: 'Desktop app required',
+        format: req.container,
+        quality: req.mode === 'remux' ? 'Remux' : 'Transcode',
+        sizeBytes: null,
+        sizeIsEstimate: false,
+        thumbnailUrl: null,
+        experimentalMatch: null,
       },
     ]
     browserListeners.forEach((l) => l(browserTaskList))
@@ -160,8 +209,10 @@ const browserHost: Host = {
     close: () => {},
   },
   pickFile: async () => null,
+  pickFiles: async () => null,
   pickFolder: async () => null,
   checkYtDlp: async () => ({ available: false, installHint: 'Desktop app required' }),
+  checkFfmpeg: async () => ({ available: false, installHint: 'Desktop app required' }),
   tasks: browserTasks,
 }
 

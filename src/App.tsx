@@ -10,8 +10,8 @@ import { registerCoreFeatures } from './features/modules'
 import { DevModeProvider } from './lib/devMode'
 import { NavProvider } from './lib/navContext'
 import { ReduceMotionProvider } from './lib/motionPrefs'
-import Downloads from './pages/Downloads'
 import Home from './pages/Home'
+import Library from './pages/Library'
 import Plugins from './pages/Plugins'
 import Settings from './pages/Settings'
 import { readStoredTheme, applyTheme } from './themes/theme'
@@ -37,7 +37,7 @@ export default function App() {
   }, [])
 
   return (
-    // BrowserRouter needs a real HTTP server to resolve paths like /downloads.
+    // BrowserRouter needs a real HTTP server to resolve paths like /library.
     // The packaged app loads index.html straight off disk via file:// (no
     // server at all), where BrowserRouter can't match any route — nothing
     // renders past the first paint and in-app navigation does nothing.
@@ -55,7 +55,7 @@ export default function App() {
               <main className="flex-1 overflow-x-hidden overflow-y-visible">
                 <PageTransition>
                   <Route path="/" element={<Home />} />
-                  <Route path="/downloads" element={<Downloads />} />
+                  <Route path="/library" element={<Library />} />
                   <Route path="/plugins" element={<Plugins />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
