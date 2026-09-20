@@ -39,6 +39,31 @@ export interface FeatureDefinition {
 }
 
 /**
+ * A plugin's plugin.json — the on-disk, author-facing format. Locked down now
+ * so plugin authors have a stable target to build against; the loader that
+ * reads this from disk and turns it into a registered FeatureDefinition
+ * arrives with the Tauri desktop shell (see PLUGINS.md for why). `entry`'s
+ * default export must match FeatureDefinition['render']'s signature exactly:
+ * `(props: { feature: FeatureDefinition }) => JSX.Element`.
+ */
+export interface PluginManifest {
+  /** Unique, kebab-case — e.g. "waveform-preview". Becomes FeatureDefinition.id. */
+  id: string
+  name: string
+  version: string
+  author: string
+  description: string
+  tagline: string
+  /** Emoji-free icon key, same convention as FeatureDefinition.icon. */
+  icon: string
+  /** Optional CSS color (e.g. "rgba(120, 190, 255, 0.45)") for the hover glow. */
+  accent?: string
+  scope: FeatureScope
+  /** Path to the entry file, relative to the plugin's own folder — e.g. "index.js". */
+  entry: string
+}
+
+/**
  * Adaptive card registry.
  *
  * The Home grid is generated from this list. Core tools are registered here;

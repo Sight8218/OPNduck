@@ -1,0 +1,12 @@
+{
+  "id": "hello-world",
+  "name": "Hello World",
+  "version": "0.1.0",
+  "author": "Your Name",
+  "description": "A minimal example plugin demonstrating the OPNduck plugin contract — copy this folder as a starting point.",
+  "tagline": "Example plugin",
+  "icon": "★",
+  "accent": "rgba(120, 190, 255, 0.45)",
+  "scope": "universal",
+  "entry": "index.js"
+}

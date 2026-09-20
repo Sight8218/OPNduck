@@ -25,8 +25,19 @@ export default function Plugins() {
         Community-created modules for OPNduck.
       </p>
 
-      <div className="glass flex items-center justify-center rounded-3xl p-10 text-sm text-[var(--text-dim)]">
-        The community plugin ecosystem opens with the Desktop (Tauri) phase.
+      <div className="glass flex flex-col items-center gap-2 rounded-3xl p-10 text-center text-sm text-[var(--text-dim)]">
+        <p>
+          Dynamic loading opens with the Desktop (Tauri) phase — but the plugin
+          manifest format is locked now, so you can start building today.
+        </p>
+        <a
+          href="https://github.com/Sight8218/OPNduck/blob/main/PLUGINS.md"
+          target="_blank"
+          rel="noreferrer"
+          className="font-semibold text-[var(--accent)] underline underline-offset-2"
+        >
+          Read the plugin authoring guide →
+        </a>
       </div>
     </div>
   )
