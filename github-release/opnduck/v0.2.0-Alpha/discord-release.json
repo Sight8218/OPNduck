@@ -1,0 +1,27 @@
+{
+  "note": "DRAFT ONLY - not sent. Sending is an Automated-mode action requiring explicit authorization; this run is Manual mode.",
+  "project": "OPNduck",
+  "version": "v0.2.0-Alpha",
+  "content": "**OPNduck v0.2.0-Alpha** 🦆\n\nOut of Pre-Alpha - the Downloader now does real, end-to-end media downloading instead of being a UI stub.\n\n**Highlights**\n• Real media downloading via `yt-dlp` (system PATH), driving a new `Host.tasks` seam\n• Full download queue: multiple concurrent downloads, per-item cancel, live progress\n• Video quality (Best/2160p/1080p/720p/480p/360p) and MP3 bitrate (Best/320k/192k/128k) selection, with an approximate file-size preview before you hit download\n• Thumbnails on the Downloader card and Downloads queue\n• A default-download-folder setting with a real native folder picker\n• A plain-language install banner when `yt-dlp` isn't on PATH yet\n• A pile of UI fixes: Monochrome theme glow leak, Settings scroll-spy, page-slide animation, top-bar overflow, hamburger-menu clipping, window minimum-size on Wayland, and scrollbars removed app-wide\n\nVerified clean via `tsc -b`, `vite build`, and `oxlint`.\n\nConvert/AI engines are still stubbed - they land in later Alpha updates. Expect bugs.",
+  "embeds": [
+    {
+      "title": "OPNduck v0.2.0-Alpha",
+      "url": null,
+      "footer": "Packaged installers below - built via electron-builder, checksums included.",
+      "fields": [
+        { "name": "Commit", "value": "b2212f0" },
+        { "name": "Branch", "value": "main" },
+        { "name": "Artifacts", "value": "Linux: AppImage, pacman. Windows: NSIS installer, portable exe. SHA256SUMS.txt included." },
+        { "name": "Secret scan", "value": "Clean (gitleaks + trufflehog; one gitleaks hit reviewed and confirmed a false positive - a bundled icon-library symbol name, not a credential)" }
+      ]
+    }
+  ],
+  "asset_list": [
+    "release-build/OPNduck-0.2.0-alpha.AppImage",
+    "release-build/opnduck-desktop-0.2.0-alpha.pacman",
+    "release-build/OPNduck Setup 0.2.0-alpha.exe",
+    "release-build/OPNduck 0.2.0-alpha.exe",
+    "release-build/SHA256SUMS.txt"
+  ],
+  "changelog_excerpt_source": "github-release/opnduck/v0.2.0-Alpha/CHANGELOG.raw.md (curated version in repo root CHANGELOG.md, [0.2.0-Alpha] section)"
+}

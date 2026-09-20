@@ -41,3 +41,32 @@ Verified, no regressions:
   with the stated design intent, not a bug.
 
 Nothing RISKY pending — this was a small, clean diff.
+
+## 2026-09-20 — Full session audit / checkpoint save (v0.2.0-Alpha)
+
+Scope: entire uncommitted working tree (18 modified + 5 new files) — real
+yt-dlp download pipeline (electron/main.cjs, preload.cjs, src/host/*,
+src/features/downloader/*, src/pages/Downloads.tsx, src/lib/{useTasks,
+downloadPrefs,formatBytes}.ts, src/components/{Thumbnail,Tag}.tsx) plus UI
+bug fixes (FeatureCard, HamburgerMenu, NavBar, NavMenuCards, PageTransition,
+PreAlphaBanner, StorageCard, Settings, index.css).
+
+Findings: none. Read every changed/new file in full, checked the
+main-process <-> preload <-> host-interface <-> UI contract end to end,
+verified every new export is actually referenced (no dead code), ran
+`tsc -b --noEmit` and `oxlint` (clean — pre-existing warnings only, none
+introduced this session), and `node -c` on main.cjs. No bugs, no
+over-engineering, no stale tags found. The portal/settled-state/scroll-spy
+fixes in HamburgerMenu, PageTransition, and Settings are all backed by
+real, correctly-reasoned inline explanations of the underlying browser/
+Framer Motion behavior — not defensive guesswork.
+
+Action: added @category tags (block-scoped, with end markers) to the new
+downloader feature files to match the codebase's existing (very sparse —
+2 prior instances) tagging convention: DownloaderCard.tsx, Downloads.tsx,
+useTasks.ts, downloadPrefs.ts, Thumbnail.tsx, and the task-orchestration
+IPC block in main.cjs. Left formatBytes.ts and Tag.tsx untagged — genuinely
+generic utility/UI, not feature-specific.
+
+Committed as b2212f0 "OPNduck-V0.2.0-Alpha checkpoint: real yt-dlp
+downloading + UI fixes" (23 files changed, all of the above).
