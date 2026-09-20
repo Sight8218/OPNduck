@@ -18,6 +18,7 @@
 
 
 import { THEMES, type Theme } from '../themes/theme'
+import type { ThemeSwitchOrigin } from '../themes/useTheme'
 
 const THEME_LABELS: Record<Theme, { label: string; hint: string }> = {
   blarange: { label: 'Blarange', hint: 'Black + orange, matching the OPNduck site. Flat & clean. Default.' },
@@ -29,7 +30,7 @@ export default function ThemeToggle({
   onChange,
 }: {
   theme: Theme
-  onChange: (t: Theme) => void
+  onChange: (t: Theme, origin?: ThemeSwitchOrigin) => void
 }) {
   return (
     <div className="glass rounded-3xl p-5">
@@ -44,11 +45,11 @@ export default function ThemeToggle({
             <button
               key={t}
               type="button"
-              onClick={() => onChange(t)}
-              className={`rounded-2xl border p-4 text-left transition-colors ${
+              onClick={(e) => onChange(t, { x: e.clientX, y: e.clientY })}
+              className={`rounded-2xl border p-4 text-left transition-[background-color,border-color,transform,box-shadow] duration-300 ease-out ${
                 active
-                  ? 'border-[var(--input-border-focus)] bg-[var(--input-bg)]'
-                  : 'border-[var(--glass-border)] bg-[var(--glass-bg)] hover:border-[var(--glass-border-inner)] hover:bg-[var(--glass-bg-strong)]'
+                  ? 'theme-card-active border-[var(--input-border-focus)] bg-[var(--input-bg)]'
+                  : 'border-[var(--glass-border)] bg-[var(--glass-bg)] hover:scale-[1.015] hover:border-[var(--glass-border-inner)] hover:bg-[var(--glass-bg-strong)] active:scale-[0.98]'
               }`}
             >
               <span className="text-sm font-bold">{THEME_LABELS[t].label}</span>

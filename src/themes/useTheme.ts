@@ -18,7 +18,16 @@
 
 
 import { useCallback, useEffect, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { applyTheme, readStoredTheme, type Theme } from './theme'
+
+type ViewTransitionDocument = Document & {
+  startViewTransition?: (callback: () => void) => { ready: Promise<void> }
+}
+
+/** Where on screen the switch was triggered from — the circle-wipe
+ *  animation expands outward from this point. Defaults to viewport center. */
+export type ThemeSwitchOrigin = { x: number; y: number }
 
 /**
  * React bindings for the OPNduck theme engine.
@@ -31,8 +40,29 @@ export function useTheme() {
     applyTheme(theme)
   }, [theme])
 
-  const switchTheme = useCallback((next: Theme) => {
-    setTheme(next)
+  const switchTheme = useCallback((next: Theme, origin?: ThemeSwitchOrigin) => {
+    const doc = document as ViewTransitionDocument
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    if (!doc.startViewTransition || reduceMotion) {
+      setTheme(next)
+      return
+    }
+
+    const root = document.documentElement
+    root.style.setProperty('--theme-origin-x', `${origin?.x ?? window.innerWidth / 2}px`)
+    root.style.setProperty('--theme-origin-y', `${origin?.y ?? window.innerHeight / 2}px`)
+
+    // Furthest viewport corner from the origin, so the wipe fully covers
+    // the screen no matter where the click landed.
+    const dx = Math.max(origin?.x ?? 0, window.innerWidth - (origin?.x ?? 0))
+    const dy = Math.max(origin?.y ?? 0, window.innerHeight - (origin?.y ?? 0))
+    const radius = Math.hypot(dx, dy)
+    root.style.setProperty('--theme-reveal-radius', `${radius}px`)
+
+    doc.startViewTransition(() => {
+      flushSync(() => setTheme(next))
+    })
   }, [])
 
   return { theme, setTheme: switchTheme }
