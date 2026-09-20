@@ -5,10 +5,11 @@ upscaling, motion frame-interpolation, media downloads, conversions, and transcr
 directly to your local GPU/CPU at zero cost — no subscriptions, no cloud, no spying. All
 your media stays on your machine.
 
-This is **v0.2.0-Pre-Alpha**: a full rewrite of the frontend on a new design system
-(Liquid Glass) with the web/desktop split architecture from the ground up. It is the
-**shell only** — GUI, routing, theming, settings, and the adaptive card dashboard. The
-download/convert/AI engines start working in the Alpha phase.
+This is **v0.2.0-Alpha**: real media downloading now works end-to-end (`yt-dlp`-backed
+task queue, quality/bitrate selection, size-estimate probing, thumbnails), on top of the
+"Liquid Glass" frontend shell — GUI, routing, theming, settings, and the adaptive card
+dashboard. The remaining engines (Converter, AI Upscaler/Interpolator, Beat Finder,
+Subtitles) are still not wired in.
 
 <p align="center">
   <img src="docs/screenshots/home.png" alt="OPNduck home screen — Downloader and AI Upscaler cards over the Liquid Glass fluid gradient" width="49%" />
@@ -54,12 +55,13 @@ Themes are implemented as CSS custom-property tokens switched by a single
 - **Sidecar Engine (Master Engine)**: Python 3, packaged via PyInstaller.
 - **AI Upscaler**: Real-ESRGAN (NCNN-Vulkan C++ Binary).
 - **AI Interpolator**: RIFE (NCNN-Vulkan C++ Binary).
-- **Media Downloader**: yt-dlp.
+- **Media Downloader**: yt-dlp (wired in, real downloads).
 - **Universal Converter**: FFmpeg (Hardware Accelerated).
 - **Beat / Tempo Finder**: librosa.
 - **Subtitles Generator**: faster-whisper (Tiny Whisper Model).
 
-> The native sidecars above are **not wired in yet** — they land in the Alpha phase.
+> The Media Downloader is wired in now (via `yt-dlp` on the system PATH). The remaining
+> native sidecars above are **not wired in yet**.
 
 ---
 
@@ -113,13 +115,14 @@ npm run lint       # oxlint
 ```
 
 The frontend runs in any browser today — it is the exact bundle the desktop shell
-hosts. The Electron wrapper and native sidecars are wired in the Alpha phase.
+hosts. The Electron wrapper and the Media Downloader (`yt-dlp`) are wired in; the
+remaining native sidecars land in later Alpha updates.
 
 ---
 
 ## 📝 Project Metadata & Licensing
 
-- **Project State**: `v0.2.0-Pre-Alpha` (shell/GUI only — expect bugs!)
+- **Project State**: `v0.2.0-Alpha` (real media downloading; other engines still stubbed — expect bugs!)
 - **Original Developer**: Aaron
 - **Development Model**: Built with the architectural assistance of AI.
 - **License**: [GPL-3.0](./LICENSE) — free software. Copyright © 2026 Aaron Jonsson.
