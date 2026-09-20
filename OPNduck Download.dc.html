@@ -47,9 +47,9 @@
 
   <!-- HERO -->
   <div style="padding:70px 48px 40px; max-width:960px; margin:0 auto; text-align:left;">
-    <span data-dl-version style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1.5px; color:#e1892f; background:rgba(225,137,47,0.12); border:1px solid rgba(225,137,47,0.35); border-radius:5px; padding:5px 10px;">V0.2.0-PRE-ALPHA</span>
+    <span data-dl-version style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1.5px; color:#e1892f; background:rgba(225,137,47,0.12); border:1px solid rgba(225,137,47,0.35); border-radius:5px; padding:5px 10px;">V0.2.1-ALPHA</span>
     <h1 style="font-family:'JetBrains Mono',monospace; font-size:38px; font-weight:700; margin:20px 0 16px; letter-spacing:-0.3px;">Download &amp; build</h1>
-    <p style="font-size:16px; line-height:1.65; color:#a89a86; margin:0; max-width:600px; text-wrap:pretty;">There's no signed installer yet, no auto-updater, no download counter to impress you with. It's pre-alpha — here's how to get it running today, and what to expect if you do.</p>
+    <p style="font-size:16px; line-height:1.65; color:#a89a86; margin:0; max-width:600px; text-wrap:pretty;">No auto-updater, no download counter to impress you with. It's alpha — here's how to get it running today, and what to expect if you do.</p>
   </div>
 
   <!-- GET THE RELEASE -->
@@ -58,7 +58,7 @@
     <div style="background:linear-gradient(155deg,#211a13,#171310); border:1px solid rgba(225,137,47,0.25); border-radius:14px; padding:30px;">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:20px;">
         <div>
-          <div style="font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; color:#ede6d9;" data-dl-version-title>V0.2.0-Pre-Alpha</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; color:#ede6d9;" data-dl-version-title>V0.2.1-Alpha</div>
           <div style="font-size:13px; color:#8a7c68; margin-top:4px;">Pre-built binaries, straight from the GitHub release page.</div>
         </div>
         <a href="https://github.com/Sight8218/OPNduck/releases" data-gh-rel-link style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#e1892f;">All releases &rarr;</a>
@@ -123,8 +123,16 @@
     <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:20px;">RELEASE NOTES</div>
     <div style="border-left:2px solid rgba(225,137,47,0.3); padding-left:24px; margin-left:6px;">
       <div style="margin-bottom:26px;">
-        <div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#e1892f; margin-bottom:6px;">v0.2.0-pre-alpha</div>
-        <div style="font-size:13.5px; color:#a89a86; line-height:1.6; text-wrap:pretty;">Rebuilt the whole OPNduck shell, revamped the navigation and UI/UX, and wired up the Glass / Monochrome theme system and settings. Still shell-only — the tools aren't functional yet. A fuller release note lands with the next update.</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#e1892f; margin-bottom:6px;">v0.2.1-alpha</div>
+        <div style="font-size:13.5px; color:#a89a86; line-height:1.6; text-wrap:pretty;">Patch: the packaged app was effectively unusable on first install — navigation didn't work and social icons were missing, because React Router's BrowserRouter can't resolve routes when the app loads from disk instead of a real server. Fixed by switching to HashRouter and correcting a few hardcoded asset paths.</div>
+      </div>
+      <div style="margin-bottom:26px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#8a7c68; margin-bottom:6px;">v0.2.0-alpha</div>
+        <div style="font-size:13.5px; color:#7d7364; line-height:1.6; text-wrap:pretty;">First release with a real, working feature: the Downloader now drives an actual yt-dlp process — video/audio quality selection, size estimates, thumbnails, and a full download queue with cancel. Other tools are still stubs.</div>
+      </div>
+      <div style="margin-bottom:26px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#8a7c68; margin-bottom:6px;">v0.2.0-pre-alpha</div>
+        <div style="font-size:13.5px; color:#7d7364; line-height:1.6; text-wrap:pretty;">Rebuilt the whole OPNduck shell, revamped the navigation and UI/UX, and wired up the Glass / Monochrome theme system and settings. Shell-only — the tools weren't functional yet.</div>
       </div>
       <div style="margin-bottom:26px;">
         <div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#8a7c68; margin-bottom:6px;">v0.1.0-pre-alpha</div>
@@ -152,7 +160,7 @@ class Component extends DCLogic {
   componentDidMount() {
     this._fetchGitHub('Sight8218/OPNduck');
     if (window.OPNduckCMS) window.OPNduckCMS.load().then(c => this._apply(c || {}));
-    else this._renderButtons({ links: [{ platform: 'Windows', url: 'https://github.com/Sight8218/OPNduck/releases/tag/V0.2.0-Pre-Alpha' }, { platform: 'Linux', url: 'https://github.com/Sight8218/OPNduck/releases/tag/V0.2.0-Pre-Alpha' }] });
+    else this._renderButtons({ links: [{ platform: 'Windows', url: 'https://github.com/Sight8218/OPNduck/releases/tag/v0.2.1-Alpha' }, { platform: 'Linux', url: 'https://github.com/Sight8218/OPNduck/releases/tag/v0.2.1-Alpha' }] });
   }
   _apply(c) {
     const d = c.downloads || {};

@@ -490,8 +490,8 @@ class Component extends DCLogic {
     }).catch(() => {});
     fetch('https://api.github.com/repos/' + repo + '/releases/latest').then(r => r.ok ? r.json() : null).then(d => {
       const tag = d && (d.tag_name || d.name);
-      document.querySelectorAll('[data-gh-release]').forEach(n => n.textContent = tag || 'v0.2.0');
-    }).catch(() => { document.querySelectorAll('[data-gh-release]').forEach(n => n.textContent = 'v0.2.0'); });
+      document.querySelectorAll('[data-gh-release]').forEach(n => n.textContent = tag || 'v0.2.1');
+    }).catch(() => { document.querySelectorAll('[data-gh-release]').forEach(n => n.textContent = 'v0.2.1'); });
   }
   _initGallery() {
     const wrap = document.querySelector('[data-gallery]');
