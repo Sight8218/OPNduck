@@ -15,6 +15,7 @@ import Library from './pages/Library'
 import Plugins from './pages/Plugins'
 import Settings from './pages/Settings'
 import { readStoredTheme, applyTheme } from './themes/theme'
+import { useOmarchyThemeSync } from './themes/useTheme'
 
 // Register core adaptive cards once at startup.
 registerCoreFeatures()
@@ -35,6 +36,10 @@ export default function App() {
     applyTheme(readStoredTheme())
     hideSplash()
   }, [])
+
+  // Always-on, independent of which page's Settings/useTheme() may or may
+  // not be mounted — see useOmarchyThemeSync()'s own doc comment.
+  useOmarchyThemeSync()
 
   return (
     // BrowserRouter needs a real HTTP server to resolve paths like /library.

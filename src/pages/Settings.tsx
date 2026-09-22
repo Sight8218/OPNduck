@@ -39,7 +39,7 @@ const CATEGORIES: SettingsCategory[] = [
  * highlighted category follows via a sliding indicator.
  */
 export default function Settings() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, omarchy } = useTheme()
   const { devMode } = useDevMode()
   const [activeId, setActiveId] = useState('appearance')
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
@@ -107,7 +107,7 @@ export default function Settings() {
             className="scroll-mt-24 flex flex-col gap-6"
           >
             <CategoryLabel label="Appearance" />
-            <ThemeToggle theme={theme} onChange={setTheme} />
+            <ThemeToggle theme={theme} onChange={setTheme} omarchy={omarchy} />
             <NavDisplayCard />
             <MotionCard />
 

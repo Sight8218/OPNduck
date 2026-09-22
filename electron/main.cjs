@@ -22,6 +22,7 @@ const fs = require('node:fs')
 const os = require('node:os')
 const { spawn } = require('node:child_process')
 const crypto = require('node:crypto')
+const { readOmarchyTheme, watchOmarchyTheme } = require('./omarchy.cjs')
 
 const DEV_SERVER_URL = process.env.OPNDUCK_DEV_URL || 'http://localhost:1420'
 
@@ -75,6 +76,15 @@ function createWindow() {
   })
 
   win.loadURL(rendererURL())
+
+  // "Sync with Omarchy" theme option: push live Omarchy theme changes to
+  // this window for as long as it's open. Total no-op on non-Omarchy
+  // systems — watchOmarchyTheme never fires in that case.
+  const stopWatchingOmarchy = watchOmarchyTheme((theme) => {
+    if (!win.isDestroyed()) win.webContents.send('omarchy:theme-changed', theme)
+  })
+  win.on('closed', stopWatchingOmarchy)
+
   return win
 }
 
@@ -209,6 +219,8 @@ ipcMain.handle('system:checkRife', () => {
     child.on('close', () => resolve({ available: true, installHint: rifeInstallHint() }))
   })
 })
+
+ipcMain.handle('omarchy:get', () => readOmarchyTheme())
 
 /**
  * Spotify tracks are DRM-protected — yt-dlp has no Spotify extractor and

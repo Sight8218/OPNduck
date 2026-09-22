@@ -34,6 +34,14 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   checkFfmpeg: () => ipcRenderer.invoke('system:checkFfmpeg'),
   checkRealesrgan: () => ipcRenderer.invoke('system:checkRealesrgan'),
   checkRife: () => ipcRenderer.invoke('system:checkRife'),
+  omarchy: {
+    get: () => ipcRenderer.invoke('omarchy:get'),
+    subscribe: (listener) => {
+      const handler = (_e, theme) => listener(theme)
+      ipcRenderer.on('omarchy:theme-changed', handler)
+      return () => ipcRenderer.removeListener('omarchy:theme-changed', handler)
+    },
+  },
   tasks: {
     startDownload: (req) => ipcRenderer.invoke('tasks:start', req),
     startConvert: (req) => ipcRenderer.invoke('tasks:startConvert', req),

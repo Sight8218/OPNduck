@@ -27,6 +27,7 @@ import type {
   ToolStatus,
   UpscaleRequest,
 } from './index'
+import type { OmarchyTheme } from '../themes/omarchySync'
 
 /**
  * The bridge exposed by electron/preload.cjs via contextIsolation.
@@ -44,6 +45,10 @@ interface ElectronBridge {
   checkFfmpeg(): Promise<ToolStatus>
   checkRealesrgan(): Promise<ToolStatus>
   checkRife(): Promise<ToolStatus>
+  omarchy: {
+    get(): Promise<OmarchyTheme | null>
+    subscribe(listener: (theme: OmarchyTheme | null) => void): () => void
+  }
   tasks: {
     startDownload(req: DownloadRequest): Promise<string>
     startConvert(req: ConvertRequest): Promise<string>
@@ -91,6 +96,10 @@ export function detectElectronHost(): Host | null {
     checkFfmpeg: () => bridge.checkFfmpeg(),
     checkRealesrgan: () => bridge.checkRealesrgan(),
     checkRife: () => bridge.checkRife(),
+    omarchy: {
+      get: () => bridge.omarchy.get(),
+      subscribe: (listener) => bridge.omarchy.subscribe(listener),
+    },
     tasks: {
       startDownload: (req) => bridge.tasks.startDownload(req),
       startConvert: (req) => bridge.tasks.startConvert(req),

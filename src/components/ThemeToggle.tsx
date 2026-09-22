@@ -23,15 +23,26 @@ import type { ThemeSwitchOrigin } from '../themes/useTheme'
 const THEME_LABELS: Record<Theme, { label: string; hint: string }> = {
   blarange: { label: 'Blarange', hint: 'Black + orange, matching the OPNduck site. Flat & clean. Default.' },
   monochrome: { label: 'Monochrome', hint: 'High-contrast black & white for readability.' },
+  // Overwritten per-render below with the live Omarchy theme's actual name.
+  omarchy: { label: 'Synced with Omarchy', hint: 'Mirrors your current Omarchy theme automatically.' },
 }
 
 export default function ThemeToggle({
   theme,
   onChange,
+  omarchy,
 }: {
   theme: Theme
   onChange: (t: Theme, origin?: ThemeSwitchOrigin) => void
+  /** Live Omarchy theme info, or null when Omarchy isn't detected — see useTheme(). */
+  omarchy: { label: string } | null
 }) {
+  // Only offered on Omarchy — everywhere else this card simply never appears.
+  const themes = omarchy ? [...THEMES, 'omarchy' as const] : THEMES
+  const labels: Record<Theme, { label: string; hint: string }> = omarchy
+    ? { ...THEME_LABELS, omarchy: { ...THEME_LABELS.omarchy, hint: `Currently ${omarchy.label}.` } }
+    : THEME_LABELS
+
   return (
     <div className="glass rounded-3xl p-5">
       <h2 className="mb-1 text-base font-bold">UI Theme</h2>
@@ -39,7 +50,7 @@ export default function ThemeToggle({
         Switch the whole interface between the two visual modes.
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {THEMES.map((t) => {
+        {themes.map((t) => {
           const active = theme === t
           return (
             <button
@@ -52,9 +63,9 @@ export default function ThemeToggle({
                   : 'border-[var(--glass-border)] bg-[var(--glass-bg)] hover:scale-[1.015] hover:border-[var(--glass-border-inner)] hover:bg-[var(--glass-bg-strong)] active:scale-[0.98]'
               }`}
             >
-              <span className="text-sm font-bold">{THEME_LABELS[t].label}</span>
+              <span className="text-sm font-bold">{labels[t].label}</span>
               <span className="mt-1 block text-xs leading-relaxed text-[var(--text-dim)]">
-                {THEME_LABELS[t].hint}
+                {labels[t].hint}
               </span>
             </button>
           )

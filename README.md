@@ -50,8 +50,16 @@ Themes are implemented as CSS custom-property tokens switched by a single
 ## 🛠️ Built On & Technologies Used
 
 - **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, React Router, Framer Motion.
-- **Desktop Shell (now)**: Electron — temporary during pre-alpha/alpha for speed.
-- **Desktop Shell (beta/RC)**: Tauri v2 (Rust Core IPC) for lower RAM and portability.
+- **Desktop Shell**: Electron. A full Tauri v2 migration was built and verified
+  (Rust backend, all feature pipelines ported, Windows sidecars vendored — preserved on
+  the `tauri-migration-phase1` branch), but is **on hold, not shipping**: on Linux with
+  an NVIDIA proprietary driver under Wayland, Tauri's webview (WebKitGTK) can't do
+  hardware-accelerated compositing — it either segfaults, or falls back to a
+  software-rendering path so slow the app is barely usable (confirmed against the
+  identical build running fine in a normal browser, so this is a WebKitGTK/NVIDIA/Wayland
+  platform bug, not an OPNduck bug). This is a known, long-standing upstream issue, not
+  something fixable from application code. Revisit once it's resolved upstream, or if
+  packaging specifically for Windows (WebView2, unaffected) or non-NVIDIA Linux.
 - **Sidecar Engine (Master Engine)**: Python 3, packaged via PyInstaller.
 - **AI Upscaler**: Real-ESRGAN (NCNN-Vulkan C++ Binary).
 - **AI Interpolator**: RIFE (NCNN-Vulkan C++ Binary).

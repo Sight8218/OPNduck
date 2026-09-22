@@ -29,6 +29,7 @@
  */
 
 import { detectElectronHost } from './electron'
+import type { OmarchyTheme } from '../themes/omarchySync'
 
 export interface HostWindowControls {
   minimize(): void
@@ -172,6 +173,15 @@ export interface Host {
   /** rife-ncnn-vulkan isn't bundled either — same check shape, for Frame Interpolation. */
   checkRife(): Promise<ToolStatus>
   tasks: HostTasks
+  /** Present only on hosts that can see the OS-level Omarchy theme (Electron
+   *  on Linux); undefined everywhere else, including a non-Omarchy Linux
+   *  desktop that just happens to run Electron. */
+  omarchy?: {
+    /** Current Omarchy theme, or null if Omarchy isn't installed/detected. */
+    get(): Promise<OmarchyTheme | null>
+    /** Fires on every live Omarchy theme change. Returns an unsubscribe fn. */
+    subscribe(listener: (theme: OmarchyTheme | null) => void): () => void
+  }
 }
 
 /** No-op task queue for the browser preview — desktop features aren't available there. */
