@@ -381,7 +381,10 @@ async function probeInfo(req) {
   const effectiveUrl = spotify?.query ?? req.url
 
   const kind = spotify ? null : playlistKind(req.url)
-  const playlist = kind ? await probePlaylist(req.url) : null
+  // Playlist lookup runs alongside the single-video lookup below instead of
+  // before it, so a playlist link doesn't take the sum of both round trips.
+  const playlistPromise = kind ? probePlaylist(req.url) : Promise.resolve(null)
+  const playlist = kind === 'only' ? await playlistPromise : null
   const playlistInfo = playlist ? { title: playlist.title, count: playlist.count, ambiguous: kind === 'mixed' } : null
   // A pure playlist page has no single video to size up — a total would mean
   // probing every entry. The UI shows the video count instead.
@@ -389,19 +392,19 @@ async function probeInfo(req) {
     return { title: playlist.title, approxSizeBytes: null, thumbnailUrl: playlist.thumbnailUrl, playlist: playlistInfo }
   }
 
-  return new Promise((resolve) => {
+  const single = await new Promise((resolve) => {
     let child
     try {
       child = spawn('yt-dlp', ['--dump-json', '--no-warnings', '--no-playlist', effectiveUrl])
     } catch {
-      resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null, playlist: playlistInfo })
+      resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null })
       return
     }
     let out = ''
     child.stdout.on('data', (c) => {
       out += c
     })
-    child.on('error', () => resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null, playlist: playlistInfo }))
+    child.on('error', () => resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null }))
     child.on('close', () => {
       try {
         const info = JSON.parse(out.trim().split('\n')[0])
@@ -409,13 +412,17 @@ async function probeInfo(req) {
           title: spotify ? `${spotify.label} (YouTube match)` : (info.title ?? req.url),
           approxSizeBytes: estimateSize(info, req),
           thumbnailUrl: info.thumbnail ?? null,
-          playlist: playlistInfo,
         })
       } catch {
-        resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null, playlist: playlistInfo })
+        resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null })
       }
     })
   })
+  const mixedPlaylist = kind === 'mixed' ? await playlistPromise : null
+  return {
+    ...single,
+    playlist: mixedPlaylist ? { title: mixedPlaylist.title, count: mixedPlaylist.count, ambiguous: true } : null,
+  }
 }
 
 ipcMain.handle('tasks:probe', (_e, req) => probeInfo(req))

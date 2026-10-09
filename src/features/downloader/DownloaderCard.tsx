@@ -167,7 +167,7 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
           {preview?.thumbnailUrl && <Thumbnail url={preview.thumbnailUrl} className="h-8 w-14 shrink-0 rounded-md" />}
           <span className="text-xs text-[var(--text-dim)]">
             {previewing
-              ? 'Estimating size…'
+              ? 'Checking link…'
               : wholePlaylist
                 ? `Playlist: ${playlist?.title} — ${playlist?.count} videos`
                 : formatBytes(preview?.sizeBytes)
