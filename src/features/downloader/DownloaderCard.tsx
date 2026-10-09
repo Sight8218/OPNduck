@@ -3,7 +3,7 @@ import FeatureCard from '../../components/FeatureCard'
 import GlassSelect from '../../components/GlassSelect'
 import Tag from '../../components/Tag'
 import Thumbnail from '../../components/Thumbnail'
-import { host, type AudioQuality, type DownloadFormat, type VideoQuality } from '../../host'
+import { host, type AudioQuality, type DownloadFormat, type PlaylistInfo, type VideoQuality } from '../../host'
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
 import { useTasks } from '../../lib/useTasks'
@@ -39,9 +39,13 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
   const [videoQuality, setVideoQuality] = useState<VideoQuality>('best')
   const [audioQuality, setAudioQuality] = useState<AudioQuality>('best')
   const [taskId, setTaskId] = useState<string | null>(null)
-  const [preview, setPreview] = useState<{ sizeBytes: number | null; thumbnailUrl: string | null } | null>(
-    null,
-  )
+  const [preview, setPreview] = useState<{
+    sizeBytes: number | null
+    thumbnailUrl: string | null
+    playlist: PlaylistInfo | null
+  } | null>(null)
+  // Only consulted for "video inside a playlist" links, where the user picks.
+  const [playlistMode, setPlaylistMode] = useState<'single' | 'all'>('single')
   const [previewing, setPreviewing] = useState(false)
   const [ytDlp, setYtDlp] = useState<{ available: boolean; installHint: string } | null>(null)
 
@@ -54,6 +58,8 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
   const task = tasks.find((t) => t.id === taskId)
   const running = task?.status === 'queued' || task?.status === 'running'
   const isVideo = VIDEO_FORMATS.includes(format)
+  const playlist = preview?.playlist ?? null
+  const wholePlaylist = !!playlist && (!playlist.ambiguous || playlistMode === 'all')
 
   // Debounced size preview: re-probe shortly after the url/format/quality settle,
   // rather than on every keystroke — a yt-dlp lookup takes a real network round trip.
@@ -66,7 +72,11 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
     setPreviewing(true)
     const timer = setTimeout(async () => {
       const result = await host.tasks.probe({ url: trimmed, format, videoQuality, audioQuality })
-      setPreview({ sizeBytes: result.approxSizeBytes, thumbnailUrl: result.thumbnailUrl })
+      setPreview({
+        sizeBytes: result.approxSizeBytes,
+        thumbnailUrl: result.thumbnailUrl,
+        playlist: result.playlist ?? null,
+      })
       setPreviewing(false)
     }, 700)
     return () => {
@@ -82,8 +92,9 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
       videoQuality: isVideo ? videoQuality : undefined,
       audioQuality: format === 'MP3' ? audioQuality : undefined,
       destination: getDownloadDirOverride() ?? undefined,
-      approxSizeBytes: preview?.sizeBytes ?? null,
+      approxSizeBytes: wholePlaylist ? null : (preview?.sizeBytes ?? null),
       thumbnailUrl: preview?.thumbnailUrl ?? null,
+      playlist: playlistMode,
     })
     setTaskId(id)
   }
@@ -108,7 +119,10 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
         type="url"
         placeholder="Paste a YouTube, TikTok, SoundCloud — or Spotify track (experimental) — link…"
         value={url}
-        onChange={(e) => setUrl(e.target.value)}
+        onChange={(e) => {
+          setUrl(e.target.value)
+          setPlaylistMode('single')
+        }}
         disabled={running}
       />
       <div className="grid grid-cols-2 gap-3">
@@ -154,10 +168,29 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
           <span className="text-xs text-[var(--text-dim)]">
             {previewing
               ? 'Estimating size…'
-              : formatBytes(preview?.sizeBytes)
-                ? `Approx. size: ${formatBytes(preview?.sizeBytes)}`
-                : 'Size unavailable'}
+              : wholePlaylist
+                ? `Playlist: ${playlist?.title} — ${playlist?.count} videos`
+                : formatBytes(preview?.sizeBytes)
+                  ? `Approx. size: ${formatBytes(preview?.sizeBytes)}`
+                  : 'Size unavailable'}
           </span>
+        </div>
+      )}
+
+      {playlist?.ambiguous && !running && !previewing && (
+        <div>
+          <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">
+            This video is part of a playlist
+          </span>
+          <GlassSelect
+            id="downloader-playlist-mode"
+            options={[
+              { value: 'single' as const, label: 'Just this video' },
+              { value: 'all' as const, label: `Entire playlist (${playlist.count} videos)` },
+            ]}
+            value={playlistMode}
+            onChange={setPlaylistMode}
+          />
         </div>
       )}
 
@@ -185,6 +218,11 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
               <>
                 <Tag>{task.format}</Tag>
                 <Tag>{task.quality}</Tag>
+                {task.playlist && task.playlist.total > 0 && (
+                  <Tag>
+                    {task.playlist.index}/{task.playlist.total}
+                  </Tag>
+                )}
                 {formatBytes(task.sizeBytes) && (
                   <Tag>
                     {task.sizeIsEstimate ? '~' : ''}

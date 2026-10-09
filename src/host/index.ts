@@ -56,12 +56,27 @@ export interface DownloadRequest {
   approxSizeBytes?: number | null
   /** Thumbnail URL from a prior probe(), carried through so the task row can show it immediately. */
   thumbnailUrl?: string | null
+  /** Only matters for a video link that also carries a playlist ("mixed" —
+   *  see DownloadProbe.playlist.ambiguous): 'all' downloads the whole list,
+   *  anything else just that video. Pure playlist links always download the lot. */
+  playlist?: 'all' | 'single'
+}
+
+export interface PlaylistInfo {
+  title: string
+  /** Number of videos in the playlist. */
+  count: number
+  /** True when the link is a single video that merely belongs to a playlist,
+   *  so the user has to choose; false for a pure playlist link. */
+  ambiguous: boolean
 }
 
 export interface DownloadProbe {
   title: string
   approxSizeBytes: number | null
   thumbnailUrl: string | null
+  /** Non-null when the link is (or contains) a YouTube playlist. */
+  playlist?: PlaylistInfo | null
 }
 
 /** Output container for the Converter. Transcode picks one default codec per container. */
@@ -128,6 +143,9 @@ export interface TaskState {
    *  resolveSpotifyTrack). Non-null means the UI MUST show this as a
    *  distinct tag rather than implying the file came from Spotify. */
   experimentalMatch: string | null
+  /** Set while a whole-playlist download runs: which video it's on. total is 0
+   *  until yt-dlp reports it. Absent for ordinary single-video tasks. */
+  playlist?: { index: number; total: number } | null
 }
 
 export interface HostTasks {

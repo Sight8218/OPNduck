@@ -317,6 +317,59 @@ function formatArgs(req) {
 }
 
 /**
+ * Classifies a URL as a YouTube playlist link. 'only' = a pure playlist page
+ * (always the whole list); 'mixed' = a video that happens to carry a list
+ * param (user picks single vs whole list); null = not a playlist. YouTube's
+ * auto-generated "Mix" lists (list=RD...) are endless, so they're never
+ * treated as playlists — those links just download the one video.
+ */
+function playlistKind(url) {
+  let u
+  try {
+    u = new URL(url)
+  } catch {
+    return null
+  }
+  if (!/(^|\.)youtube\.com$|^youtu\.be$/.test(u.hostname)) return null
+  const list = u.searchParams.get('list')
+  if (!list || list.startsWith('RD')) return null
+  if (u.pathname === '/playlist') return 'only'
+  return u.searchParams.get('v') || u.hostname === 'youtu.be' ? 'mixed' : null
+}
+
+/** Title + video count of a playlist without downloading anything (--flat-playlist is fast). */
+function probePlaylist(url) {
+  return new Promise((resolve) => {
+    let child
+    try {
+      child = spawn('yt-dlp', ['--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', '5000', url])
+    } catch {
+      resolve(null)
+      return
+    }
+    let out = ''
+    child.stdout.on('data', (c) => {
+      out += c
+    })
+    child.on('error', () => resolve(null))
+    child.on('close', () => {
+      try {
+        const info = JSON.parse(out)
+        const entries = Array.isArray(info.entries) ? info.entries : []
+        const first = entries.find((e) => e?.thumbnails?.length)
+        resolve({
+          title: info.title ?? 'Playlist',
+          count: entries.length,
+          thumbnailUrl: first?.thumbnails?.[first.thumbnails.length - 1]?.url ?? null,
+        })
+      } catch {
+        resolve(null)
+      }
+    })
+  })
+}
+
+/**
  * Best-effort title/filesize/thumbnail lookup via `yt-dlp --dump-json` — no
  * download. Shared by the renderer's pre-submit preview AND by tasks:start
  * itself, so a task always gets this info regardless of whether the UI's
@@ -324,22 +377,31 @@ function formatArgs(req) {
  */
 async function probeInfo(req) {
   const spotify = await resolveSpotifyTrack(req.url)
-  if (spotify?.error) return { title: spotify.error, approxSizeBytes: null, thumbnailUrl: null }
+  if (spotify?.error) return { title: spotify.error, approxSizeBytes: null, thumbnailUrl: null, playlist: null }
   const effectiveUrl = spotify?.query ?? req.url
+
+  const kind = spotify ? null : playlistKind(req.url)
+  const playlist = kind ? await probePlaylist(req.url) : null
+  const playlistInfo = playlist ? { title: playlist.title, count: playlist.count, ambiguous: kind === 'mixed' } : null
+  // A pure playlist page has no single video to size up — a total would mean
+  // probing every entry. The UI shows the video count instead.
+  if (kind === 'only' && playlist) {
+    return { title: playlist.title, approxSizeBytes: null, thumbnailUrl: playlist.thumbnailUrl, playlist: playlistInfo }
+  }
 
   return new Promise((resolve) => {
     let child
     try {
       child = spawn('yt-dlp', ['--dump-json', '--no-warnings', '--no-playlist', effectiveUrl])
     } catch {
-      resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null })
+      resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null, playlist: playlistInfo })
       return
     }
     let out = ''
     child.stdout.on('data', (c) => {
       out += c
     })
-    child.on('error', () => resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null }))
+    child.on('error', () => resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null, playlist: playlistInfo }))
     child.on('close', () => {
       try {
         const info = JSON.parse(out.trim().split('\n')[0])
@@ -347,9 +409,10 @@ async function probeInfo(req) {
           title: spotify ? `${spotify.label} (YouTube match)` : (info.title ?? req.url),
           approxSizeBytes: estimateSize(info, req),
           thumbnailUrl: info.thumbnail ?? null,
+          playlist: playlistInfo,
         })
       } catch {
-        resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null })
+        resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null, playlist: playlistInfo })
       }
     })
   })
@@ -427,6 +490,12 @@ ipcMain.handle('tasks:start', async (_e, req) => {
     return id
   }
   const effectiveUrl = spotify?.query ?? req.url
+
+  // Whole-playlist mode: pure playlist pages always, "video inside a playlist"
+  // links only when the user explicitly chose the whole list.
+  const kind = spotify ? null : playlistKind(req.url)
+  const wholePlaylist = kind === 'only' || (kind === 'mixed' && req.playlist === 'all')
+  if (wholePlaylist) updateTask(id, { sizeBytes: null, playlist: { index: 0, total: 0 } })
   if (spotify) updateTask(id, { label: spotify.label, experimentalMatch: 'YT Match (Experimental)' })
 
   // Backfill size/thumbnail if the renderer's own preview never got to run
@@ -434,7 +503,7 @@ ipcMain.handle('tasks:start', async (_e, req) => {
   // runs concurrently with the download itself, which can finish first and
   // replace sizeBytes with the real file size — never clobber that with a
   // late-arriving estimate.
-  if (req.approxSizeBytes == null || !req.thumbnailUrl) {
+  if (!wholePlaylist && (req.approxSizeBytes == null || !req.thumbnailUrl)) {
     probeInfo(req).then((info) => {
       const entry = tasks.get(id)
       if (!entry) return
@@ -445,13 +514,25 @@ ipcMain.handle('tasks:start', async (_e, req) => {
     })
   }
 
-  const args = [
-    ...formatArgs(req),
-    '--newline',
-    '-o',
-    path.join(destDir, '%(title)s.%(ext)s'),
-    effectiveUrl,
-  ]
+  const args = wholePlaylist
+    ? [
+        ...formatArgs(req),
+        '--newline',
+        '--yes-playlist',
+        // One unavailable/private video shouldn't abort the other 99.
+        '--ignore-errors',
+        '-o',
+        path.join(destDir, '%(playlist_title|Playlist)s', '%(playlist_index)03d - %(title)s.%(ext)s'),
+        effectiveUrl,
+      ]
+    : [
+        ...formatArgs(req),
+        '--newline',
+        '--no-playlist',
+        '-o',
+        path.join(destDir, '%(title)s.%(ext)s'),
+        effectiveUrl,
+      ]
 
   let child
   try {
@@ -466,18 +547,45 @@ ipcMain.handle('tasks:start', async (_e, req) => {
   updateTask(id, { status: 'running' })
 
   let stderrTail = ''
+  let skipped = 0
+  const files = new Set()
+  let stdoutBuf = ''
   child.stdout.on('data', (chunk) => {
-    const text = chunk.toString()
-    const match = text.match(/\[download\]\s+(\d+(?:\.\d+)?)%/)
-    if (match) updateTask(id, { progress: Math.min(1, Number(match[1]) / 100) })
-    const dest = text.match(/(?:Destination|Merging formats into):?\s+"?([^"\n]+)"?/)
-    if (dest) {
-      entry.finalPath = dest[1].trim()
-      updateTask(id, { label: path.basename(entry.finalPath) })
+    // Lines can straddle chunk boundaries — only parse complete ones.
+    stdoutBuf += chunk.toString()
+    const lines = stdoutBuf.split(/\r?\n/)
+    stdoutBuf = lines.pop() ?? ''
+    for (const line of lines) {
+      const item = line.match(/\[download\] Downloading (?:item|video) (\d+) of (\d+)/)
+      if (item && wholePlaylist) {
+        updateTask(id, { playlist: { index: Number(item[1]), total: Number(item[2]) } })
+        continue
+      }
+      const match = line.match(/\[download\]\s+(\d+(?:\.\d+)?)%/)
+      if (match) {
+        const pct = Math.min(1, Number(match[1]) / 100)
+        const pl = entry.state.playlist
+        if (wholePlaylist && pl?.total) {
+          // Overall progress across the list. Never move backwards: each video
+          // downloads its video and audio streams separately, so pct restarts.
+          const overall = (Math.max(0, pl.index - 1) + pct) / pl.total
+          updateTask(id, { progress: Math.max(entry.state.progress, Math.min(0.999, overall)) })
+        } else if (!wholePlaylist) {
+          updateTask(id, { progress: pct })
+        }
+      }
+      const dest = line.match(/(?:Destination|Merging formats into):?\s+"?([^"\n]+)"?/)
+      if (dest) {
+        entry.finalPath = dest[1].trim()
+        files.add(entry.finalPath)
+        updateTask(id, { label: path.basename(entry.finalPath) })
+      }
     }
   })
   child.stderr.on('data', (chunk) => {
-    stderrTail = (stderrTail + chunk.toString()).slice(-2000)
+    const text = chunk.toString()
+    stderrTail = (stderrTail + text).slice(-2000)
+    skipped += (text.match(/^ERROR:/gm) ?? []).length
   })
   child.on('error', (err) => {
     updateTask(id, { status: 'error', error: `yt-dlp not found on PATH (${err.message})` })
@@ -485,7 +593,10 @@ ipcMain.handle('tasks:start', async (_e, req) => {
   child.on('close', (code, signal) => {
     if (!tasks.has(id)) return
     if (entry.state.status === 'canceled') return
-    if (signal || code !== 0) {
+    // With --ignore-errors yt-dlp exits 1 if ANY video failed, even when the
+    // rest downloaded fine — that's a partial success, not a failed task.
+    const partial = wholePlaylist && !signal && code === 1 && files.size > 0
+    if (signal || (code !== 0 && !partial)) {
       updateTask(id, {
         status: 'error',
         error: stderrTail.trim().split('\n').pop() || `yt-dlp exited with code ${code}`,
@@ -493,14 +604,32 @@ ipcMain.handle('tasks:start', async (_e, req) => {
       return
     }
     let realSize = null
-    try {
-      if (entry.finalPath) realSize = fs.statSync(entry.finalPath).size
-    } catch {
-      /* keep the pre-download estimate if the final path can't be read */
+    if (wholePlaylist) {
+      // Intermediate stream files are deleted after merging, so only the ones
+      // that still exist count toward the playlist's real total.
+      let total = 0
+      for (const f of files) {
+        try {
+          total += fs.statSync(f).size
+        } catch {
+          /* intermediate file already cleaned up */
+        }
+      }
+      realSize = total || null
+    } else {
+      try {
+        if (entry.finalPath) realSize = fs.statSync(entry.finalPath).size
+      } catch {
+        /* keep the pre-download estimate if the final path can't be read */
+      }
     }
+    const pl = entry.state.playlist
     updateTask(id, {
       status: 'done',
       progress: 1,
+      ...(partial && pl?.total
+        ? { label: `${pl.total - skipped}/${pl.total} downloaded — ${skipped} skipped (unavailable)` }
+        : {}),
       ...(realSize != null ? { sizeBytes: realSize, sizeIsEstimate: false } : {}),
     })
   })
