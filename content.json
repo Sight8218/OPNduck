@@ -44,11 +44,11 @@
     }
   ],
   "downloads": {
-    "version": "V0.2.0-Pre-Alpha",
-    "releaseUrl": "https://github.com/Sight8218/OPNduck/releases/tag/V0.2.0-Pre-Alpha",
+    "version": "v0.3.0-Alpha",
+    "releaseUrl": "https://github.com/Sight8218/OPNduck/releases/tag/v0.3.0-Alpha",
     "links": [
-      { "platform": "Windows", "url": "https://github.com/Sight8218/OPNduck/releases/tag/V0.2.0-Pre-Alpha" },
-      { "platform": "Linux", "url": "https://github.com/Sight8218/OPNduck/releases/tag/V0.2.0-Pre-Alpha" }
+      { "platform": "Windows", "url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.3.0-Alpha" },
+      { "platform": "Linux", "url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.3.0-Alpha" }
     ]
   }
 }
