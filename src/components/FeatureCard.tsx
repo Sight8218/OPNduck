@@ -17,7 +17,8 @@
  */
 
 
-import type { ReactNode } from 'react'
+import { useState, type DragEvent, type ReactNode } from 'react'
+import { host } from '../host'
 import type { FeatureDefinition } from '../features/registry'
 import { useReduceMotion } from '../lib/motionPrefs'
 import { FeatureIcon } from './featureIcons'
@@ -41,17 +42,67 @@ import { FeatureIcon } from './featureIcons'
 export default function FeatureCard({
   feature,
   children,
+  onDropFiles,
+  dropExtensions,
+  onDropText,
 }: {
   feature: FeatureDefinition
   children?: ReactNode
+  /** Makes the card a drop target for files from the OS file manager. */
+  onDropFiles?: (paths: string[]) => void
+  /** Only these extensions (lowercase, no dot) are accepted; others are ignored. */
+  dropExtensions?: string[]
+  /** Makes the card accept dropped text/links (e.g. a URL dragged from a browser). */
+  onDropText?: (text: string) => void
 }) {
+  const [dragging, setDragging] = useState(false)
+  const accepts = (types: readonly string[]) =>
+    (!!onDropFiles && types.includes('Files')) ||
+    (!!onDropText && (types.includes('text/uri-list') || types.includes('text/plain')))
+  const dragProps =
+    onDropFiles || onDropText
+      ? {
+          onDragOver: (e: DragEvent) => {
+            if (!accepts(e.dataTransfer.types)) return
+            e.preventDefault()
+            e.dataTransfer.dropEffect = 'copy'
+            setDragging(true)
+          },
+          onDragLeave: (e: DragEvent) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false)
+          },
+          onDrop: (e: DragEvent) => {
+            if (!accepts(e.dataTransfer.types)) return
+            e.preventDefault()
+            setDragging(false)
+            if (onDropFiles && e.dataTransfer.files.length > 0) {
+              const paths = Array.from(e.dataTransfer.files)
+                .map((f) => host.pathForFile(f))
+                .filter(
+                  (p) => p && (!dropExtensions || dropExtensions.includes(p.split('.').pop()?.toLowerCase() ?? '')),
+                )
+              if (paths.length > 0) onDropFiles(paths)
+              return
+            }
+            const text = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain')
+            if (onDropText && text) onDropText(text.split('\n')[0].trim())
+          },
+        }
+      : {}
+
   const { reduceMotion } = useReduceMotion()
   return (
     <section
-      className={`glass flex h-full flex-col rounded-3xl p-5 transition-all duration-300 ease-out ${
+      className={`glass relative flex h-full flex-col rounded-3xl p-5 transition-all duration-300 ease-out ${
         reduceMotion ? '' : 'card-glow-hover'
       }`}
+      {...dragProps}
     >
+      {dragging && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-3xl border-2 border-dashed border-[var(--accent)] bg-[var(--glass-bg-strong)]/80 text-sm font-bold text-[var(--accent)]">
+          {onDropFiles ? 'Drop files to add them' : 'Drop the link here'}
+        </div>
+      )}
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="glass flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg leading-none">

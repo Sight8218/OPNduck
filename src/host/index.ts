@@ -160,6 +160,12 @@ export interface HostTasks {
   startVideoUpscale(req: UpscaleRequest): Promise<string>
   startInterpolate(req: InterpolateRequest): Promise<string>
   cancel(taskId: string): void
+  /** Replays a finished task's original request as a new task. Resolves to the new id (null if it can't be replayed). */
+  rerun(taskId: string): Promise<string | null>
+  /** Reveals a finished task's output (or its destination folder) in the file manager. */
+  openFolder(taskId: string): Promise<void>
+  /** Removes every finished/failed/canceled task from the history. */
+  clearFinished(): Promise<void>
   list(): TaskState[]
   /** Fires with the full task list on every change. Returns an unsubscribe fn. */
   subscribe(listener: (tasks: TaskState[]) => void): () => void
@@ -186,6 +192,8 @@ export interface Host {
   pickFiles(options?: { extensions?: string[] }): Promise<string[] | null>
   /** Open a native folder picker. Returns a path or null when cancelled. */
   pickFolder(): Promise<string | null>
+  /** Filesystem path of a File dropped onto the window ('' when unavailable, e.g. in a browser). */
+  pathForFile(file: File): string
   /** yt-dlp isn't bundled — checks whether it's on PATH, with an install hint if not. */
   checkYtDlp(): Promise<ToolStatus>
   /** ffmpeg isn't bundled either — same check, for the Converter. */
@@ -317,6 +325,9 @@ const browserTasks: HostTasks = {
     return id
   },
   cancel: () => {},
+  rerun: async () => null,
+  openFolder: async () => {},
+  clearFinished: async () => {},
   list: () => browserTaskList,
   subscribe: (listener) => {
     browserListeners.add(listener)
@@ -339,6 +350,7 @@ const browserHost: Host = {
   },
   pickFile: async () => null,
   pickFiles: async () => null,
+  pathForFile: () => '',
   pickFolder: async () => null,
   checkYtDlp: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkFfmpeg: async () => ({ available: false, installHint: 'Desktop app required' }),

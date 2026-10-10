@@ -20,6 +20,7 @@ export default function FormatPickerModal({
   documentsHint,
   onClose,
   onConvert,
+  onSavePreset,
 }: {
   open: boolean
   files: string[]
@@ -27,6 +28,8 @@ export default function FormatPickerModal({
   documentsHint?: string
   onClose: () => void
   onConvert: (format: ContainerFormat, mode: ConvertMode) => void
+  /** Saves the chosen format/mode as a one-click preset on the card. */
+  onSavePreset?: (name: string, format: ContainerFormat, mode: ConvertMode) => void
 }) {
   const [picked, setPicked] = useState<ContainerFormat | null>(null)
   const [mode, setMode] = useState<ConvertMode>('remux')
@@ -161,6 +164,19 @@ export default function FormatPickerModal({
                   </span>
                 )}
               </div>
+              {onSavePreset && (
+                <button
+                  type="button"
+                  className="rounded-lg border border-[var(--glass-border)] px-3 py-2 text-xs font-medium text-[var(--text-dim)] hover:text-[var(--text)] disabled:opacity-40"
+                  disabled={!picked}
+                  onClick={() => {
+                    if (!picked || !info) return
+                    onSavePreset(`${info.label}${effectiveMode === 'remux' ? ' remux' : ''}`, picked, effectiveMode)
+                  }}
+                >
+                  Save as preset
+                </button>
+              )}
               <button
                 type="button"
                 className="glass-btn"

@@ -40,6 +40,7 @@ interface ElectronBridge {
   window: { minimize(): void; maximize(): void; close(): void }
   pickFile(options?: { extensions?: string[] }): Promise<string | null>
   pickFiles(options?: { extensions?: string[] }): Promise<string[] | null>
+  pathForFile(file: File): string
   pickFolder(): Promise<string | null>
   checkYtDlp(): Promise<ToolStatus>
   checkFfmpeg(): Promise<ToolStatus>
@@ -57,6 +58,9 @@ interface ElectronBridge {
     startVideoUpscale(req: UpscaleRequest): Promise<string>
     startInterpolate(req: InterpolateRequest): Promise<string>
     cancel(taskId: string): void
+    rerun(taskId: string): Promise<string | null>
+    openFolder(taskId: string): Promise<void>
+    clearFinished(): Promise<void>
     list(): Promise<TaskState[]>
     onUpdate(listener: (tasks: TaskState[]) => void): () => void
     getDefaultDownloadDir(): Promise<string>
@@ -82,6 +86,15 @@ export function detectElectronHost(): Host | null {
     listeners.forEach((l) => l(tasks))
   })
 
+  // Seed from the main process: history persisted from earlier launches exists before
+  // any 'tasks:update' broadcast would have fired.
+  bridge.tasks.list().then((tasks) => {
+    if (cachedTasks.length === 0 && tasks.length > 0) {
+      cachedTasks = tasks
+      listeners.forEach((l) => l(tasks))
+    }
+  })
+
   return {
     platformName: bridge.platformName,
     isDesktop: true,
@@ -92,6 +105,7 @@ export function detectElectronHost(): Host | null {
     },
     pickFile: (options) => bridge.pickFile(options),
     pickFiles: (options) => bridge.pickFiles(options),
+    pathForFile: (file) => bridge.pathForFile(file),
     pickFolder: () => bridge.pickFolder(),
     checkYtDlp: () => bridge.checkYtDlp(),
     checkFfmpeg: () => bridge.checkFfmpeg(),
@@ -109,6 +123,9 @@ export function detectElectronHost(): Host | null {
       startVideoUpscale: (req) => bridge.tasks.startVideoUpscale(req),
       startInterpolate: (req) => bridge.tasks.startInterpolate(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
+      rerun: (taskId) => bridge.tasks.rerun(taskId),
+      openFolder: (taskId) => bridge.tasks.openFolder(taskId),
+      clearFinished: () => bridge.tasks.clearFinished(),
       list: () => cachedTasks,
       subscribe: (listener) => {
         listeners.add(listener)

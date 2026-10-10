@@ -6,6 +6,9 @@ import Thumbnail from '../../components/Thumbnail'
 import { host, type AudioQuality, type DownloadFormat, type PlaylistInfo, type VideoQuality } from '../../host'
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
+import PresetBar from '../../components/PresetBar'
+import { usePresets } from '../../lib/usePresets'
+import { useSubmittedIds } from '../../lib/submittedTasks'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
 
@@ -35,10 +38,13 @@ const VIDEO_FORMATS: DownloadFormat[] = ['MP4', 'MKV', 'MOV']
 // @category: downloader/download-card
 export default function DownloaderCard({ feature }: { feature: FeatureDefinition }) {
   const [url, setUrl] = useState('')
+  const presets = usePresets<{ format: DownloadFormat; videoQuality: VideoQuality; audioQuality: AudioQuality }>('downloader')
   const [format, setFormat] = useState<DownloadFormat>('MP4')
   const [videoQuality, setVideoQuality] = useState<VideoQuality>('best')
   const [audioQuality, setAudioQuality] = useState<AudioQuality>('best')
-  const [taskId, setTaskId] = useState<string | null>(null)
+  const [submitted, setSubmitted] = useSubmittedIds('downloader')
+  const taskId = submitted[0] ?? null
+  const setTaskId = (id: string) => setSubmitted([id])
   const [preview, setPreview] = useState<{
     sizeBytes: number | null
     thumbnailUrl: string | null
@@ -106,7 +112,7 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
   const ytDlpMissing = ytDlp?.available === false
 
   return (
-    <FeatureCard feature={feature}>
+    <FeatureCard feature={feature} onDropText={running ? undefined : (t) => /^https?:\/\//i.test(t) && setUrl(t)}>
       {ytDlpMissing && (
         <div className="flex flex-col gap-1 rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-xs">
           <span className="font-medium text-[var(--text)]">yt-dlp isn't installed</span>
@@ -118,6 +124,16 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
           </code>
         </div>
       )}
+      <PresetBar
+        presets={presets.presets}
+        onApply={(p) => {
+          setFormat(p.format)
+          setVideoQuality(p.videoQuality)
+          setAudioQuality(p.audioQuality)
+        }}
+        onSave={(name) => presets.save(name, { format, videoQuality, audioQuality })}
+        onRemove={presets.remove}
+      />
       <input
         className="glass-input"
         type="url"

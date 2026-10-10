@@ -345,10 +345,65 @@ function broadcastTasks() {
   for (const win of BrowserWindow.getAllWindows()) win.webContents.send('tasks:update', snapshot)
 }
 
+/* --- History: finished tasks persist across restarts, with the request needed to re-run them --- */
+const TERMINAL = ['done', 'error', 'canceled']
+const MAX_HISTORY = 200
+const startHandlers = new Map() // IPC channel -> start function, so a stored request can be re-run
+
+function historyFile() {
+  return path.join(app.getPath('userData'), 'history.json')
+}
+
+let saveTimer = null
+function scheduleHistorySave() {
+  clearTimeout(saveTimer)
+  saveTimer = setTimeout(saveHistory, 400)
+}
+function saveHistory() {
+  try {
+    const finished = [...tasks.values()]
+      .filter((t) => TERMINAL.includes(t.state.status) && t.channel)
+      .slice(-MAX_HISTORY)
+      .map((t) => ({ state: t.state, channel: t.channel, req: t.req, finalPath: t.finalPath ?? null }))
+    fs.mkdirSync(path.dirname(historyFile()), { recursive: true })
+    fs.writeFileSync(historyFile(), JSON.stringify(finished))
+  } catch {
+    /* history is a convenience — never let a disk error break a job */
+  }
+}
+function loadHistory() {
+  try {
+    const rows = JSON.parse(fs.readFileSync(historyFile(), 'utf8'))
+    for (const r of rows) {
+      if (!r?.state?.id || !TERMINAL.includes(r.state.status)) continue
+      tasks.set(r.state.id, { state: r.state, child: null, finalPath: r.finalPath, channel: r.channel, req: r.req })
+    }
+  } catch {
+    /* no history yet */
+  }
+}
+
+/** Registers a job-start IPC handler and remembers (channel, request) on the task it
+ *  creates, which is what lets the Library "Run again" button replay it. */
+function handleStart(channel, fn) {
+  const wrapped = async (e, req) => {
+    const id = await fn(e, req)
+    const entry = tasks.get(id)
+    if (entry) {
+      entry.channel = channel
+      entry.req = req
+    }
+    return id
+  }
+  startHandlers.set(channel, wrapped)
+  ipcMain.handle(channel, wrapped)
+}
+
 function updateTask(id, patch) {
   const entry = tasks.get(id)
   if (!entry) return
   Object.assign(entry.state, patch)
+  if (TERMINAL.includes(entry.state.status)) scheduleHistorySave()
   // A finished conversion frees its concurrency slot for the next queued one.
   if (entry.releaseSlot && ['done', 'error', 'canceled'].includes(entry.state.status)) entry.releaseSlot()
   broadcastTasks()
@@ -568,7 +623,7 @@ function estimateSize(info, req) {
   return vSize == null && aSize == null ? null : (vSize ?? 0) + (aSize ?? 0)
 }
 
-ipcMain.handle('tasks:start', async (_e, req) => {
+handleStart('tasks:start', async (_e, req) => {
   if (req.destination != null) assertAbsolutePath(req.destination, 'destination')
   if (req.audioQuality != null) {
     if (typeof req.audioQuality !== 'string' || !/^(best|\d{1,3}k?)$/i.test(req.audioQuality)) {
@@ -771,6 +826,22 @@ ipcMain.on('tasks:cancel', (_e, id) => {
   updateTask(id, { status: 'canceled' })
 })
 
+ipcMain.handle('tasks:rerun', (_e, id) => {
+  const entry = tasks.get(id)
+  const start = entry && startHandlers.get(entry.channel)
+  return start ? start(null, entry.req) : null
+})
+ipcMain.handle('tasks:openFolder', (_e, id) => {
+  const entry = tasks.get(id)
+  if (!entry) return
+  if (entry.finalPath && fs.existsSync(entry.finalPath)) shell.showItemInFolder(entry.finalPath)
+  else shell.openPath(entry.req?.destination || defaultDownloadDir())
+})
+ipcMain.handle('tasks:clearFinished', () => {
+  for (const [id, t] of tasks) if (TERMINAL.includes(t.state.status)) tasks.delete(id)
+  saveHistory()
+  broadcastTasks()
+})
 ipcMain.handle('tasks:list', () => [...tasks.values()].map((t) => t.state))
 ipcMain.handle('tasks:defaultDownloadDir', () => defaultDownloadDir())
 // --- end: downloader/task-orchestration-main-process ---
@@ -934,7 +1005,7 @@ function runDocConvert(id, req, fmt, outputPath) {
   return id
 }
 
-ipcMain.handle('tasks:startConvert', async (_e, req) => {
+handleStart('tasks:startConvert', async (_e, req) => {
   assertAbsolutePath(req.inputPath, 'inputPath')
   if (req.destination != null) assertAbsolutePath(req.destination, 'destination')
   const id = crypto.randomUUID()
@@ -1068,7 +1139,7 @@ function upscaleArgs(req, outputPath) {
   return ['-i', req.inputPath, '-o', outputPath, '-s', String(req.scale), '-n', req.model, '-v']
 }
 
-ipcMain.handle('tasks:startUpscale', (_e, req) => {
+handleStart('tasks:startUpscale', (_e, req) => {
   assertAbsolutePath(req.inputPath, 'inputPath')
   if (req.destination != null) assertAbsolutePath(req.destination, 'destination')
   assertOneOf(req.model, UPSCALE_MODELS, 'model')
@@ -1249,7 +1320,7 @@ function isCanceled(id) {
   return tasks.get(id)?.state.status === 'canceled'
 }
 
-ipcMain.handle('tasks:startVideoUpscale', async (_e, req) => {
+handleStart('tasks:startVideoUpscale', async (_e, req) => {
   assertAbsolutePath(req.inputPath, 'inputPath')
   if (req.destination != null) assertAbsolutePath(req.destination, 'destination')
   assertOneOf(req.model, UPSCALE_MODELS, 'model')
@@ -1283,6 +1354,14 @@ ipcMain.handle('tasks:startVideoUpscale', async (_e, req) => {
   })
   broadcastTasks()
 
+  // Return the id right away so the UI can show the job immediately; the pipeline runs on.
+  runVideoUpscale(id, req, outputPath).catch((err) =>
+    updateTask(id, { status: 'error', error: `Video upscale failed: ${err.message}` }),
+  )
+  return id
+})
+
+async function runVideoUpscale(id, req, outputPath) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opnduck-upscale-'))
   const framesDir = path.join(tempDir, 'frames')
   const upscaledDir = path.join(tempDir, 'upscaled')
@@ -1299,12 +1378,12 @@ ipcMain.handle('tasks:startVideoUpscale', async (_e, req) => {
   const meta = await probeVideoMeta(req.inputPath)
   if (isCanceled(id)) {
     cleanup()
-    return id
+    return
   }
   if (!meta) {
     updateTask(id, { status: 'error', error: "Couldn't read this video's frame rate/frame count." })
     cleanup()
-    return id
+    return
   }
 
   const entry = tasks.get(id)
@@ -1329,11 +1408,11 @@ ipcMain.handle('tasks:startVideoUpscale', async (_e, req) => {
     // overwrite the 'canceled' status tasks:cancel already set.
     if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Frame extraction failed: ${err.message}` })
     cleanup()
-    return id
+    return
   }
   if (isCanceled(id)) {
     cleanup()
-    return id
+    return
   }
 
   try {
@@ -1358,11 +1437,11 @@ ipcMain.handle('tasks:startVideoUpscale', async (_e, req) => {
   } catch (err) {
     if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Upscaling failed: ${err.message}` })
     cleanup()
-    return id
+    return
   }
   if (isCanceled(id)) {
     cleanup()
-    return id
+    return
   }
 
   try {
@@ -1394,7 +1473,7 @@ ipcMain.handle('tasks:startVideoUpscale', async (_e, req) => {
   } catch (err) {
     if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Reassembly failed: ${err.message}` })
     cleanup()
-    return id
+    return
   }
 
   cleanup()
@@ -1412,8 +1491,9 @@ ipcMain.handle('tasks:startVideoUpscale', async (_e, req) => {
     ...(realSize != null ? { sizeBytes: realSize } : {}),
   })
 
-  return id
-})
+  return
+}
+
 // --- end: upscaler/video-upscale-pipeline ---
 
 /**
@@ -1427,7 +1507,7 @@ ipcMain.handle('tasks:startVideoUpscale', async (_e, req) => {
  *      is just smoother.
  */
 // @category: interpolate/frame-interpolation-pipeline
-ipcMain.handle('tasks:startInterpolate', async (_e, req) => {
+handleStart('tasks:startInterpolate', async (_e, req) => {
   assertAbsolutePath(req.inputPath, 'inputPath')
   if (req.destination != null) assertAbsolutePath(req.destination, 'destination')
   assertOneOf(req.multiplier, [2, 4], 'multiplier')
@@ -1460,6 +1540,14 @@ ipcMain.handle('tasks:startInterpolate', async (_e, req) => {
   })
   broadcastTasks()
 
+  // Return the id right away so the UI can show the job immediately; the pipeline runs on.
+  runInterpolate(id, req, outputPath).catch((err) =>
+    updateTask(id, { status: 'error', error: `Interpolation failed: ${err.message}` }),
+  )
+  return id
+})
+
+async function runInterpolate(id, req, outputPath) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opnduck-interpolate-'))
   const framesDir = path.join(tempDir, 'frames')
   const interpolatedDir = path.join(tempDir, 'interpolated')
@@ -1476,12 +1564,12 @@ ipcMain.handle('tasks:startInterpolate', async (_e, req) => {
   const meta = await probeVideoMeta(req.inputPath)
   if (isCanceled(id)) {
     cleanup()
-    return id
+    return
   }
   if (!meta) {
     updateTask(id, { status: 'error', error: "Couldn't read this video's frame rate/frame count." })
     cleanup()
-    return id
+    return
   }
 
   const entry = tasks.get(id)
@@ -1507,11 +1595,11 @@ ipcMain.handle('tasks:startInterpolate', async (_e, req) => {
     // overwrite the 'canceled' status tasks:cancel already set.
     if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Frame extraction failed: ${err.message}` })
     cleanup()
-    return id
+    return
   }
   if (isCanceled(id)) {
     cleanup()
-    return id
+    return
   }
 
   try {
@@ -1533,11 +1621,11 @@ ipcMain.handle('tasks:startInterpolate', async (_e, req) => {
   } catch (err) {
     if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Interpolation failed: ${err.message}` })
     cleanup()
-    return id
+    return
   }
   if (isCanceled(id)) {
     cleanup()
-    return id
+    return
   }
 
   try {
@@ -1569,7 +1657,7 @@ ipcMain.handle('tasks:startInterpolate', async (_e, req) => {
   } catch (err) {
     if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Reassembly failed: ${err.message}` })
     cleanup()
-    return id
+    return
   }
 
   cleanup()
@@ -1587,8 +1675,9 @@ ipcMain.handle('tasks:startInterpolate', async (_e, req) => {
     ...(realSize != null ? { sizeBytes: realSize } : {}),
   })
 
-  return id
-})
+  return
+}
+
 // --- end: interpolate/frame-interpolation-pipeline ---
 
 /* --- External links open in the OS browser, not inside the app window --- */
@@ -1600,6 +1689,7 @@ app.on('web-contents-created', (_e, contents) => {
 })
 
 app.whenReady().then(() => {
+  loadHistory()
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

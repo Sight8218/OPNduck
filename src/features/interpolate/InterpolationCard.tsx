@@ -5,6 +5,9 @@ import Tag from '../../components/Tag'
 import { host, type InterpolateMultiplier } from '../../host'
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
+import PresetBar from '../../components/PresetBar'
+import { usePresets } from '../../lib/usePresets'
+import { useSubmittedIds } from '../../lib/submittedTasks'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
 import { IconX } from '@tabler/icons-react'
@@ -25,8 +28,9 @@ function basename(fullPath: string): string {
 // @category: interpolate/interpolation-card
 export default function InterpolationCard({ feature }: { feature: FeatureDefinition }) {
   const [files, setFiles] = useState<string[]>([])
+  const presets = usePresets<{ multiplier: InterpolateMultiplier }>('interpolate')
   const [multiplier, setMultiplier] = useState<InterpolateMultiplier>(2)
-  const [submittedIds, setSubmittedIds] = useState<string[]>([])
+  const [submittedIds, setSubmittedIds] = useSubmittedIds('interpolate')
   const [rife, setRife] = useState<{ available: boolean; installHint: string } | null>(null)
   const [ffmpeg, setFfmpeg] = useState<{ available: boolean; installHint: string } | null>(null)
 
@@ -41,6 +45,8 @@ export default function InterpolationCard({ feature }: { feature: FeatureDefinit
   const anyRunning = submittedTasks.some((t) => t.status === 'queued' || t.status === 'running')
   const missingTool = !rife?.available ? rife : !ffmpeg?.available ? ffmpeg : null
   const missingName = !rife?.available ? 'rife-ncnn-vulkan' : 'ffmpeg'
+
+  const addDropped = (paths: string[]) => setFiles((prev) => [...prev, ...paths.filter((p) => !prev.includes(p))])
 
   async function addFiles() {
     const picked = await host.pickFiles({ extensions: VIDEO_EXTENSIONS })
@@ -62,7 +68,11 @@ export default function InterpolationCard({ feature }: { feature: FeatureDefinit
   }
 
   return (
-    <FeatureCard feature={feature}>
+    <FeatureCard
+      feature={feature}
+      onDropFiles={anyRunning ? undefined : addDropped}
+      dropExtensions={VIDEO_EXTENSIONS}
+    >
       {missingTool && rife && ffmpeg && (
         <div className="flex flex-col gap-1 rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-xs">
           <span className="font-medium text-[var(--text)]">{missingName} isn't installed</span>
@@ -74,6 +84,13 @@ export default function InterpolationCard({ feature }: { feature: FeatureDefinit
           </code>
         </div>
       )}
+
+      <PresetBar
+        presets={presets.presets}
+        onApply={(p) => setMultiplier(p.multiplier)}
+        onSave={(name) => presets.save(name, { multiplier })}
+        onRemove={presets.remove}
+      />
 
       <button type="button" className="glass-btn" onClick={addFiles} disabled={anyRunning}>
         Add videos…

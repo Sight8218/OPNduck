@@ -5,6 +5,9 @@ import Tag from '../../components/Tag'
 import { host, type UpscaleModel, type UpscaleScale } from '../../host'
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
+import PresetBar from '../../components/PresetBar'
+import { usePresets } from '../../lib/usePresets'
+import { useSubmittedIds } from '../../lib/submittedTasks'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
 import { IconX } from '@tabler/icons-react'
@@ -38,9 +41,10 @@ export default function VideoUpscalerCard({ feature }: { feature: FeatureDefinit
   const [files, setFiles] = useState<string[]>([])
   // Video-tuned model by default — realesrgan-x4plus is much slower per
   // frame and that cost multiplies by every frame in the video.
+  const presets = usePresets<{ model: UpscaleModel; scale: UpscaleScale }>('video-upscale')
   const [model, setModel] = useState<UpscaleModel>('realesr-animevideov3')
   const [scale, setScale] = useState<UpscaleScale>(2)
-  const [submittedIds, setSubmittedIds] = useState<string[]>([])
+  const [submittedIds, setSubmittedIds] = useSubmittedIds('video-upscale')
   const [realesrgan, setRealesrgan] = useState<{ available: boolean; installHint: string } | null>(null)
   const [ffmpeg, setFfmpeg] = useState<{ available: boolean; installHint: string } | null>(null)
 
@@ -62,6 +66,8 @@ export default function VideoUpscalerCard({ feature }: { feature: FeatureDefinit
     if (X4_ONLY_MODELS.includes(next)) setScale(4)
   }
 
+  const addDropped = (paths: string[]) => setFiles((prev) => [...prev, ...paths.filter((p) => !prev.includes(p))])
+
   async function addFiles() {
     const picked = await host.pickFiles({ extensions: VIDEO_EXTENSIONS })
     if (!picked) return
@@ -82,7 +88,11 @@ export default function VideoUpscalerCard({ feature }: { feature: FeatureDefinit
   }
 
   return (
-    <FeatureCard feature={feature}>
+    <FeatureCard
+      feature={feature}
+      onDropFiles={anyRunning ? undefined : addDropped}
+      dropExtensions={VIDEO_EXTENSIONS}
+    >
       {missingTool && realesrgan && ffmpeg && (
         <div className="flex flex-col gap-1 rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-xs">
           <span className="font-medium text-[var(--text)]">{missingName} isn't installed</span>
@@ -94,6 +104,16 @@ export default function VideoUpscalerCard({ feature }: { feature: FeatureDefinit
           </code>
         </div>
       )}
+
+      <PresetBar
+        presets={presets.presets}
+        onApply={(p) => {
+          setModel(p.model)
+          setScale(p.scale)
+        }}
+        onSave={(name) => presets.save(name, { model, scale })}
+        onRemove={presets.remove}
+      />
 
       <button type="button" className="glass-btn" onClick={addFiles} disabled={anyRunning}>
         Add videos…

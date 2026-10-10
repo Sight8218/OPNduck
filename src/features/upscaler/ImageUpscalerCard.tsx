@@ -5,6 +5,9 @@ import Tag from '../../components/Tag'
 import { host, type UpscaleModel, type UpscaleScale } from '../../host'
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
+import PresetBar from '../../components/PresetBar'
+import { usePresets } from '../../lib/usePresets'
+import { useSubmittedIds } from '../../lib/submittedTasks'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
 import { IconX } from '@tabler/icons-react'
@@ -37,9 +40,10 @@ export default function ImageUpscalerCard({ feature }: { feature: FeatureDefinit
   // more visible improvement than the (faster, but anime/video-tuned)
   // realesr-animevideov3, which can look like barely anything happened on
   // an ordinary photo.
+  const presets = usePresets<{ model: UpscaleModel; scale: UpscaleScale }>('image-upscale')
   const [model, setModel] = useState<UpscaleModel>('realesrgan-x4plus')
   const [scale, setScale] = useState<UpscaleScale>(4)
-  const [submittedIds, setSubmittedIds] = useState<string[]>([])
+  const [submittedIds, setSubmittedIds] = useSubmittedIds('image-upscale')
   const [realesrgan, setRealesrgan] = useState<{ available: boolean; installHint: string } | null>(null)
 
   useEffect(() => {
@@ -57,6 +61,8 @@ export default function ImageUpscalerCard({ feature }: { feature: FeatureDefinit
     setModel(next)
     if (X4_ONLY_MODELS.includes(next)) setScale(4)
   }
+
+  const addDropped = (paths: string[]) => setFiles((prev) => [...prev, ...paths.filter((p) => !prev.includes(p))])
 
   async function addFiles() {
     const picked = await host.pickFiles({ extensions: IMAGE_EXTENSIONS })
@@ -78,7 +84,11 @@ export default function ImageUpscalerCard({ feature }: { feature: FeatureDefinit
   }
 
   return (
-    <FeatureCard feature={feature}>
+    <FeatureCard
+      feature={feature}
+      onDropFiles={anyRunning ? undefined : addDropped}
+      dropExtensions={IMAGE_EXTENSIONS}
+    >
       {missing && (
         <div className="flex flex-col gap-1 rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-xs">
           <span className="font-medium text-[var(--text)]">realesrgan-ncnn-vulkan isn't installed</span>
@@ -90,6 +100,16 @@ export default function ImageUpscalerCard({ feature }: { feature: FeatureDefinit
           </code>
         </div>
       )}
+
+      <PresetBar
+        presets={presets.presets}
+        onApply={(p) => {
+          setModel(p.model)
+          setScale(p.scale)
+        }}
+        onSave={(name) => presets.save(name, { model, scale })}
+        onRemove={presets.remove}
+      />
 
       <button type="button" className="glass-btn" onClick={addFiles} disabled={anyRunning}>
         Add images…

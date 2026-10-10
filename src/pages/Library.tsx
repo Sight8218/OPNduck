@@ -54,6 +54,16 @@ function TaskRow({ task }: { task: TaskState }) {
         </div>
         <div className="flex shrink-0 items-center gap-3">
           <span className="text-xs text-[var(--text-dim)]">{statusLabel(task)}</span>
+          {task.status === 'done' && (
+            <button type="button" className="glass-btn px-2 py-1 text-xs" onClick={() => host.tasks.openFolder(task.id)}>
+              Open folder
+            </button>
+          )}
+          {!running && (
+            <button type="button" className="glass-btn px-2 py-1 text-xs" onClick={() => host.tasks.rerun(task.id)}>
+              Run again
+            </button>
+          )}
           {running && (
             <button
               type="button"
@@ -92,13 +102,23 @@ function TaskRow({ task }: { task: TaskState }) {
 // @category: library/library-queue-page
 export default function Library() {
   const tasks = useTasks()
+  const hasFinished = tasks.some((t) => t.status === 'done' || t.status === 'error' || t.status === 'canceled')
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <h1 className="mb-1 text-2xl font-extrabold sm:text-3xl">Library</h1>
-      <p className="mb-6 text-sm text-[var(--text-dim)]">
-        Track and manage your downloads and conversions.
-      </p>
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="mb-1 text-2xl font-extrabold sm:text-3xl">Library</h1>
+          <p className="text-sm text-[var(--text-dim)]">
+            Track and manage your downloads and conversions. History is kept between launches.
+          </p>
+        </div>
+        {hasFinished && (
+          <button type="button" className="glass-btn shrink-0 px-3 py-1.5 text-xs" onClick={() => host.tasks.clearFinished()}>
+            Clear finished
+          </button>
+        )}
+      </div>
 
       {tasks.length === 0 ? (
         <div className="glass flex items-center justify-center rounded-3xl p-10 text-sm text-[var(--text-dim)]">

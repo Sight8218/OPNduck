@@ -16,7 +16,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
 /** Safe, minimal bridge exposed to the renderer as `window.opnduckHost`. */
 contextBridge.exposeInMainWorld('opnduckHost', {
@@ -30,6 +30,8 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   pickFile: (options) => ipcRenderer.invoke('dialog:pickFile', options ?? null),
   pickFiles: (options) => ipcRenderer.invoke('dialog:pickFiles', options ?? null),
   pickFolder: () => ipcRenderer.invoke('dialog:pickFolder'),
+  // Dropped File objects carry no path in a sandboxed renderer; this resolves one.
+  pathForFile: (file) => webUtils.getPathForFile(file),
   checkYtDlp: () => ipcRenderer.invoke('system:checkYtDlp'),
   checkFfmpeg: () => ipcRenderer.invoke('system:checkFfmpeg'),
   checkLibreOffice: () => ipcRenderer.invoke('system:checkLibreOffice'),
@@ -50,6 +52,9 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     startVideoUpscale: (req) => ipcRenderer.invoke('tasks:startVideoUpscale', req),
     startInterpolate: (req) => ipcRenderer.invoke('tasks:startInterpolate', req),
     cancel: (taskId) => ipcRenderer.send('tasks:cancel', taskId),
+    rerun: (taskId) => ipcRenderer.invoke('tasks:rerun', taskId),
+    openFolder: (taskId) => ipcRenderer.invoke('tasks:openFolder', taskId),
+    clearFinished: () => ipcRenderer.invoke('tasks:clearFinished'),
     list: () => ipcRenderer.invoke('tasks:list'),
     onUpdate: (listener) => {
       const handler = (_e, tasks) => listener(tasks)

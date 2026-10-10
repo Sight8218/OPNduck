@@ -6,6 +6,9 @@ import FormatPickerModal from './FormatPickerModal'
 import { CATEGORIES, CATEGORY_LABELS, FORMATS, PICKER_EXTENSIONS, fileCategory } from './formats'
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
+import PresetBar from '../../components/PresetBar'
+import { usePresets } from '../../lib/usePresets'
+import { useSubmittedIds } from '../../lib/submittedTasks'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
 import { IconX } from '@tabler/icons-react'
@@ -19,7 +22,8 @@ function basename(fullPath: string): string {
 export default function ConverterCard({ feature }: { feature: FeatureDefinition }) {
   const [files, setFiles] = useState<string[]>([])
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [submittedIds, setSubmittedIds] = useState<string[]>([])
+  const presets = usePresets<{ container: ContainerFormat; mode: ConvertMode }>('converter')
+  const [submittedIds, setSubmittedIds] = useSubmittedIds('converter')
   const [ffmpeg, setFfmpeg] = useState<{ available: boolean; installHint: string } | null>(null)
   const [office, setOffice] = useState<{ available: boolean; installHint: string } | null>(null)
 
@@ -38,6 +42,8 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
   const hasDocs = files.some((f) => fileCategory(f) === 'document')
   const hasMedia = files.some((f) => fileCategory(f) !== 'document')
   const blockedByMissingTool = (ffmpegMissing && hasMedia) || (officeMissing && hasDocs)
+
+  const addDropped = (paths: string[]) => setFiles((prev) => [...prev, ...paths.filter((p) => !prev.includes(p))])
 
   async function addFiles() {
     const picked = await host.pickFiles({ extensions: PICKER_EXTENSIONS })
@@ -62,7 +68,11 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
   }
 
   return (
-    <FeatureCard feature={feature}>
+    <FeatureCard
+      feature={feature}
+      onDropFiles={anyRunning ? undefined : addDropped}
+      dropExtensions={PICKER_EXTENSIONS}
+    >
       {ffmpegMissing && (
         <div className="flex flex-col gap-1 rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-xs">
           <span className="font-medium text-[var(--text)]">ffmpeg isn't installed</span>
@@ -74,6 +84,13 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
           </code>
         </div>
       )}
+
+      <PresetBar
+        presets={presets.presets}
+        applyHint="Convert the added files with this preset"
+        onApply={(p) => files.length > 0 && !anyRunning && !blockedByMissingTool && convertAll(p.container, p.mode)}
+        onRemove={presets.remove}
+      />
 
       <button type="button" className="glass-btn" onClick={addFiles} disabled={anyRunning}>
         Add files…
@@ -159,6 +176,7 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
         documentsHint={office && !office.available ? office.installHint : undefined}
         onClose={() => setPickerOpen(false)}
         onConvert={convertAll}
+        onSavePreset={(name, container, mode) => presets.save(name, { container, mode })}
       />
     </FeatureCard>
   )

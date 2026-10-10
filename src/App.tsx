@@ -37,6 +37,18 @@ export default function App() {
     hideSplash()
   }, [])
 
+  // Dropping a file anywhere that isn't a card would make Electron navigate the window to
+  // it (replacing the whole UI). Cards that accept drops preventDefault() themselves.
+  useEffect(() => {
+    const stop = (e: DragEvent) => e.preventDefault()
+    window.addEventListener('dragover', stop)
+    window.addEventListener('drop', stop)
+    return () => {
+      window.removeEventListener('dragover', stop)
+      window.removeEventListener('drop', stop)
+    }
+  }, [])
+
   // Always-on, independent of which page's Settings/useTheme() may or may
   // not be mounted — see useOmarchyThemeSync()'s own doc comment.
   useOmarchyThemeSync()
