@@ -22,10 +22,12 @@
     "shipped": [
       "App shell & navigation",
       "Settings (themes, keybinds)",
-      "Glass / Monochrome UI modes"
+      "Glass / Monochrome UI modes",
+      "Video/audio downloader, incl. YouTube playlists (yt-dlp)",
+      "Format converter: video, audio, image, documents",
+      "AI image/video upscaling and frame interpolation (needs Real-ESRGAN / RIFE installed)"
     ],
     "planned": [
-      { "name": "Video downloader", "inProgress": true },
       { "name": "AI upscaler", "inProgress": false },
       { "name": "Migrate from Electron to Tauri", "postponed": true, "note": "Postponed: Tauri's Linux webview (WebKitGTK) stutters and can crash on NVIDIA + Wayland, so OPNduck stays on Electron until that's fixed upstream." },
       { "name": "macOS build", "inProgress": false }
