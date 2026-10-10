@@ -50,17 +50,29 @@ export default function AdaptiveCardGrid() {
         ? 'grid-cols-1 md:grid-cols-2'
         : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
 
+  // Fill orphan slots instead of leaving holes: the last card stretches across
+  // whatever's left of an incomplete final row (at both the 2- and 3-col widths).
+  const xlCols = count === 1 ? 1 : bestColumnCount(count, 3)
+  const XL_SPAN = ['', 'xl:col-span-1', 'xl:col-span-2', 'xl:col-span-3']
+  const lastSpan = (() => {
+    if (count === 1) return ''
+    const xlRemainder = count % xlCols
+    const xl = XL_SPAN[xlRemainder === 0 ? 1 : xlCols - xlRemainder + 1]
+    const md = count % 2 === 1 ? 'md:col-span-2' : ''
+    return `${md} ${xl}`
+  })()
+
   return (
-    <div className={`grid gap-5 ${cols}`}>
+    <div className={`grid items-stretch gap-5 ${cols}`}>
       {features.map((feature, i) => {
         const Card = feature.render
         // A lone card gets extra breathing room (max-width so it doesn't stretch
         // awkwardly full-bleed).
-        const wide = count === 1 ? 'xl:max-w-3xl xl:mx-auto' : ''
+        const wide = count === 1 ? 'xl:max-w-3xl xl:mx-auto' : i === count - 1 ? lastSpan : ''
         return (
           <div
             key={feature.id}
-            className={`pop-in ${wide}`}
+            className={`pop-in h-full ${wide}`}
             style={{ ['--pop-delay' as string]: `${i * 60}ms` }}
           >
             <Card feature={feature} />

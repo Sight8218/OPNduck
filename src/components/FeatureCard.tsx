@@ -48,7 +48,7 @@ export default function FeatureCard({
   const { reduceMotion } = useReduceMotion()
   return (
     <section
-      className={`glass flex flex-col rounded-3xl p-5 transition-all duration-300 ease-out ${
+      className={`glass flex h-full flex-col rounded-3xl p-5 transition-all duration-300 ease-out ${
         reduceMotion ? '' : 'card-glow-hover'
       }`}
     >
@@ -69,7 +69,11 @@ export default function FeatureCard({
 
       <p className="mb-4 text-sm leading-relaxed text-[var(--text-dim)]">{feature.description}</p>
 
-      {children ? <div className="flex flex-col gap-3">{children}</div> : null}
+      {children ? (
+        // flex-1 + mt-auto on the last child (the action button) pins buttons to the
+        // card bottom so cards in the same row line up.
+        <div className="flex flex-1 flex-col gap-3 [&>:last-child]:mt-auto">{children}</div>
+      ) : null}
     </section>
   )
 }
