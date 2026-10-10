@@ -70,8 +70,11 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
       return
     }
     setPreviewing(true)
+    // A slow probe for an older url/format must not overwrite a newer one's result.
+    let stale = false
     const timer = setTimeout(async () => {
       const result = await host.tasks.probe({ url: trimmed, format, videoQuality, audioQuality })
+      if (stale) return
       setPreview({
         sizeBytes: result.approxSizeBytes,
         thumbnailUrl: result.thumbnailUrl,
@@ -80,6 +83,7 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
       setPreviewing(false)
     }, 700)
     return () => {
+      stale = true
       clearTimeout(timer)
       setPreviewing(false)
     }

@@ -39,9 +39,14 @@ export default function FormatPickerModal({
   const remuxPossible = !!info && info.category === 'video' && info.id !== 'GIF' && allVideo
   const effectiveMode: ConvertMode = remuxPossible ? mode : 'transcode'
 
+  // Reset the selection only when the dialog opens — not whenever the parent
+  // re-renders with a fresh onClose identity (e.g. on every task update).
+  useEffect(() => {
+    if (open) setPicked(null)
+  }, [open])
+
   useEffect(() => {
     if (!open) return
-    setPicked(null)
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

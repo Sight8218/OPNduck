@@ -364,7 +364,7 @@ function probePlaylist(url) {
   return new Promise((resolve) => {
     let child
     try {
-      child = spawn('yt-dlp', ['--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', '5000', url])
+      child = spawn('yt-dlp', ['--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', '5000', '--', url])
     } catch {
       resolve(null)
       return
@@ -417,7 +417,7 @@ async function probeInfo(req) {
   const single = await new Promise((resolve) => {
     let child
     try {
-      child = spawn('yt-dlp', ['--dump-json', '--no-warnings', '--no-playlist', effectiveUrl])
+      child = spawn('yt-dlp', ['--dump-json', '--no-warnings', '--no-playlist', '--', effectiveUrl])
     } catch {
       resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null })
       return
@@ -518,6 +518,7 @@ ipcMain.handle('tasks:start', async (_e, req) => {
     updateTask(id, { status: 'error', error: spotify.error })
     return id
   }
+  if (isCanceled(id)) return id // canceled while the Spotify lookup was running
   const effectiveUrl = spotify?.query ?? req.url
 
   // Whole-playlist mode: pure playlist pages always, "video inside a playlist"
@@ -543,6 +544,9 @@ ipcMain.handle('tasks:start', async (_e, req) => {
     })
   }
 
+  // yt-dlp treats the -o value as a template, so a literal '%' in the
+  // destination folder name must be escaped or it breaks/garbles the path.
+  const outDirTemplate = destDir.replace(/%/g, '%%')
   const args = wholePlaylist
     ? [
         ...formatArgs(req),
@@ -551,7 +555,8 @@ ipcMain.handle('tasks:start', async (_e, req) => {
         // One unavailable/private video shouldn't abort the other 99.
         '--ignore-errors',
         '-o',
-        path.join(destDir, '%(playlist_title|Playlist)s', '%(playlist_index)03d - %(title)s.%(ext)s'),
+        path.join(outDirTemplate, '%(playlist_title|Playlist)s', '%(playlist_index)03d - %(title)s.%(ext)s'),
+        '--',
         effectiveUrl,
       ]
     : [
@@ -559,7 +564,8 @@ ipcMain.handle('tasks:start', async (_e, req) => {
         '--newline',
         '--no-playlist',
         '-o',
-        path.join(destDir, '%(title)s.%(ext)s'),
+        path.join(outDirTemplate, '%(title)s.%(ext)s'),
+        '--',
         effectiveUrl,
       ]
 
@@ -869,7 +875,7 @@ ipcMain.handle('tasks:startConvert', async (_e, req) => {
   if (fmt.kind === 'doc') return runDocConvert(id, req, fmt, outputPath)
 
   const duration = await probeDuration(req.inputPath)
-  if (!tasks.has(id)) return id // canceled while the duration probe was running
+  if (isCanceled(id)) return id // canceled while the duration probe was running
 
   let child
   try {
