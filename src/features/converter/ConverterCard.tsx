@@ -3,7 +3,9 @@ import FeatureCard from '../../components/FeatureCard'
 import Tag from '../../components/Tag'
 import { host, type ContainerFormat, type ConvertMode } from '../../host'
 import FormatPickerModal from './FormatPickerModal'
-import { PICKER_EXTENSIONS } from './formats'
+import { CATEGORY_LABELS, FORMATS, PICKER_EXTENSIONS, type FormatCategory } from './formats'
+
+const CATEGORIES: FormatCategory[] = ['video', 'audio', 'image', 'document']
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
 import { useTasks } from '../../lib/useTasks'
@@ -71,8 +73,22 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
         Add files…
       </button>
 
+      {files.length === 0 && (
+        <div className="flex flex-1 flex-col justify-center gap-2 rounded-xl border border-dashed border-[var(--glass-border)] p-3 text-xs">
+          <span className="font-medium text-[var(--text)]">Supports {FORMATS.length} formats</span>
+          {CATEGORIES.map((cat) => (
+            <div key={cat} className="flex flex-wrap items-center gap-1">
+              <span className="w-16 shrink-0 text-[var(--text-dim)]">{CATEGORY_LABELS[cat]}</span>
+              {FORMATS.filter((f) => f.category === cat).map((f) => (
+                <Tag key={f.id}>{f.label}</Tag>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
       {files.length > 0 && (
-        <div className="flex max-h-32 flex-col gap-1 overflow-y-auto">
+        <div className="flex max-h-48 flex-1 flex-col gap-1 overflow-y-auto">
           {files.map((f) => (
             <div
               key={f}
