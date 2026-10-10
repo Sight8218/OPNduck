@@ -32,7 +32,7 @@ export interface KeybindDef {
 }
 
 export const KEYBINDS: KeybindDef[] = [
-  { id: 'command-palette', label: 'Command palette', defaultCombo: 'Ctrl+Space' },
+  { id: 'command-palette', label: 'Command palette', defaultCombo: 'Ctrl+K' },
   { id: 'dev-mode-toggle', label: 'Toggle developer / debug mode', defaultCombo: 'Ctrl+Shift+D' },
 ]
 
@@ -94,17 +94,23 @@ export function findConflict(combo: string, excludeId: string): KeybindDef | nul
  *  "Unidentified" or "Process" (mid-IME-composition) instead of its real value,
  *  which would otherwise get captured as a literal, useless combo string. */
 export function comboFromEvent(e: KeyboardEvent): string | null {
-  if (['Control', 'Shift', 'Alt', 'Meta', ...BAD_KEY_TOKENS].includes(e.key)) return null
+  if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return null
+  // Letters, digits and Space are read from the PHYSICAL key (e.code), not e.key. With Ctrl
+  // held, e.key is unreliable: input methods (fcitx/ibus) report "Process"/"Unidentified",
+  // and other layouts or AltGr report a different character — which made Ctrl+Space and
+  // friends silently never match while plain Ctrl+letter happened to work.
+  let key: string
+  if (/^Key[A-Z]$/.test(e.code)) key = e.code.slice(3)
+  else if (/^Digit[0-9]$/.test(e.code)) key = e.code.slice(5)
+  else if (e.code === 'Space') key = 'Space'
+  else if (BAD_KEY_TOKENS.includes(e.key)) return null
+  else key = e.key === ' ' ? 'Space' : e.key.length === 1 ? e.key.toUpperCase() : e.key
   const parts: string[] = []
   // Ctrl and Cmd/Meta are treated as the same logical modifier so one combo
   // string works whether the shortcut was recorded on Linux/Windows or macOS.
   if (e.ctrlKey || e.metaKey) parts.push('Ctrl')
   if (e.altKey) parts.push('Alt')
   if (e.shiftKey) parts.push('Shift')
-  // KeyboardEvent.key for the spacebar is a literal " " — one character, so
-  // it would otherwise fall into the single-char branch below and produce
-  // an unreadable/unparseable "Ctrl+ " combo string.
-  const key = e.key === ' ' ? 'Space' : e.key.length === 1 ? e.key.toUpperCase() : e.key
   parts.push(key)
   return parts.join('+')
 }
