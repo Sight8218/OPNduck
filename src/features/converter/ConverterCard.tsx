@@ -20,10 +20,12 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
   const [pickerOpen, setPickerOpen] = useState(false)
   const [submittedIds, setSubmittedIds] = useState<string[]>([])
   const [ffmpeg, setFfmpeg] = useState<{ available: boolean; installHint: string } | null>(null)
+  const [office, setOffice] = useState<{ available: boolean; installHint: string } | null>(null)
 
   useEffect(() => {
     if (!host.isDesktop) return
     host.checkFfmpeg().then(setFfmpeg)
+    host.checkLibreOffice().then(setOffice)
   }, [])
 
   const tasks = useTasks()
@@ -132,6 +134,7 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
       <FormatPickerModal
         open={pickerOpen}
         files={files}
+        documentsHint={office && !office.available ? office.installHint : undefined}
         onClose={() => setPickerOpen(false)}
         onConvert={convertAll}
       />

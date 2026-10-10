@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   pickFolder: () => ipcRenderer.invoke('dialog:pickFolder'),
   checkYtDlp: () => ipcRenderer.invoke('system:checkYtDlp'),
   checkFfmpeg: () => ipcRenderer.invoke('system:checkFfmpeg'),
+  checkLibreOffice: () => ipcRenderer.invoke('system:checkLibreOffice'),
   checkRealesrgan: () => ipcRenderer.invoke('system:checkRealesrgan'),
   checkRife: () => ipcRenderer.invoke('system:checkRife'),
   omarchy: {

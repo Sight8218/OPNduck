@@ -43,6 +43,7 @@ interface ElectronBridge {
   pickFolder(): Promise<string | null>
   checkYtDlp(): Promise<ToolStatus>
   checkFfmpeg(): Promise<ToolStatus>
+    checkLibreOffice(): Promise<ToolStatus>
   checkRealesrgan(): Promise<ToolStatus>
   checkRife(): Promise<ToolStatus>
   omarchy: {
@@ -94,6 +95,7 @@ export function detectElectronHost(): Host | null {
     pickFolder: () => bridge.pickFolder(),
     checkYtDlp: () => bridge.checkYtDlp(),
     checkFfmpeg: () => bridge.checkFfmpeg(),
+    checkLibreOffice: () => bridge.checkLibreOffice(),
     checkRealesrgan: () => bridge.checkRealesrgan(),
     checkRife: () => bridge.checkRife(),
     omarchy: {

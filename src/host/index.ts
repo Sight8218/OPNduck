@@ -84,6 +84,7 @@ export interface DownloadProbe {
 export type ContainerFormat =
   | 'MP4' | 'MKV' | 'WEBM' | 'MOV' | 'AVI' | 'GIF'
   | 'MP3' | 'FLAC' | 'WAV' | 'OGG' | 'M4A' | 'OPUS'
+  | 'PDF' | 'DOCX' | 'ODT' | 'RTF' | 'TXT' | 'HTML'
   | 'PNG' | 'JPG' | 'WEBP' | 'AVIF' | 'BMP' | 'TIFF' | 'ICO'
 
 /** 'remux' = stream copy, no re-encode (fast, only works if the source codec fits the
@@ -189,6 +190,8 @@ export interface Host {
   checkYtDlp(): Promise<ToolStatus>
   /** ffmpeg isn't bundled either — same check, for the Converter. */
   checkFfmpeg(): Promise<ToolStatus>
+  /** LibreOffice (soffice) powers the Converter's document formats. */
+  checkLibreOffice(): Promise<ToolStatus>
   /** realesrgan-ncnn-vulkan isn't bundled either, and unlike yt-dlp/ffmpeg it's
    *  essentially never pre-installed — same check shape, for the Image Upscaler. */
   checkRealesrgan(): Promise<ToolStatus>
@@ -339,6 +342,7 @@ const browserHost: Host = {
   pickFolder: async () => null,
   checkYtDlp: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkFfmpeg: async () => ({ available: false, installHint: 'Desktop app required' }),
+  checkLibreOffice: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkRealesrgan: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkRife: async () => ({ available: false, installHint: 'Desktop app required' }),
   tasks: browserTasks,

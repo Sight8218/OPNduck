@@ -11,18 +11,21 @@ import {
   type FormatCategory,
 } from './formats'
 
-const CATEGORIES: FormatCategory[] = ['video', 'audio', 'image']
+const CATEGORIES: FormatCategory[] = ['video', 'audio', 'image', 'document']
 
 // Portaled to <body>: .glass cards use backdrop-filter, which would trap a
 // fixed overlay inside the card's own stacking context.
 export default function FormatPickerModal({
   open,
   files,
+  documentsHint,
   onClose,
   onConvert,
 }: {
   open: boolean
   files: string[]
+  /** Set when LibreOffice is missing: document tiles are disabled and this is shown. */
+  documentsHint?: string
   onClose: () => void
   onConvert: (format: ContainerFormat, mode: ConvertMode) => void
 }) {
@@ -90,9 +93,16 @@ export default function FormatPickerModal({
                   <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--text-dim)]">
                     {CATEGORY_LABELS[cat]}
                   </h3>
+                  {cat === 'document' && documentsHint && (
+                    <p className="mb-2 text-xs text-[var(--text-dim)]">
+                      Document conversion needs LibreOffice. Install it, then reopen this page:{' '}
+                      <code className="select-all font-mono text-[var(--text)]">{documentsHint}</code>
+                    </p>
+                  )}
                   <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4">
                     {FORMATS.filter((f) => f.category === cat).map((f) => {
-                      const ok = sources.every((s) => canConvert(s, f))
+                      const ok =
+                        sources.every((s) => canConvert(s, f)) && !(f.category === 'document' && documentsHint)
                       const active = picked === f.id
                       return (
                         <button

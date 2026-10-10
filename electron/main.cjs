@@ -22,6 +22,7 @@ const fs = require('node:fs')
 const os = require('node:os')
 const { spawn } = require('node:child_process')
 const crypto = require('node:crypto')
+const { pathToFileURL } = require('node:url')
 const { readOmarchyTheme, watchOmarchyTheme } = require('./omarchy.cjs')
 
 const DEV_SERVER_URL = process.env.OPNDUCK_DEV_URL || 'http://localhost:1420'
@@ -148,6 +149,27 @@ ipcMain.handle('system:checkYtDlp', () => {
     }
     child.on('error', () => resolve({ available: false, installHint: ytDlpInstallHint() }))
     child.on('close', (code) => resolve({ available: code === 0, installHint: ytDlpInstallHint() }))
+  })
+})
+
+/** LibreOffice (soffice) does the document conversions — same detect-and-guide idea. */
+function libreOfficeInstallHint() {
+  if (process.platform === 'win32') return 'winget install TheDocumentFoundation.LibreOffice'
+  if (process.platform === 'darwin') return 'brew install --cask libreoffice'
+  return 'sudo pacman -S libreoffice-fresh   (or your distro\'s package manager)'
+}
+
+ipcMain.handle('system:checkLibreOffice', () => {
+  return new Promise((resolve) => {
+    let child
+    try {
+      child = spawn('soffice', ['--version'])
+    } catch {
+      resolve({ available: false, installHint: libreOfficeInstallHint() })
+      return
+    }
+    child.on('error', () => resolve({ available: false, installHint: libreOfficeInstallHint() }))
+    child.on('close', (code) => resolve({ available: code === 0, installHint: libreOfficeInstallHint() }))
   })
 })
 
@@ -675,6 +697,13 @@ const FORMATS = {
   OGG: { ext: 'ogg', kind: 'audio', args: ['-c:a', 'libvorbis', '-q:a', '6'] },
   M4A: { ext: 'm4a', kind: 'audio', args: ['-c:a', 'aac', '-b:a', '256k'] },
   OPUS: { ext: 'opus', kind: 'audio', args: ['-c:a', 'libopus', '-b:a', '160k'] },
+  // Documents go through LibreOffice: `filter` is the --convert-to filter spec.
+  PDF: { ext: 'pdf', kind: 'doc', filter: 'pdf' },
+  DOCX: { ext: 'docx', kind: 'doc', filter: 'docx' },
+  ODT: { ext: 'odt', kind: 'doc', filter: 'odt' },
+  RTF: { ext: 'rtf', kind: 'doc', filter: 'rtf' },
+  TXT: { ext: 'txt', kind: 'doc', filter: 'txt:Text (encoded):UTF8' },
+  HTML: { ext: 'html', kind: 'doc', filter: 'html' },
   PNG: { ext: 'png', kind: 'image', args: [] },
   JPG: { ext: 'jpg', kind: 'image', args: ['-q:v', '2'] },
   WEBP: { ext: 'webp', kind: 'image', args: ['-c:v', 'libwebp', '-q:v', '90'] },
@@ -741,6 +770,71 @@ function convertArgs(req, outputPath) {
   }
 }
 
+/** Document conversion via headless LibreOffice. It names its own output (<input
+ *  basename>.<ext>) and shares a profile lock across instances, so each job gets its
+ *  own throwaway profile + output dir and the result is moved to the final path. */
+function runDocConvert(id, req, fmt, outputPath) {
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), 'opnduck-doc-'))
+  const cleanup = () => fs.rmSync(work, { recursive: true, force: true })
+  const profile = pathToFileURL(path.join(work, 'profile')).href
+  let child
+  try {
+    child = spawn('soffice', [
+      `-env:UserInstallation=${profile}`,
+      '--headless',
+      '--convert-to',
+      fmt.filter,
+      '--outdir',
+      work,
+      req.inputPath,
+    ])
+  } catch (err) {
+    cleanup()
+    updateTask(id, { status: 'error', error: `Failed to start LibreOffice: ${err.message}` })
+    return id
+  }
+  const entry = tasks.get(id)
+  entry.child = child
+  updateTask(id, { status: 'running', progress: 0.1 })
+
+  let output = ''
+  child.stdout.on('data', (c) => (output = (output + c).slice(-2000)))
+  child.stderr.on('data', (c) => (output = (output + c).slice(-2000)))
+  child.on('error', (err) => {
+    cleanup()
+    updateTask(id, { status: 'error', error: `LibreOffice (soffice) not found on PATH (${err.message})` })
+  })
+  child.on('close', (code, signal) => {
+    if (!tasks.has(id) || entry.state.status === 'canceled') return cleanup()
+    const produced = path.join(work, `${path.basename(req.inputPath, path.extname(req.inputPath))}.${fmt.ext}`)
+    if (signal || code !== 0 || !fs.existsSync(produced)) {
+      cleanup()
+      updateTask(id, {
+        status: 'error',
+        error: output.trim().split('\n').pop() || `LibreOffice exited with code ${code}`,
+      })
+      return
+    }
+    let realSize = null
+    try {
+      fs.copyFileSync(produced, outputPath)
+      realSize = fs.statSync(outputPath).size
+    } catch (err) {
+      cleanup()
+      updateTask(id, { status: 'error', error: `Couldn't write ${path.basename(outputPath)}: ${err.message}` })
+      return
+    }
+    cleanup()
+    updateTask(id, {
+      status: 'done',
+      progress: 1,
+      label: path.basename(outputPath),
+      ...(realSize != null ? { sizeBytes: realSize, sizeIsEstimate: false } : {}),
+    })
+  })
+  return id
+}
+
 ipcMain.handle('tasks:startConvert', async (_e, req) => {
   const id = crypto.randomUUID()
   const destDir = req.destination || defaultDownloadDir()
@@ -771,6 +865,8 @@ ipcMain.handle('tasks:startConvert', async (_e, req) => {
     finalPath: outputPath,
   })
   broadcastTasks()
+
+  if (fmt.kind === 'doc') return runDocConvert(id, req, fmt, outputPath)
 
   const duration = await probeDuration(req.inputPath)
   if (!tasks.has(id)) return id // canceled while the duration probe was running
