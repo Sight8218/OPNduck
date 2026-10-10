@@ -78,7 +78,7 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
           <span className="font-medium text-[var(--text)]">Supports {FORMATS.length} formats</span>
           {CATEGORIES.map((cat) => (
             <div key={cat} className="flex flex-wrap items-center gap-1">
-              <span className="w-16 shrink-0 text-[var(--text-dim)]">{CATEGORY_LABELS[cat]}</span>
+              <span className="w-[5.5rem] shrink-0 text-[var(--text-dim)]">{CATEGORY_LABELS[cat]}</span>
               {FORMATS.filter((f) => f.category === cat).map((f) => (
                 <Tag key={f.id}>{f.label}</Tag>
               ))}
