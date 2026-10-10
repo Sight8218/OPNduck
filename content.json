@@ -27,7 +27,7 @@
     "planned": [
       { "name": "Video downloader", "inProgress": true },
       { "name": "AI upscaler", "inProgress": false },
-      { "name": "Migrate from Electron to Tauri", "inProgress": true },
+      { "name": "Migrate from Electron to Tauri", "postponed": true, "note": "Postponed: Tauri's Linux webview (WebKitGTK) stutters and can crash on NVIDIA + Wayland, so OPNduck stays on Electron until that's fixed upstream." },
       { "name": "macOS build", "inProgress": false }
     ]
   },
