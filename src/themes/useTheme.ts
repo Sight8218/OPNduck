@@ -70,7 +70,9 @@ export function useTheme() {
 
   const switchTheme = useCallback((next: Theme, origin?: ThemeSwitchOrigin) => {
     const doc = document as ViewTransitionDocument
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const reduceMotion =
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      document.documentElement.hasAttribute('data-reduce-motion')
 
     if (!doc.startViewTransition || reduceMotion) {
       setTheme(next)

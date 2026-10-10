@@ -495,3 +495,20 @@ body {
 [data-theme='omarchy'] *::after {
   border-radius: 0 !important;
 }
+
+/* Settings > Motion & Density. Set on <html> by ReduceMotionProvider. */
+[data-reduce-motion] *,
+[data-reduce-motion] *::before,
+[data-reduce-motion] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* Compact density: Tailwind v4 derives every padding/margin/gap/size utility
+   from --spacing, so shrinking it tightens the whole UI. */
+[data-density='compact'] {
+  --spacing: 0.2rem;
+}
