@@ -79,8 +79,12 @@ export interface DownloadProbe {
   playlist?: PlaylistInfo | null
 }
 
-/** Output container for the Converter. Transcode picks one default codec per container. */
-export type ContainerFormat = 'MP4' | 'MKV' | 'WEBM' | 'MOV'
+/** Output format for the Converter: video containers, audio formats and image
+ *  formats. Each has one fixed default codec/quality — see electron/main.cjs. */
+export type ContainerFormat =
+  | 'MP4' | 'MKV' | 'WEBM' | 'MOV' | 'AVI' | 'GIF'
+  | 'MP3' | 'FLAC' | 'WAV' | 'OGG' | 'M4A' | 'OPUS'
+  | 'PNG' | 'JPG' | 'WEBP' | 'AVIF' | 'BMP' | 'TIFF' | 'ICO'
 
 /** 'remux' = stream copy, no re-encode (fast, only works if the source codec fits the
  *  container). 'transcode' = re-encode with a fixed default codec per container. */

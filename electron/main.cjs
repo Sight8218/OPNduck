@@ -657,14 +657,31 @@ ipcMain.handle('tasks:defaultDownloadDir', () => defaultDownloadDir())
 
 /* --- Task orchestration (ffmpeg conversions) --- */
 // @category: converter/task-orchestration-main-process
-const CONTAINER_EXT = { MP4: 'mp4', MKV: 'mkv', WEBM: 'webm', MOV: 'mov' }
+const SCALE_ICO = "scale='min(256,iw)':'min(256,ih)':force_original_aspect_ratio=decrease"
 
-/** One fixed codec pair per container for transcode mode — no separate codec pickers. */
-const TRANSCODE_CODECS = {
-  MP4: { v: 'libx264', a: 'aac' },
-  MKV: { v: 'libx264', a: 'aac' },
-  MOV: { v: 'libx264', a: 'aac' },
-  WEBM: { v: 'libvpx-vp9', a: 'libopus' },
+/** Per-format output extension, kind and fixed ffmpeg encode args — no separate codec
+ *  pickers. Video formats map every stream; audio drops video (-vn) and keeps the
+ *  first audio track; image formats write a single frame. */
+const FORMATS = {
+  MP4: { ext: 'mp4', kind: 'video', args: ['-c:v', 'libx264', '-c:a', 'aac'] },
+  MKV: { ext: 'mkv', kind: 'video', args: ['-c:v', 'libx264', '-c:a', 'aac'] },
+  MOV: { ext: 'mov', kind: 'video', args: ['-c:v', 'libx264', '-c:a', 'aac'] },
+  WEBM: { ext: 'webm', kind: 'video', args: ['-c:v', 'libvpx-vp9', '-c:a', 'libopus'] },
+  AVI: { ext: 'avi', kind: 'video', args: ['-c:v', 'mpeg4', '-q:v', '3', '-c:a', 'libmp3lame'] },
+  GIF: { ext: 'gif', kind: 'gif', args: ['-vf', 'fps=12,scale=480:-1:flags=lanczos', '-loop', '0'] },
+  MP3: { ext: 'mp3', kind: 'audio', args: ['-c:a', 'libmp3lame', '-q:a', '0'] },
+  FLAC: { ext: 'flac', kind: 'audio', args: ['-c:a', 'flac'] },
+  WAV: { ext: 'wav', kind: 'audio', args: ['-c:a', 'pcm_s16le'] },
+  OGG: { ext: 'ogg', kind: 'audio', args: ['-c:a', 'libvorbis', '-q:a', '6'] },
+  M4A: { ext: 'm4a', kind: 'audio', args: ['-c:a', 'aac', '-b:a', '256k'] },
+  OPUS: { ext: 'opus', kind: 'audio', args: ['-c:a', 'libopus', '-b:a', '160k'] },
+  PNG: { ext: 'png', kind: 'image', args: [] },
+  JPG: { ext: 'jpg', kind: 'image', args: ['-q:v', '2'] },
+  WEBP: { ext: 'webp', kind: 'image', args: ['-c:v', 'libwebp', '-q:v', '90'] },
+  AVIF: { ext: 'avif', kind: 'image', args: ['-c:v', 'libaom-av1', '-still-picture', '1', '-crf', '28'] },
+  BMP: { ext: 'bmp', kind: 'image', args: [] },
+  TIFF: { ext: 'tiff', kind: 'image', args: [] },
+  ICO: { ext: 'ico', kind: 'image', args: ['-vf', SCALE_ICO] },
 }
 
 /** Never overwrites an existing file — appends " (1)", " (2)", etc. like a browser download. */
@@ -703,14 +720,25 @@ function probeDuration(inputPath) {
   })
 }
 
-/** -map 0 keeps every stream (not just the first video/audio track). -progress pipe:1
- *  -nostats makes ffmpeg emit clean `key=value` lines on stdout instead of the
- *  human-readable stats line on stderr, which is far more fragile to parse. */
+/** -progress pipe:1 -nostats makes ffmpeg emit clean `key=value` lines on stdout instead
+ *  of the human-readable stats line on stderr, which is far more fragile to parse.
+ *  Remux (stream copy) only applies to video containers; everything else re-encodes. */
 function convertArgs(req, outputPath) {
-  const base = ['-y', '-i', req.inputPath, '-map', '0']
-  if (req.mode === 'remux') return [...base, '-c', 'copy', '-progress', 'pipe:1', '-nostats', outputPath]
-  const codecs = TRANSCODE_CODECS[req.container]
-  return [...base, '-c:v', codecs.v, '-c:a', codecs.a, '-progress', 'pipe:1', '-nostats', outputPath]
+  const fmt = FORMATS[req.container]
+  const tail = ['-progress', 'pipe:1', '-nostats', outputPath]
+  const base = ['-y', '-i', req.inputPath]
+  switch (fmt.kind) {
+    case 'video':
+      return req.mode === 'remux'
+        ? [...base, '-map', '0', '-c', 'copy', ...tail]
+        : [...base, '-map', '0', ...fmt.args, ...tail]
+    case 'gif':
+      return [...base, '-map', '0:v:0', ...fmt.args, ...tail]
+    case 'audio':
+      return [...base, '-vn', '-map', '0:a:0', ...fmt.args, ...tail]
+    default:
+      return [...base, '-frames:v', '1', '-update', '1', ...fmt.args, ...tail]
+  }
 }
 
 ipcMain.handle('tasks:startConvert', async (_e, req) => {
@@ -718,8 +746,11 @@ ipcMain.handle('tasks:startConvert', async (_e, req) => {
   const destDir = req.destination || defaultDownloadDir()
   fs.mkdirSync(destDir, { recursive: true })
 
-  const ext = CONTAINER_EXT[req.container]
-  if (!ext) throw new Error(`Unsupported container: ${req.container}`)
+  const fmt = FORMATS[req.container]
+  if (!fmt) throw new Error(`Unsupported format: ${req.container}`)
+  const ext = fmt.ext
+  // Remux only makes sense for video containers; other targets always re-encode.
+  if (fmt.kind !== 'video') req.mode = 'transcode'
   const inputBase = path.basename(req.inputPath, path.extname(req.inputPath))
   const outputPath = uniqueOutputPath(destDir, inputBase, ext)
 

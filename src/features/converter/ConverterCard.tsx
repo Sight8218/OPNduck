@@ -1,30 +1,14 @@
 import { useEffect, useState } from 'react'
 import FeatureCard from '../../components/FeatureCard'
-import GlassSelect from '../../components/GlassSelect'
 import Tag from '../../components/Tag'
 import { host, type ContainerFormat, type ConvertMode } from '../../host'
+import FormatPickerModal from './FormatPickerModal'
+import { PICKER_EXTENSIONS } from './formats'
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
 import { IconX } from '@tabler/icons-react'
-
-const CONTAINER_OPTIONS: { value: ContainerFormat; label: string }[] = [
-  { value: 'MP4', label: 'MP4' },
-  { value: 'MKV', label: 'MKV' },
-  { value: 'WEBM', label: 'WebM' },
-  { value: 'MOV', label: 'MOV' },
-]
-
-const MODE_OPTIONS: { value: ConvertMode; label: string }[] = [
-  { value: 'remux', label: 'Remux (fast, no re-encode)' },
-  { value: 'transcode', label: 'Transcode (re-encode)' },
-]
-
-const MEDIA_EXTENSIONS = [
-  'mp4', 'mkv', 'mov', 'webm', 'avi', 'flv', 'm4v', 'wmv',
-  'mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a',
-]
 
 function basename(fullPath: string): string {
   return fullPath.split(/[/\\]/).pop() ?? fullPath
@@ -33,8 +17,7 @@ function basename(fullPath: string): string {
 // @category: converter/converter-card
 export default function ConverterCard({ feature }: { feature: FeatureDefinition }) {
   const [files, setFiles] = useState<string[]>([])
-  const [container, setContainer] = useState<ContainerFormat>('MP4')
-  const [mode, setMode] = useState<ConvertMode>('remux')
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [submittedIds, setSubmittedIds] = useState<string[]>([])
   const [ffmpeg, setFfmpeg] = useState<{ available: boolean; installHint: string } | null>(null)
 
@@ -49,7 +32,7 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
   const ffmpegMissing = ffmpeg?.available === false
 
   async function addFiles() {
-    const picked = await host.pickFiles({ extensions: MEDIA_EXTENSIONS })
+    const picked = await host.pickFiles({ extensions: PICKER_EXTENSIONS })
     if (!picked) return
     setFiles((prev) => [...prev, ...picked.filter((p) => !prev.includes(p))])
   }
@@ -58,7 +41,8 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
     setFiles((prev) => prev.filter((p) => p !== path))
   }
 
-  async function convertAll() {
+  async function convertAll(container: ContainerFormat, mode: ConvertMode) {
+    setPickerOpen(false)
     const destination = getDownloadDirOverride() ?? undefined
     const ids = await Promise.all(
       files.map((inputPath) => host.tasks.startConvert({ inputPath, container, mode, destination })),
@@ -106,17 +90,6 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Container</span>
-          <GlassSelect id="converter-container" options={CONTAINER_OPTIONS} value={container} onChange={setContainer} />
-        </div>
-        <div>
-          <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Mode</span>
-          <GlassSelect id="converter-mode" options={MODE_OPTIONS} value={mode} onChange={setMode} />
-        </div>
-      </div>
-
       {submittedTasks.length > 0 && (
         <div className="flex flex-col gap-2">
           {submittedTasks.map((t) => (
@@ -149,12 +122,19 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
       <button
         type="button"
         className="glass-btn"
-        onClick={convertAll}
+        onClick={() => setPickerOpen(true)}
         disabled={files.length === 0 || anyRunning || ffmpegMissing}
         title={ffmpegMissing ? 'Install ffmpeg first' : undefined}
       >
-        Convert All
+        Choose format…
       </button>
+
+      <FormatPickerModal
+        open={pickerOpen}
+        files={files}
+        onClose={() => setPickerOpen(false)}
+        onConvert={convertAll}
+      />
     </FeatureCard>
   )
 }
