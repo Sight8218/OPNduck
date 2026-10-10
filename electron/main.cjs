@@ -627,7 +627,8 @@ ipcMain.handle('tasks:start', async (_e, req) => {
   })
   child.on('close', (code, signal) => {
     if (!tasks.has(id)) return
-    if (entry.state.status === 'canceled') return
+    // A spawn failure (ENOENT) fires 'error' and then 'close'(-2); keep the clearer 'error' message.
+    if (entry.state.status === 'canceled' || entry.state.status === 'error') return
     // With --ignore-errors yt-dlp exits 1 if ANY video failed, even when the
     // rest downloaded fine — that's a partial success, not a failed task.
     const partial = wholePlaylist && !signal && code === 1 && files.size > 0
@@ -675,6 +676,8 @@ ipcMain.handle('tasks:start', async (_e, req) => {
 ipcMain.on('tasks:cancel', (_e, id) => {
   const entry = tasks.get(id)
   if (!entry) return
+  // Don't rewrite the outcome of a task that already finished.
+  if (!['queued', 'running'].includes(entry.state.status)) return
   entry.child?.kill()
   updateTask(id, { status: 'canceled' })
 })
@@ -694,7 +697,7 @@ const FORMATS = {
   MP4: { ext: 'mp4', kind: 'video', args: ['-c:v', 'libx264', '-c:a', 'aac'] },
   MKV: { ext: 'mkv', kind: 'video', args: ['-c:v', 'libx264', '-c:a', 'aac'] },
   MOV: { ext: 'mov', kind: 'video', args: ['-c:v', 'libx264', '-c:a', 'aac'] },
-  WEBM: { ext: 'webm', kind: 'video', args: ['-c:v', 'libvpx-vp9', '-c:a', 'libopus'] },
+  WEBM: { ext: 'webm', kind: 'video', args: ['-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '32', '-c:a', 'libopus'] },
   AVI: { ext: 'avi', kind: 'video', args: ['-c:v', 'mpeg4', '-q:v', '3', '-c:a', 'libmp3lame'] },
   GIF: { ext: 'gif', kind: 'gif', args: ['-vf', 'fps=12,scale=480:-1:flags=lanczos', '-loop', '0'] },
   MP3: { ext: 'mp3', kind: 'audio', args: ['-c:a', 'libmp3lame', '-q:a', '0'] },
@@ -766,7 +769,7 @@ function convertArgs(req, outputPath) {
     case 'video':
       return req.mode === 'remux'
         ? [...base, '-map', '0', '-c', 'copy', ...tail]
-        : [...base, '-map', '0', ...fmt.args, ...tail]
+        : [...base, '-map', '0:v?', '-map', '0:a?', ...fmt.args, ...tail]
     case 'gif':
       return [...base, '-map', '0:v:0', ...fmt.args, ...tail]
     case 'audio':
@@ -811,7 +814,7 @@ function runDocConvert(id, req, fmt, outputPath) {
     updateTask(id, { status: 'error', error: `LibreOffice (soffice) not found on PATH (${err.message})` })
   })
   child.on('close', (code, signal) => {
-    if (!tasks.has(id) || entry.state.status === 'canceled') return cleanup()
+    if (!tasks.has(id) || entry.state.status === 'canceled' || entry.state.status === 'error') return cleanup()
     const produced = path.join(work, `${path.basename(req.inputPath, path.extname(req.inputPath))}.${fmt.ext}`)
     if (signal || code !== 0 || !fs.existsSync(produced)) {
       cleanup()
@@ -910,7 +913,8 @@ ipcMain.handle('tasks:startConvert', async (_e, req) => {
   })
   child.on('close', (code, signal) => {
     if (!tasks.has(id)) return
-    if (entry.state.status === 'canceled') return
+    // A spawn failure (ENOENT) fires 'error' and then 'close'(-2); keep the clearer 'error' message.
+    if (entry.state.status === 'canceled' || entry.state.status === 'error') return
     if (signal || code !== 0) {
       updateTask(id, {
         status: 'error',
@@ -1002,7 +1006,8 @@ ipcMain.handle('tasks:startUpscale', (_e, req) => {
   })
   child.on('close', (code, signal) => {
     if (!tasks.has(id)) return
-    if (entry.state.status === 'canceled') return
+    // A spawn failure (ENOENT) fires 'error' and then 'close'(-2); keep the clearer 'error' message.
+    if (entry.state.status === 'canceled' || entry.state.status === 'error') return
     if (signal || code !== 0) {
       updateTask(id, {
         status: 'error',

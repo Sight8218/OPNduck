@@ -114,9 +114,17 @@ export function useTheme() {
  */
 export function useOmarchyThemeSync(): void {
   useEffect(() => {
-    if (!host.omarchy) return
+    // A stored 'omarchy' choice with no live Omarchy theme (moved to another
+    // machine/OS, Omarchy uninstalled) would leave data-theme="omarchy" with no
+    // tokens behind it — an unstyled UI. Fall back to the default look instead.
     const applyIfActive = (t: OmarchyTheme | null) => {
-      if (t && readStoredTheme() === 'omarchy') applyOmarchyTokens(t)
+      if (readStoredTheme() !== 'omarchy') return
+      if (t) applyOmarchyTokens(t)
+      else applyTheme('blarange')
+    }
+    if (!host.omarchy) {
+      applyIfActive(null)
+      return
     }
     host.omarchy.get().then(applyIfActive)
     return host.omarchy.subscribe(applyIfActive)

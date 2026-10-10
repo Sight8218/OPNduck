@@ -3,14 +3,13 @@ import FeatureCard from '../../components/FeatureCard'
 import Tag from '../../components/Tag'
 import { host, type ContainerFormat, type ConvertMode } from '../../host'
 import FormatPickerModal from './FormatPickerModal'
-import { CATEGORY_LABELS, FORMATS, PICKER_EXTENSIONS, type FormatCategory } from './formats'
+import { CATEGORIES, CATEGORY_LABELS, FORMATS, PICKER_EXTENSIONS, fileCategory } from './formats'
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
 import { IconX } from '@tabler/icons-react'
 
-const CATEGORIES: FormatCategory[] = ['video', 'audio', 'image', 'document']
 
 function basename(fullPath: string): string {
   return fullPath.split(/[/\\]/).pop() ?? fullPath
@@ -34,6 +33,11 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
   const submittedTasks = tasks.filter((t) => submittedIds.includes(t.id))
   const anyRunning = submittedTasks.some((t) => t.status === 'queued' || t.status === 'running')
   const ffmpegMissing = ffmpeg?.available === false
+  const officeMissing = office?.available === false
+  // Gate per tool: documents need LibreOffice only, everything else needs ffmpeg only.
+  const hasDocs = files.some((f) => fileCategory(f) === 'document')
+  const hasMedia = files.some((f) => fileCategory(f) !== 'document')
+  const blockedByMissingTool = (ffmpegMissing && hasMedia) || (officeMissing && hasDocs)
 
   async function addFiles() {
     const picked = await host.pickFiles({ extensions: PICKER_EXTENSIONS })
@@ -48,9 +52,11 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
   async function convertAll(container: ContainerFormat, mode: ConvertMode) {
     setPickerOpen(false)
     const destination = getDownloadDirOverride() ?? undefined
-    const ids = await Promise.all(
+    // allSettled: one failed start must not lose the ids of the jobs that did start.
+    const results = await Promise.allSettled(
       files.map((inputPath) => host.tasks.startConvert({ inputPath, container, mode, destination })),
     )
+    const ids = results.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []))
     setSubmittedIds(ids)
     setFiles([])
   }
@@ -141,8 +147,8 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
         type="button"
         className="glass-btn"
         onClick={() => setPickerOpen(true)}
-        disabled={files.length === 0 || anyRunning || ffmpegMissing}
-        title={ffmpegMissing ? 'Install ffmpeg first' : undefined}
+        disabled={files.length === 0 || anyRunning || blockedByMissingTool}
+        title={blockedByMissingTool ? 'Install the missing tool first (see above)' : undefined}
       >
         Choose format…
       </button>

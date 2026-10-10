@@ -38,6 +38,8 @@ export const FORMATS: FormatInfo[] = [
   { id: 'ICO', label: 'ICO', category: 'image', hint: 'Icons, up to 256px' },
 ]
 
+export const CATEGORIES: FormatCategory[] = ['video', 'audio', 'image', 'document']
+
 export const CATEGORY_LABELS: Record<FormatCategory, string> = {
   video: 'Video',
   audio: 'Audio',

@@ -4,14 +4,13 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { IconCheck, IconX } from '@tabler/icons-react'
 import type { ContainerFormat, ConvertMode } from '../../host'
 import {
+  CATEGORIES,
   CATEGORY_LABELS,
   FORMATS,
   canConvert,
   fileCategory,
-  type FormatCategory,
 } from './formats'
 
-const CATEGORIES: FormatCategory[] = ['video', 'audio', 'image', 'document']
 
 // Portaled to <body>: .glass cards use backdrop-filter, which would trap a
 // fixed overlay inside the card's own stacking context.

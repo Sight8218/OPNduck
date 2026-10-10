@@ -10,7 +10,7 @@ export interface GlassSelectOption<T extends string> {
 
 /**
  * A custom glass-styled dropdown (replaces the native <select> which clashes
- * with the Liquid Glass aesthetic). Theme-aware, keyboard navigable,
+ * with the Liquid Glass aesthetic). Theme-aware (mouse-driven; no arrow-key navigation yet),
  * animated with Framer Motion.
  */
 export default function GlassSelect<T extends string>({
