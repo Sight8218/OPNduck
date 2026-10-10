@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { IconCheck, IconChevronDown } from '@tabler/icons-react'
 
 export interface GlassSelectOption<T extends string> {
   value: T
@@ -64,7 +65,7 @@ export default function GlassSelect<T extends string>({
           className="shrink-0 text-[var(--text-dim)] transition-transform duration-200"
           style={{ transform: open ? 'rotate(180deg)' : 'none' }}
         >
-          ▾
+          <IconChevronDown size={14} aria-hidden="true" />
         </span>
       </button>
 
@@ -95,7 +96,7 @@ export default function GlassSelect<T extends string>({
                 >
                   {opt.label}
                   {opt.value === value && (
-                    <span className="text-[var(--accent)]">✓</span>
+                    <IconCheck size={14} className="text-[var(--accent)]" aria-hidden="true" />
                   )}
                 </button>
               </li>

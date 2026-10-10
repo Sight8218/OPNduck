@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { IconAlertTriangle, IconX } from '@tabler/icons-react'
 
 const GITHUB_URL = 'https://github.com/Sight8218/OPNduck'
 
@@ -23,10 +24,9 @@ export default function PreAlphaBanner() {
       >
         <span
           aria-hidden="true"
-          className="shrink-0 text-base"
-          style={{ filter: 'grayscale(1) brightness(1.4)' }}
+          className="shrink-0"
         >
-          ⚠
+          <IconAlertTriangle size={18} />
         </span>
         <p className="leading-snug">
           <strong className="font-bold text-amber-300">Alpha:</strong>{' '}
@@ -50,7 +50,7 @@ export default function PreAlphaBanner() {
           aria-label="Dismiss alpha notice"
           className="shrink-0 rounded-lg px-2 py-1 text-xs font-bold text-[var(--text-dim)] transition-colors hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
         >
-          ✕
+          <IconX size={14} aria-hidden="true" />
         </button>
       </div>
     </div>

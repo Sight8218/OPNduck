@@ -20,6 +20,7 @@ import { useState } from 'react'
 import GlassSelect from './GlassSelect'
 import { host, type AudioQuality, type DownloadFormat, type VideoQuality } from '../host'
 import { getDownloadDirOverride } from '../lib/downloadPrefs'
+import { IconDownload } from '@tabler/icons-react'
 
 const FORMAT_OPTIONS = ['MP4', 'MP3', 'MKV', 'MOV', 'FLAC', 'WAV'].map((f) => ({
   value: f as DownloadFormat,
@@ -64,7 +65,7 @@ export default function SmartDownloadPanel({ url, onDone }: { url: string; onDon
   return (
     <div className="flex flex-col gap-3 p-4">
       <div className="flex items-center gap-2 text-xs text-[var(--text-dim)]">
-        <span aria-hidden="true">⇩</span>
+        <IconDownload size={14} aria-hidden="true" />
         <span className="truncate">{url}</span>
       </div>
       <div className="grid grid-cols-2 gap-3">

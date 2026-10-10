@@ -20,6 +20,7 @@ import { useState } from 'react'
 import GlassSelect from './GlassSelect'
 import { host, type ContainerFormat, type ConvertMode } from '../host'
 import { getDownloadDirOverride } from '../lib/downloadPrefs'
+import { IconArrowsExchange } from '@tabler/icons-react'
 
 const CONTAINER_OPTIONS: { value: ContainerFormat; label: string }[] = [
   { value: 'MP4', label: 'MP4' },
@@ -68,7 +69,7 @@ export default function SmartFilePanel({
   return (
     <div className="flex flex-col gap-3 p-4">
       <div className="flex items-center gap-2 text-xs text-[var(--text-dim)]">
-        <span aria-hidden="true">⇄</span>
+        <IconArrowsExchange size={14} aria-hidden="true" />
         <span className="truncate">{basename(path)}</span>
       </div>
 

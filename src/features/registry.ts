@@ -27,7 +27,7 @@ export interface FeatureDefinition {
   tagline: string
   description: string
   scope: FeatureScope
-  /** Emoji-free icon key — resolved to a rendered glyph by the card. */
+  /** Icon key — resolved to an SVG by components/featureIcons.tsx. */
   icon: string
   /** Optional per-feature glow color used for hover accent tint. */
   accent?: string

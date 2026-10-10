@@ -7,6 +7,7 @@ import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
+import { IconX } from '@tabler/icons-react'
 
 const CONTAINER_OPTIONS: { value: ContainerFormat; label: string }[] = [
   { value: 'MP4', label: 'MP4' },
@@ -98,7 +99,7 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
                 aria-label={`Remove ${basename(f)}`}
                 className="shrink-0 text-[var(--text-faint)] hover:text-[var(--text)]"
               >
-                ✕
+                <IconX size={14} aria-hidden="true" />
               </button>
             </div>
           ))}

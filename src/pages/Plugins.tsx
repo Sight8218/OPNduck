@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+import { IconArrowRight } from '@tabler/icons-react'
 
 
 export default function Plugins() {
@@ -36,7 +37,7 @@ export default function Plugins() {
           rel="noreferrer"
           className="font-semibold text-[var(--accent)] underline underline-offset-2"
         >
-          Read the plugin authoring guide →
+          Read the plugin authoring guide <IconArrowRight size={14} className="inline" aria-hidden="true" />
         </a>
       </div>
     </div>

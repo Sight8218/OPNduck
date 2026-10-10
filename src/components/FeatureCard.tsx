@@ -20,6 +20,7 @@
 import type { ReactNode } from 'react'
 import type { FeatureDefinition } from '../features/registry'
 import { useReduceMotion } from '../lib/motionPrefs'
+import { FeatureIcon } from './featureIcons'
 
 /**
  * Shared chrome for every adaptive card: glass body, header (icon + title +
@@ -54,13 +55,7 @@ export default function FeatureCard({
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="glass flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg leading-none">
-            <span
-              aria-hidden="true"
-              className="inline-block select-none"
-              style={{ filter: 'grayscale(1) contrast(1.1) brightness(1.3)' }}
-            >
-              {feature.icon}
-            </span>
+            <FeatureIcon name={feature.icon} />
           </div>
           <div>
             <h2 className="text-base font-bold leading-tight">{feature.title}</h2>

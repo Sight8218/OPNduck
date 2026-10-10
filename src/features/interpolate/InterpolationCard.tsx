@@ -7,10 +7,11 @@ import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
+import { IconX } from '@tabler/icons-react'
 
 const MULTIPLIER_OPTIONS: { value: InterpolateMultiplier; label: string }[] = [
-  { value: 2, label: '2× — e.g. 24fps → 48fps' },
-  { value: 4, label: '4× — e.g. 24fps → 96fps' },
+  { value: 2, label: '2× — e.g. 24fps to 48fps' },
+  { value: 4, label: '4× — e.g. 24fps to 96fps' },
 ]
 
 const VIDEO_EXTENSIONS = ['mp4', 'mkv', 'mov', 'webm', 'avi', 'm4v']
@@ -92,7 +93,7 @@ export default function InterpolationCard({ feature }: { feature: FeatureDefinit
                 aria-label={`Remove ${basename(f)}`}
                 className="shrink-0 text-[var(--text-faint)] hover:text-[var(--text)]"
               >
-                ✕
+                <IconX size={14} aria-hidden="true" />
               </button>
             </div>
           ))}

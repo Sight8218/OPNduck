@@ -7,6 +7,7 @@ import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
+import { IconX } from '@tabler/icons-react'
 
 const MODEL_OPTIONS: { value: UpscaleModel; label: string }[] = [
   { value: 'realesrgan-x4plus', label: 'Photo — strongest detail (4× only)' },
@@ -108,7 +109,7 @@ export default function ImageUpscalerCard({ feature }: { feature: FeatureDefinit
                 aria-label={`Remove ${basename(f)}`}
                 className="shrink-0 text-[var(--text-faint)] hover:text-[var(--text)]"
               >
-                ✕
+                <IconX size={14} aria-hidden="true" />
               </button>
             </div>
           ))}
