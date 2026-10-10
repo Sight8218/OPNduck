@@ -31,11 +31,14 @@ function isDev() {
   return !app.isPackaged
 }
 
-/** Absolute URL of the frontend to load: Vite dev server in dev, built files in prod. */
-function rendererURL() {
-  if (isDev()) return DEV_SERVER_URL
+/** Where the frontend lives: Vite dev server in dev, built files in prod. Returns
+ *  { url } or { file } — a bare filesystem path must go through loadFile(), not loadURL():
+ *  newer Electron builds refuse to navigate to a path that isn't a real URL, which left
+ *  the packaged window blank/transparent. */
+function rendererTarget() {
+  if (isDev()) return { url: DEV_SERVER_URL }
   const index = path.join(__dirname, '..', 'dist', 'index.html')
-  return fs.existsSync(index) ? index : DEV_SERVER_URL
+  return fs.existsSync(index) ? { file: index } : { url: DEV_SERVER_URL }
 }
 
 function createWindow() {
@@ -76,7 +79,9 @@ function createWindow() {
     console.log(`[renderer:${levels[event.level] ?? event.level}]`, event.message)
   })
 
-  win.loadURL(rendererURL())
+  const target = rendererTarget()
+  if (target.file) win.loadFile(target.file)
+  else win.loadURL(target.url)
 
   // "Sync with Omarchy" theme option: push live Omarchy theme changes to
   // this window for as long as it's open. Total no-op on non-Omarchy
@@ -261,6 +266,38 @@ const SPOTIFY_OTHER_RE = /open\.spotify\.com\/(?:intl-\w+\/)?(album|playlist|art
 
 /** Returns null for a non-Spotify URL, { error } for an unsupported Spotify
  *  link type or a lookup failure, or { query, label } once resolved. */
+/** Parses a user-supplied link; only http(s) is allowed (yt-dlp would otherwise happily
+ *  open file: and other schemes). Returns a URL or null. */
+function parseHttpUrl(str) {
+  try {
+    const u = new URL(String(str).trim())
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u : null
+  } catch {
+    return null
+  }
+}
+
+function decodeHtmlEntities(str) {
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+}
+
+/** Input checks for renderer-supplied job requests (the window is sandboxed, but these end
+ *  up as argv for child processes, so don't trust them blindly). */
+function assertAbsolutePath(p, what) {
+  if (typeof p !== 'string' || !path.isAbsolute(p)) throw new Error(`${what} must be an absolute path`)
+}
+function assertOneOf(value, allowed, what) {
+  if (!allowed.includes(value)) throw new Error(`Invalid ${what}: ${value}`)
+}
+const UPSCALE_MODELS = ['realesr-animevideov3', 'realesrgan-x4plus', 'realesrgan-x4plus-anime']
+
 async function resolveSpotifyTrack(url) {
   const other = url.match(SPOTIFY_OTHER_RE)
   if (other) {
@@ -269,6 +306,10 @@ async function resolveSpotifyTrack(url) {
     }
   }
   if (!SPOTIFY_TRACK_RE.test(url)) return null
+  // The regex matches anywhere in the string — require the link itself to be on
+  // open.spotify.com so a crafted URL can't make the main process fetch elsewhere.
+  const parsed = parseHttpUrl(url)
+  if (!parsed || parsed.hostname !== 'open.spotify.com') return null
 
   let html
   try {
@@ -278,8 +319,10 @@ async function resolveSpotifyTrack(url) {
     return { error: `Couldn't reach Spotify to identify the track: ${err.message}` }
   }
 
-  const title = html.match(/<meta property="og:title" content="([^"]*)"/)?.[1]
-  const desc = html.match(/<meta property="og:description" content="([^"]*)"/)?.[1]
+  const rawTitle = html.match(/<meta property="og:title" content="([^"]*)"/)?.[1]
+  const rawDesc = html.match(/<meta property="og:description" content="([^"]*)"/)?.[1]
+  const title = rawTitle && decodeHtmlEntities(rawTitle)
+  const desc = rawDesc && decodeHtmlEntities(rawDesc)
   const artist = desc?.split(' · ')[0]
   if (!title || !artist) {
     return { error: "Couldn't read this track's info from Spotify — the page format may have changed." }
@@ -306,7 +349,40 @@ function updateTask(id, patch) {
   const entry = tasks.get(id)
   if (!entry) return
   Object.assign(entry.state, patch)
+  // A finished conversion frees its concurrency slot for the next queued one.
+  if (entry.releaseSlot && ['done', 'error', 'canceled'].includes(entry.state.status)) entry.releaseSlot()
   broadcastTasks()
+}
+
+/** Batch conversions would otherwise spawn one ffmpeg/soffice per file all at once. */
+const CONVERT_CONCURRENCY = 2
+let convertActive = 0
+const convertWaiters = []
+function acquireConvertSlot() {
+  if (convertActive < CONVERT_CONCURRENCY) {
+    convertActive++
+    return Promise.resolve()
+  }
+  return new Promise((resolve) => convertWaiters.push(resolve))
+}
+function releaseConvertSlot() {
+  const next = convertWaiters.shift()
+  if (next) next() // hand the slot straight over
+  else convertActive--
+}
+
+/** Kill a job's process, including children: soffice is a launcher whose real worker
+ *  (soffice.bin) would otherwise be orphaned. Detached jobs lead their own group. */
+function killTask(entry) {
+  const child = entry.child
+  if (!child) return
+  try {
+    if (entry.killGroup && process.platform !== 'win32' && child.pid) process.kill(-child.pid, 'SIGTERM')
+    else if (entry.killGroup && process.platform === 'win32' && child.pid) spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'])
+    else child.kill()
+  } catch {
+    child.kill()
+  }
 }
 
 const AUDIO_EXT = { MP3: 'mp3', FLAC: 'flac', WAV: 'wav' }
@@ -398,6 +474,9 @@ function probePlaylist(url) {
  * debounced preview had time to resolve before Run Task was clicked.
  */
 async function probeInfo(req) {
+  if (!parseHttpUrl(req.url)) {
+    return { title: 'Only http(s) links are supported', approxSizeBytes: null, thumbnailUrl: null, playlist: null }
+  }
   const spotify = await resolveSpotifyTrack(req.url)
   if (spotify?.error) return { title: spotify.error, approxSizeBytes: null, thumbnailUrl: null, playlist: null }
   const effectiveUrl = spotify?.query ?? req.url
@@ -490,6 +569,12 @@ function estimateSize(info, req) {
 }
 
 ipcMain.handle('tasks:start', async (_e, req) => {
+  if (req.destination != null) assertAbsolutePath(req.destination, 'destination')
+  if (req.audioQuality != null) {
+    if (typeof req.audioQuality !== 'string' || !/^(best|\d{1,3}k?)$/i.test(req.audioQuality)) {
+      throw new Error(`Invalid audio quality: ${req.audioQuality}`)
+    }
+  }
   const id = crypto.randomUUID()
   const destDir = req.destination || defaultDownloadDir()
   fs.mkdirSync(destDir, { recursive: true })
@@ -513,6 +598,10 @@ ipcMain.handle('tasks:start', async (_e, req) => {
   })
   broadcastTasks()
 
+  if (!parseHttpUrl(req.url)) {
+    updateTask(id, { status: 'error', error: 'Only http(s) links are supported.' })
+    return id
+  }
   const spotify = await resolveSpotifyTrack(req.url)
   if (spotify?.error) {
     updateTask(id, { status: 'error', error: spotify.error })
@@ -678,7 +767,7 @@ ipcMain.on('tasks:cancel', (_e, id) => {
   if (!entry) return
   // Don't rewrite the outcome of a task that already finished.
   if (!['queued', 'running'].includes(entry.state.status)) return
-  entry.child?.kill()
+  killTask(entry)
   updateTask(id, { status: 'canceled' })
 })
 
@@ -796,7 +885,7 @@ function runDocConvert(id, req, fmt, outputPath) {
       '--outdir',
       work,
       req.inputPath,
-    ])
+    ], { detached: process.platform !== 'win32' })
   } catch (err) {
     cleanup()
     updateTask(id, { status: 'error', error: `Failed to start LibreOffice: ${err.message}` })
@@ -804,6 +893,7 @@ function runDocConvert(id, req, fmt, outputPath) {
   }
   const entry = tasks.get(id)
   entry.child = child
+  entry.killGroup = true
   updateTask(id, { status: 'running', progress: 0.1 })
 
   let output = ''
@@ -845,6 +935,8 @@ function runDocConvert(id, req, fmt, outputPath) {
 }
 
 ipcMain.handle('tasks:startConvert', async (_e, req) => {
+  assertAbsolutePath(req.inputPath, 'inputPath')
+  if (req.destination != null) assertAbsolutePath(req.destination, 'destination')
   const id = crypto.randomUUID()
   const destDir = req.destination || defaultDownloadDir()
   fs.mkdirSync(destDir, { recursive: true })
@@ -875,17 +967,40 @@ ipcMain.handle('tasks:startConvert', async (_e, req) => {
   })
   broadcastTasks()
 
-  if (fmt.kind === 'doc') return runDocConvert(id, req, fmt, outputPath)
+  // Return right away so every job shows up as 'queued'; the work itself waits for a slot.
+  runConvert(id, req, fmt, outputPath).catch((err) =>
+    updateTask(id, { status: 'error', error: `Conversion failed to start: ${err.message}` }),
+  )
+  return id
+})
+
+async function runConvert(id, req, fmt, outputPath) {
+  await acquireConvertSlot()
+  const entry0 = tasks.get(id)
+  if (!entry0) return releaseConvertSlot()
+  let released = false
+  entry0.releaseSlot = () => {
+    if (!released) {
+      released = true
+      releaseConvertSlot()
+    }
+  }
+  if (isCanceled(id)) return entry0.releaseSlot()
+
+  if (fmt.kind === 'doc') {
+    runDocConvert(id, req, fmt, outputPath)
+    return
+  }
 
   const duration = await probeDuration(req.inputPath)
-  if (isCanceled(id)) return id // canceled while the duration probe was running
+  if (isCanceled(id)) return // canceled while the duration probe was running
 
   let child
   try {
     child = spawn('ffmpeg', convertArgs(req, outputPath))
   } catch (err) {
     updateTask(id, { status: 'error', error: `Failed to start ffmpeg: ${err.message}` })
-    return id
+    return
   }
 
   const entry = tasks.get(id)
@@ -936,8 +1051,9 @@ ipcMain.handle('tasks:startConvert', async (_e, req) => {
     })
   })
 
-  return id
-})
+  return
+}
+
 // --- end: converter/task-orchestration-main-process ---
 
 /* --- Task orchestration (realesrgan-ncnn-vulkan image upscaling) --- */
@@ -953,6 +1069,10 @@ function upscaleArgs(req, outputPath) {
 }
 
 ipcMain.handle('tasks:startUpscale', (_e, req) => {
+  assertAbsolutePath(req.inputPath, 'inputPath')
+  if (req.destination != null) assertAbsolutePath(req.destination, 'destination')
+  assertOneOf(req.model, UPSCALE_MODELS, 'model')
+  assertOneOf(req.scale, [2, 3, 4], 'scale')
   const id = crypto.randomUUID()
   const destDir = req.destination || defaultDownloadDir()
   fs.mkdirSync(destDir, { recursive: true })
@@ -1130,11 +1250,17 @@ function isCanceled(id) {
 }
 
 ipcMain.handle('tasks:startVideoUpscale', async (_e, req) => {
+  assertAbsolutePath(req.inputPath, 'inputPath')
+  if (req.destination != null) assertAbsolutePath(req.destination, 'destination')
+  assertOneOf(req.model, UPSCALE_MODELS, 'model')
+  assertOneOf(req.scale, [2, 3, 4], 'scale')
   const id = crypto.randomUUID()
   const destDir = req.destination || defaultDownloadDir()
   fs.mkdirSync(destDir, { recursive: true })
 
-  const ext = path.extname(req.inputPath).replace(/^\./, '').toLowerCase() || 'mp4'
+  // Frames are re-encoded with libx264/aac, which only fits an MP4 container — a .webm/.avi
+  // input name would produce a mismatched file.
+  const ext = 'mp4'
   const inputBase = path.basename(req.inputPath, path.extname(req.inputPath))
   const outputPath = uniqueOutputPath(destDir, `${inputBase}-${req.scale}x`, ext)
 
@@ -1302,11 +1428,16 @@ ipcMain.handle('tasks:startVideoUpscale', async (_e, req) => {
  */
 // @category: interpolate/frame-interpolation-pipeline
 ipcMain.handle('tasks:startInterpolate', async (_e, req) => {
+  assertAbsolutePath(req.inputPath, 'inputPath')
+  if (req.destination != null) assertAbsolutePath(req.destination, 'destination')
+  assertOneOf(req.multiplier, [2, 4], 'multiplier')
   const id = crypto.randomUUID()
   const destDir = req.destination || defaultDownloadDir()
   fs.mkdirSync(destDir, { recursive: true })
 
-  const ext = path.extname(req.inputPath).replace(/^\./, '').toLowerCase() || 'mp4'
+  // Frames are re-encoded with libx264/aac, which only fits an MP4 container — a .webm/.avi
+  // input name would produce a mismatched file.
+  const ext = 'mp4'
   const inputBase = path.basename(req.inputPath, path.extname(req.inputPath))
   const outputPath = uniqueOutputPath(destDir, `${inputBase}-${req.multiplier}x-frames`, ext)
 

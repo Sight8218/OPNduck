@@ -16,9 +16,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import GlassSelect from './GlassSelect'
-import { host, type AudioQuality, type DownloadFormat, type VideoQuality } from '../host'
+import { host, type AudioQuality, type DownloadFormat, type PlaylistInfo, type VideoQuality } from '../host'
 import { getDownloadDirOverride } from '../lib/downloadPrefs'
 import { IconDownload } from '@tabler/icons-react'
 
@@ -50,6 +50,26 @@ export default function SmartDownloadPanel({ url, onDone }: { url: string; onDon
   const [videoQuality, setVideoQuality] = useState<VideoQuality>('best')
   const [audioQuality, setAudioQuality] = useState<AudioQuality>('best')
   const isVideo = VIDEO_FORMATS.includes(format)
+  const [playlist, setPlaylist] = useState<PlaylistInfo | null>(null)
+  const [playlistMode, setPlaylistMode] = useState<'single' | 'all'>('single')
+  const [checking, setChecking] = useState(true)
+
+  // Same link check the Downloader card does, so a pasted playlist link isn't
+  // silently reduced to one video.
+  useEffect(() => {
+    let stale = false
+    setChecking(true)
+    setPlaylistMode('single')
+    host.tasks.probe({ url, format: 'MP4' }).then((r) => {
+      if (stale) return
+      setPlaylist(r.playlist ?? null)
+      setChecking(false)
+    })
+    return () => {
+      stale = true
+    }
+  }, [url])
+  const wholePlaylist = !!playlist && (!playlist.ambiguous || playlistMode === 'all')
 
   async function run() {
     await host.tasks.startDownload({
@@ -58,6 +78,7 @@ export default function SmartDownloadPanel({ url, onDone }: { url: string; onDon
       videoQuality: isVideo ? videoQuality : undefined,
       audioQuality: format === 'MP3' ? audioQuality : undefined,
       destination: getDownloadDirOverride() ?? undefined,
+      playlist: playlistMode,
     })
     onDone()
   }
@@ -104,8 +125,30 @@ export default function SmartDownloadPanel({ url, onDone }: { url: string; onDon
           )}
         </div>
       </div>
-      <button type="button" className="glass-btn" onClick={run}>
-        Download
+      {playlist && (
+        <div>
+          {playlist.ambiguous ? (
+            <>
+              <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Playlist link</span>
+              <GlassSelect
+                id="palette-dl-playlist-mode"
+                options={[
+                  { value: 'single' as const, label: 'Just this video' },
+                  { value: 'all' as const, label: `Entire playlist (${playlist.count} videos)` },
+                ]}
+                value={playlistMode}
+                onChange={setPlaylistMode}
+              />
+            </>
+          ) : (
+            <span className="text-xs text-[var(--text-dim)]">
+              Playlist: {playlist.title} — {playlist.count} videos
+            </span>
+          )}
+        </div>
+      )}
+      <button type="button" className="glass-btn" onClick={run} disabled={checking}>
+        {checking ? 'Checking link…' : wholePlaylist ? 'Download playlist' : 'Download'}
       </button>
     </div>
   )

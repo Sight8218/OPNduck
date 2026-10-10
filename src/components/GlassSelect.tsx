@@ -10,7 +10,7 @@ export interface GlassSelectOption<T extends string> {
 
 /**
  * A custom glass-styled dropdown (replaces the native <select> which clashes
- * with the Liquid Glass aesthetic). Theme-aware (mouse-driven; no arrow-key navigation yet),
+ * with the Liquid Glass aesthetic). Theme-aware, keyboard navigable (arrows/Home/End/Enter/Esc),
  * animated with Framer Motion.
  */
 export default function GlassSelect<T extends string>({
@@ -75,6 +75,56 @@ export default function GlassSelect<T extends string>({
     }
   }, [open])
 
+  // Keep the keyboard-highlighted option visible in a scrolling list.
+  useEffect(() => {
+    if (open) (listRef.current?.children[active] as HTMLElement | undefined)?.scrollIntoView({ block: 'nearest' })
+  }, [open, active])
+
+  const choose = (idx: number) => {
+    const opt = options[idx]
+    if (!opt) return
+    onChange(opt.value)
+    setOpen(false)
+  }
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (disabled) return
+    switch (e.key) {
+      case 'ArrowDown':
+      case 'ArrowUp': {
+        e.preventDefault()
+        if (!open) return toggle()
+        const step = e.key === 'ArrowDown' ? 1 : -1
+        setActive((a) => (a + step + options.length) % options.length)
+        break
+      }
+      case 'Home':
+      case 'End':
+        if (open) {
+          e.preventDefault()
+          setActive(e.key === 'Home' ? 0 : options.length - 1)
+        }
+        break
+      case 'Enter':
+      case ' ':
+        if (open) {
+          e.preventDefault()
+          choose(active)
+        }
+        break
+      case 'Escape':
+        if (open) {
+          e.preventDefault()
+          e.stopPropagation()
+          setOpen(false)
+        }
+        break
+      case 'Tab':
+        setOpen(false)
+        break
+    }
+  }
+
   return (
     <div ref={ref} className="relative w-full">
       <button
@@ -84,6 +134,7 @@ export default function GlassSelect<T extends string>({
         aria-expanded={open}
         aria-disabled={disabled}
         onClick={toggle}
+        onKeyDown={onKeyDown}
         className={`glass-input flex w-full items-center justify-between text-left ${
           disabled ? 'cursor-not-allowed opacity-50' : ''
         }`}
