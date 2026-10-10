@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { IconCheck, IconChevronDown } from '@tabler/icons-react'
 
@@ -28,6 +29,11 @@ export default function GlassSelect<T extends string>({
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+  // The list is portaled to <body>: every .glass card has a backdrop-filter,
+  // which makes it a stacking context, so an in-card list would be trapped
+  // underneath the next card no matter its z-index.
+  const [pos, setPos] = useState<{ left: number; width: number; top?: number; bottom?: number } | null>(null)
 
   const selected = options.find((o) => o.value === value)
 
@@ -39,11 +45,35 @@ export default function GlassSelect<T extends string>({
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      const t = e.target as Node
+      if (ref.current?.contains(t) || listRef.current?.contains(t)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
+
+  useLayoutEffect(() => {
+    if (!open) return
+    const place = () => {
+      const r = ref.current?.getBoundingClientRect()
+      if (!r) return
+      const below = window.innerHeight - r.bottom
+      // Flip above the trigger when there isn't room for the 13rem list.
+      if (below < 220 && r.top > below) {
+        setPos({ left: r.left, width: r.width, bottom: window.innerHeight - r.top + 6 })
+      } else {
+        setPos({ left: r.left, width: r.width, top: r.bottom + 6 })
+      }
+    }
+    place()
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => {
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
+    }
+  }, [open])
 
   return (
     <div ref={ref} className="relative w-full">
@@ -69,11 +99,14 @@ export default function GlassSelect<T extends string>({
         </span>
       </button>
 
+      {createPortal(
       <AnimatePresence>
-        {open && (
+        {open && pos && (
           <motion.ul
+            ref={listRef}
             role="listbox"
-            className="glass glass-strong absolute left-0 z-40 mt-1.5 w-full max-h-52 overflow-y-auto rounded-xl p-1.5"
+            style={{ position: 'fixed', left: pos.left, width: pos.width, top: pos.top, bottom: pos.bottom }}
+            className="glass glass-strong z-[1000] max-h-52 overflow-y-auto rounded-xl p-1.5"
             initial={{ opacity: 0, y: -4, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
@@ -103,7 +136,9 @@ export default function GlassSelect<T extends string>({
             ))}
           </motion.ul>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body,
+      )}
     </div>
   )
 }
