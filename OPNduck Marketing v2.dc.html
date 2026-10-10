@@ -660,7 +660,7 @@ class Component extends DCLogic {
       planned: [
         { name: 'Format converter (FFmpeg)', inProgress: true },
         { name: 'AI upscaler', inProgress: false },
-        { name: 'Migrate from Electron to Tauri', postponed: true, note: 'Postponed: Tauri's Linux webview (WebKitGTK) stutters and can crash on NVIDIA + Wayland, so OPNduck stays on Electron until that's fixed upstream.' },
+        { name: 'Migrate from Electron to Tauri', postponed: true, note: 'Postponed: the Linux webview used by Tauri (WebKitGTK) stutters and can crash on NVIDIA + Wayland, so OPNduck stays on Electron until that is fixed upstream.' },
         { name: 'macOS build', inProgress: false },
       ],
     };
