@@ -487,3 +487,11 @@ body {
   outline: 1px dashed #ff3366;
   outline-offset: -1px;
 }
+
+/* "Synced with Omarchy": Omarchy's look is square-cornered, so strip every
+   radius (Tailwind rounded-*, .glass*, pills, scrollbars) while it's active. */
+[data-theme='omarchy'] *,
+[data-theme='omarchy'] *::before,
+[data-theme='omarchy'] *::after {
+  border-radius: 0 !important;
+}
