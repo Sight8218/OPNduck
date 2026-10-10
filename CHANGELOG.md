@@ -4,6 +4,24 @@ All notable changes to OPNduck are documented in this file. Generated with
 [git-cliff](https://github.com/orhun/git-cliff) from Conventional Commit
 history; entries are curated for readability.
 
+## [Unreleased]
+
+### Security
+
+- **Dependency advisories cleared.** `concurrently` 10.0.6 pulls the patched
+  `shell-quote` (critical command injection); `npm audit fix` patched
+  `brace-expansion`, `http-cache-semantics`, `joi`, `source-map-js`, `undici`
+  and `fast-uri`. The only remaining advisory is a dev-only moderate chain
+  under `electron-builder` (`sprintf-js` via `roarr`/`global-agent`); the sole
+  offered fix downgrades `electron-builder`, so it is left until upstream fixes it.
+
+### Changed
+
+- Electron 44.1 → 44.7 (Chromium security backports), React/React DOM 19.3,
+  framer-motion 14.1, TypeScript 7.0, Vite 8.3, plus minor bumps to
+  react-router-dom, Tabler icons, oxlint, wait-on and the React type packages.
+  `@types/node` 26 (note: Electron 44 bundles Node 24, so types are slightly ahead of the runtime).
+
 ## [0.2.1-Alpha] - 2026-09-20
 
 Critical packaging bug: the app was effectively unusable once actually
