@@ -1,0 +1,71 @@
+{
+  "project": "opnduck-desktop",
+  "version": "0.3.1-Alpha",
+  "manifest_version_field": "0.3.1-alpha",
+  "release_type": "alpha hotfix (pre-release)",
+  "tag": "v0.3.1-Alpha",
+  "branch": "main",
+  "base_tag": "v0.3.0-Alpha",
+  "mode": "automated",
+  "stages": {
+    "discovery": "complete",
+    "version": "complete",
+    "changelog": "complete",
+    "docs": "complete",
+    "build": "complete",
+    "package": "complete",
+    "checksum": "complete",
+    "scan": "complete",
+    "validation": "complete"
+  },
+  "platforms": [
+    "linux",
+    "windows"
+  ],
+  "architectures": [
+    "x64"
+  ],
+  "artifacts": [
+    "OPNduck-0.3.1-alpha.AppImage",
+    "OPNduck.0.3.1-alpha.exe",
+    "opnduck-desktop-0.3.1-alpha.pacman",
+    "OPNduck.Setup.0.3.1-alpha.exe"
+  ],
+  "checksums": {
+    "OPNduck-0.3.1-alpha.AppImage": "49f18b19495a7b795be7f552eaaea2a6ea8079576096cec2b1363df475b287df",
+    "OPNduck.0.3.1-alpha.exe": "1268dc3f640fb6cc622af1d2b5a6849469f37c4eeee14d7aa38505e47cd09040",
+    "opnduck-desktop-0.3.1-alpha.pacman": "7e1853399eb0ef6d23eb225eafe52c075306ba483aa4518320b3a6c19905005d",
+    "OPNduck.Setup.0.3.1-alpha.exe": "6fceb6752a1edbf6b52e23e2d68cfa83caddd51ef074c85a748f7eec9c6fe397"
+  },
+  "toolchain": {
+    "build": "npm run dist:linux; npm run dist:win (electron-builder, wine)"
+  },
+  "tests": {
+    "lint": "0 errors (warnings only)",
+    "typecheck": "clean",
+    "build": "ok",
+    "smoke_test": "packaged linux-unpacked rendered UI: 11 .glass elements, 1 page loaded via file://app.asar/dist/index.html"
+  },
+  "secret_scan": {
+    "gitleaks": "no leaks (112 commits)",
+    "trufflehog": "0 verified/unverified since v0.3.0-Alpha"
+  },
+  "packaging": {
+    "appimage": "built",
+    "pacman": "built",
+    "nsis": "built",
+    "portable": "built",
+    "aur": "not published (deferred)",
+    "signing": "not implemented (deferred)"
+  },
+  "tauri": "postponed",
+  "documentation_changes": [
+    "CHANGELOG.md",
+    "README.md",
+    "PROJECT_BRIEF.md"
+  ],
+  "publication": {
+    "github_release": "pending"
+  },
+  "commit_base": "18c2aa6"
+}

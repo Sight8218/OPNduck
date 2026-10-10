@@ -32,7 +32,7 @@ Current title/identity: **"OPNduck Desktop Suite"** 🦆, warm gradient branding
 | Styling | **Tailwind CSS v4** + CSS custom-property theme tokens | Theme switching via a single `data-theme` attribute. |
 | Animation | **Framer Motion** + CSS keyframes | GPU-accelerated, cheap. |
 | Foreground roadmap | Linux-first, **Windows-parallel from day 1**, macOS later | Dev happens on Linux (Arch). Cross-platform paths/scripts baked in. |
-| Version | **v0.3.0-Alpha** | Downloader (incl. playlists) and multi-format Converter wired in; Tauri migration postponed. |
+| Version | **v0.3.1-Alpha** | Hotfix for the blank-window bug in v0.3.0-Alpha packaged builds; Tauri migration postponed. |
 | License | **GPL-3.0**, copyright **Aaron Jonsson 2026** | Actual LICENSE in repo + GPL header on every source file. |
 
 **Version rule (user's, explicit):** Pre-Alpha = GUI + settings only. Alpha = at least
@@ -164,7 +164,7 @@ mount (`hideSplash()`).
 ## 11. Current repo state
 
 - Location: `/home/ducky/Work/opnduck/`
-- Version: `0.3.0-alpha`
+- Version: `0.3.1-alpha`
 - `npm run build`, `npm run lint` → **clean**. Dev server serves on `:1420`.
 - Git repo initialized on `main`, files staged, **NO commit yet** (first build complete;
   ready for an initial commit).

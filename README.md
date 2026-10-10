@@ -5,8 +5,9 @@ upscaling, motion frame-interpolation, media downloads, conversions, and transcr
 directly to your local GPU/CPU at zero cost — no subscriptions, no cloud, no spying. All
 your media stays on your machine.
 
-This is **v0.3.0-Alpha**: real media downloading (`yt-dlp`, now including YouTube
-playlists) and a rebuilt multi-format Converter (video/audio/image via ffmpeg, documents
+This is **v0.3.1-Alpha**, a hotfix: installed v0.3.0-Alpha builds opened a blank
+window, so everyone on 0.3.0 should upgrade. It ships real media downloading
+(`yt-dlp`, now including YouTube playlists) and a rebuilt multi-format Converter (video/audio/image via ffmpeg, documents
 via LibreOffice), on top of the "Liquid Glass" frontend shell — GUI, routing, theming,
 settings, and the adaptive card dashboard. Other engines (Beat Finder, Subtitles) are
 still not wired in. The Tauri migration is **postponed** (see Desktop Shell below);
@@ -132,7 +133,7 @@ remaining native sidecars land in later Alpha updates.
 
 ## 📝 Project Metadata & Licensing
 
-- **Project State**: `v0.3.0-Alpha` (downloader + converter wired in; some engines still stubbed — expect bugs!)
+- **Project State**: `v0.3.1-Alpha` (downloader + converter wired in; some engines still stubbed — expect bugs!)
 - **Original Developer**: Aaron
 - **Development Model**: Built with the architectural assistance of AI.
 - **License**: [GPL-3.0](./LICENSE) — free software. Copyright © 2026 Aaron Jonsson.

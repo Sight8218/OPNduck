@@ -4,7 +4,51 @@ All notable changes to OPNduck are documented in this file. Generated with
 [git-cliff](https://github.com/orhun/git-cliff) from Conventional Commit
 history; entries are curated for readability.
 
+## [0.3.1-Alpha] - 2026-10-10
+
+Hotfix. **Everyone on v0.3.0-Alpha should upgrade.**
+
+### Fixed
+
+- **Critical: installed/packaged v0.3.0-Alpha builds opened a blank,
+  transparent window.** `electron/main.cjs` passed a bare filesystem path to
+  `win.loadURL()`, which no longer navigates on Electron 44.7 (it worked on
+  44.1). The built UI is now loaded with `win.loadFile()`. Dev mode was
+  unaffected, which is why it was not caught before release. The packaged
+  Linux build was verified to render before this release was published.
+- Batch conversions are now capped at 2 running at once.
+- Video upscale/interpolate outputs are always `.mp4`.
+- Cancelling a LibreOffice conversion now kills the whole process tree (no
+  orphaned `soffice.bin`).
+
+### Security / hardening
+
+- Only `http(s)` links are accepted; IPC requests are validated; Spotify
+  lookups are restricted to `open.spotify.com`.
+- A Content-Security-Policy was added to the renderer.
+
+### Changed
+
+- Full keyboard navigation in dropdowns.
+- Command-palette downloads now offer the playlist choice.
+
+### Tauri migration: still POSTPONED
+
+Unchanged from 0.3.0: the Tauri v2 migration is archived on the
+`tauri-migration-phase1` branch but is **postponed and not shipping**. Tauri
+uses WebKitGTK on Linux, which stutters/lags and can segfault with hardware
+compositing on the NVIDIA proprietary driver under Wayland (an upstream
+platform bug, not an OPNduck bug). OPNduck stays on **Electron**.
+
+### Known issues
+
+- Windows installers are built from Linux via wine and are untested on Windows.
+- No AUR publication and no artifact signing yet (deferred).
+
 ## [0.3.0-Alpha] - 2026-10-10
+
+> **Known broken:** installed builds of this version open a blank window.
+> Use 0.3.1-Alpha instead.
 
 Largest feature release since 0.2.0: a rebuilt multi-format Converter, YouTube
 playlist downloads, AI upscaling/interpolation cards, a lot of UI polish, a
