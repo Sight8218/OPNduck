@@ -5,8 +5,9 @@ upscaling, motion frame-interpolation, media downloads, conversions, and transcr
 directly to your local GPU/CPU at zero cost — no subscriptions, no cloud, no spying. All
 your media stays on your machine.
 
-This is **v0.3.1-Alpha**, a hotfix: installed v0.3.0-Alpha builds opened a blank
-window, so everyone on 0.3.0 should upgrade. It ships real media downloading
+This is **v0.3.2-Alpha**: jobs started from Home keep their progress when you
+navigate away, plus drag & drop, persistent history and per-card presets (v0.3.0 builds
+opened a blank window; use 0.3.1 or newer). It ships real media downloading
 (`yt-dlp`, now including YouTube playlists) and a rebuilt multi-format Converter (video/audio/image via ffmpeg, documents
 via LibreOffice), on top of the "Liquid Glass" frontend shell — GUI, routing, theming,
 settings, and the adaptive card dashboard. Other engines (Beat Finder, Subtitles) are
@@ -133,7 +134,7 @@ remaining native sidecars land in later Alpha updates.
 
 ## 📝 Project Metadata & Licensing
 
-- **Project State**: `v0.3.1-Alpha` (downloader + converter wired in; some engines still stubbed — expect bugs!)
+- **Project State**: `v0.3.2-Alpha` (downloader + converter wired in; some engines still stubbed — expect bugs!)
 - **Original Developer**: Aaron
 - **Development Model**: Built with the architectural assistance of AI.
 - **License**: [GPL-3.0](./LICENSE) — free software. Copyright © 2026 Aaron Jonsson.

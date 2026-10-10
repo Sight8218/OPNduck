@@ -1,0 +1,71 @@
+{
+  "project": "opnduck-desktop",
+  "version": "0.3.2-Alpha",
+  "manifest_version_field": "0.3.2-alpha",
+  "release_type": "alpha feature/fix release (pre-release)",
+  "tag": "v0.3.2-Alpha",
+  "branch": "main",
+  "base_tag": "v0.3.1-Alpha",
+  "mode": "automated",
+  "stages": {
+    "discovery": "complete",
+    "version": "complete",
+    "changelog": "complete",
+    "docs": "complete",
+    "build": "complete",
+    "package": "complete",
+    "checksum": "complete",
+    "scan": "complete",
+    "validation": "complete"
+  },
+  "platforms": [
+    "linux",
+    "windows"
+  ],
+  "architectures": [
+    "x64"
+  ],
+  "artifacts": [
+    "60111aa5a29bb8f105ddfea6ac8a46eef68ef3f4cdd3498feeeff6227623ca78",
+    "0a22766d3a416b29f505eefdf84873799e4e2ed8148630c4966ea112dcf26ea8",
+    "f7b151e8f4e8c594a246090929bf56d5646db23d9c918a16247051e51afca197",
+    "77e37ede2e404ea892390cb938229af6972ee30565cab066dfa176fdc30facc2"
+  ],
+  "checksums": {
+    "60111aa5a29bb8f105ddfea6ac8a46eef68ef3f4cdd3498feeeff6227623ca78": "OPNduck-0.3.2-alpha.AppImage",
+    "0a22766d3a416b29f505eefdf84873799e4e2ed8148630c4966ea112dcf26ea8": "OPNduck.0.3.2-alpha.exe",
+    "f7b151e8f4e8c594a246090929bf56d5646db23d9c918a16247051e51afca197": "opnduck-desktop-0.3.2-alpha.pacman",
+    "77e37ede2e404ea892390cb938229af6972ee30565cab066dfa176fdc30facc2": "OPNduck.Setup.0.3.2-alpha.exe"
+  },
+  "toolchain": {
+    "build": "npm run dist:linux; npm run dist:win (electron-builder, wine)"
+  },
+  "tests": {
+    "lint": "0 errors (warnings only)",
+    "typecheck": "clean",
+    "build": "ok",
+    "smoke_test": "packaged linux-unpacked rendered UI: 11 .glass elements, page loaded via file://.../app.asar/dist/index.html"
+  },
+  "secret_scan": {
+    "gitleaks": "no leaks (116 commits)",
+    "trufflehog": "0 verified/unverified since 30afb37"
+  },
+  "packaging": {
+    "appimage": "built",
+    "pacman": "built",
+    "nsis": "built",
+    "portable": "built",
+    "aur": "not published (deferred)",
+    "signing": "not implemented (deferred)"
+  },
+  "tauri": "postponed",
+  "documentation_changes": [
+    "CHANGELOG.md",
+    "README.md",
+    "PROJECT_BRIEF.md"
+  ],
+  "publication": {
+    "github_release": "pending"
+  },
+  "commit_base": "3419e5e"
+}

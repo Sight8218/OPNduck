@@ -4,6 +4,43 @@ All notable changes to OPNduck are documented in this file. Generated with
 [git-cliff](https://github.com/orhun/git-cliff) from Conventional Commit
 history; entries are curated for readability.
 
+## [0.3.2-Alpha] - 2026-10-10
+
+### Fixed
+
+- Jobs started from Home now keep showing their progress after you navigate
+  away and back, and the card's button stays disabled while they run.
+  Previously leaving the page made the card forget its jobs, so it was easy to
+  start duplicates by accident (for example 50 upscales).
+- Video Upscaler and Frame Interpolation now return their task immediately, so
+  a progress bar appears right away instead of only after the whole job
+  finished.
+
+### Added
+
+- Drag & drop: drop files onto the Converter, Image Upscaler, Video Upscaler
+  and Interpolation cards, and drag a link onto the Downloader. Dropping a file
+  elsewhere in the window no longer replaces the whole UI.
+- Library history now persists across launches, with Open folder, Run again
+  and Clear finished.
+- Per-card presets (Downloader, both Upscalers, Interpolation). The Converter
+  gets one-click format presets and "Save as preset" in the format picker.
+
+### Tauri migration: still POSTPONED
+
+Unchanged: the Tauri v2 migration is archived on the `tauri-migration-phase1`
+branch but is **postponed and not shipping**. Tauri uses WebKitGTK on Linux,
+which stutters/lags and can segfault with hardware compositing on the NVIDIA
+proprietary driver under Wayland (an upstream platform bug, not an OPNduck
+bug). OPNduck stays on **Electron**.
+
+### Known issues
+
+- Windows installers are built from Linux via wine and are untested on Windows.
+- Drag & drop of real files from a file manager was only tested at the code
+  path level, not by hand.
+- No AUR publication and no artifact signing yet (deferred).
+
 ## [0.3.1-Alpha] - 2026-10-10
 
 Hotfix. **Everyone on v0.3.0-Alpha should upgrade.**
