@@ -45,4 +45,4 @@ sidecar/__pycache__
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+*.sw?github-release/*/*/assets/

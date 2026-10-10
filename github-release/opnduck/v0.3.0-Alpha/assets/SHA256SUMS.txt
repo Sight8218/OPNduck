@@ -1,0 +1,4 @@
+0817a03b7186545dcf45fad9c89ea2ef94666914fa0fb0b4a7e4c11cad41aa2d  OPNduck-0.3.0-alpha.AppImage
+02e9e2a8860df2e5699ae3ba7aab0c93906a31b9646dfd014499b9b6f4e3aafd  OPNduck.0.3.0-alpha.exe
+df4a74b266649ab265af6fc32e8d97bd91981faba8ceb1ca54c7953ff3c027f1  opnduck-desktop-0.3.0-alpha.pacman
+bec47b7242114286575ddf6d8e2e1a05cf2ddfe3e7a38431d9a290c96ae1a38a  OPNduck.Setup.0.3.0-alpha.exe

@@ -5,11 +5,12 @@ upscaling, motion frame-interpolation, media downloads, conversions, and transcr
 directly to your local GPU/CPU at zero cost — no subscriptions, no cloud, no spying. All
 your media stays on your machine.
 
-This is **v0.2.0-Alpha**: real media downloading now works end-to-end (`yt-dlp`-backed
-task queue, quality/bitrate selection, size-estimate probing, thumbnails), on top of the
-"Liquid Glass" frontend shell — GUI, routing, theming, settings, and the adaptive card
-dashboard. The remaining engines (Converter, AI Upscaler/Interpolator, Beat Finder,
-Subtitles) are still not wired in.
+This is **v0.3.0-Alpha**: real media downloading (`yt-dlp`, now including YouTube
+playlists) and a rebuilt multi-format Converter (video/audio/image via ffmpeg, documents
+via LibreOffice), on top of the "Liquid Glass" frontend shell — GUI, routing, theming,
+settings, and the adaptive card dashboard. Other engines (Beat Finder, Subtitles) are
+still not wired in. The Tauri migration is **postponed** (see Desktop Shell below);
+OPNduck ships on Electron.
 
 <p align="center">
   <img src="docs/screenshots/home.png" alt="OPNduck home screen — Downloader and AI Upscaler cards over the Liquid Glass fluid gradient" width="49%" />
@@ -52,7 +53,7 @@ Themes are implemented as CSS custom-property tokens switched by a single
 - **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, React Router, Framer Motion.
 - **Desktop Shell**: Electron. A full Tauri v2 migration was built and verified
   (Rust backend, all feature pipelines ported, Windows sidecars vendored — preserved on
-  the `tauri-migration-phase1` branch), but is **on hold, not shipping**: on Linux with
+  the `tauri-migration-phase1` branch), but is **postponed, not shipping**: on Linux with
   an NVIDIA proprietary driver under Wayland, Tauri's webview (WebKitGTK) can't do
   hardware-accelerated compositing — it either segfaults, or falls back to a
   software-rendering path so slow the app is barely usable (confirmed against the
@@ -131,7 +132,7 @@ remaining native sidecars land in later Alpha updates.
 
 ## 📝 Project Metadata & Licensing
 
-- **Project State**: `v0.2.0-Alpha` (real media downloading; other engines still stubbed — expect bugs!)
+- **Project State**: `v0.3.0-Alpha` (downloader + converter wired in; some engines still stubbed — expect bugs!)
 - **Original Developer**: Aaron
 - **Development Model**: Built with the architectural assistance of AI.
 - **License**: [GPL-3.0](./LICENSE) — free software. Copyright © 2026 Aaron Jonsson.

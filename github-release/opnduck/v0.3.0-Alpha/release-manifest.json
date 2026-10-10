@@ -1,0 +1,69 @@
+{
+  "project": "opnduck-desktop",
+  "version": "0.3.0-Alpha",
+  "manifest_version_field": "0.3.0-alpha",
+  "release_type": "alpha (pre-release)",
+  "tag": "v0.3.0-Alpha",
+  "branch": "main",
+  "base_tag": "v0.2.1-Alpha",
+  "mode": "automated",
+  "stages": {
+    "discovery": "complete",
+    "version": "complete",
+    "changelog": "complete",
+    "docs": "complete",
+    "build": "complete",
+    "package": "complete",
+    "checksum": "complete",
+    "scan": "complete",
+    "validation": "complete"
+  },
+  "platforms": [
+    "linux",
+    "windows"
+  ],
+  "architectures": [
+    "x64"
+  ],
+  "artifacts": [
+    "0817a03b7186545dcf45fad9c89ea2ef94666914fa0fb0b4a7e4c11cad41aa2d",
+    "02e9e2a8860df2e5699ae3ba7aab0c93906a31b9646dfd014499b9b6f4e3aafd",
+    "df4a74b266649ab265af6fc32e8d97bd91981faba8ceb1ca54c7953ff3c027f1",
+    "bec47b7242114286575ddf6d8e2e1a05cf2ddfe3e7a38431d9a290c96ae1a38a"
+  ],
+  "checksums": {
+    "0817a03b7186545dcf45fad9c89ea2ef94666914fa0fb0b4a7e4c11cad41aa2d": "OPNduck-0.3.0-alpha.AppImage",
+    "02e9e2a8860df2e5699ae3ba7aab0c93906a31b9646dfd014499b9b6f4e3aafd": "OPNduck.0.3.0-alpha.exe",
+    "df4a74b266649ab265af6fc32e8d97bd91981faba8ceb1ca54c7953ff3c027f1": "opnduck-desktop-0.3.0-alpha.pacman",
+    "bec47b7242114286575ddf6d8e2e1a05cf2ddfe3e7a38431d9a290c96ae1a38a": "OPNduck.Setup.0.3.0-alpha.exe"
+  },
+  "toolchain": {
+    "build": "npm run dist:linux; npm run dist:win (electron-builder, wine)"
+  },
+  "tests": {
+    "lint": "0 errors (warnings only)",
+    "typecheck": "clean",
+    "build": "ok"
+  },
+  "secret_scan": {
+    "gitleaks": "no leaks (108 commits)",
+    "trufflehog": "0 verified/unverified since v0.2.1-Alpha"
+  },
+  "packaging": {
+    "appimage": "built",
+    "pacman": "built",
+    "nsis": "built",
+    "portable": "built",
+    "aur": "not published (deferred)",
+    "signing": "not implemented (deferred)"
+  },
+  "tauri": "postponed",
+  "documentation_changes": [
+    "CHANGELOG.md",
+    "README.md",
+    "PROJECT_BRIEF.md"
+  ],
+  "publication": {
+    "github_release": "pending"
+  }
+}
