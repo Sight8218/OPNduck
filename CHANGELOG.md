@@ -20,7 +20,7 @@ history; entries are curated for readability.
 - Electron 44.1 → 44.7 (Chromium security backports), React/React DOM 19.3,
   framer-motion 14.1, TypeScript 7.0, Vite 8.3, plus minor bumps to
   react-router-dom, Tabler icons, oxlint, wait-on and the React type packages.
-  `@types/node` stays on 24 to match the Node 24 bundled with Electron 44.
+  `@types/node` 26 (note: Electron 44 bundles Node 24, so types are slightly ahead of the runtime).
 
 ## [0.2.1-Alpha] - 2026-09-20
 
