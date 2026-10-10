@@ -67,12 +67,4 @@ const platform: PlatformInfo = (() => {
   }
 })()
 
-/** Query whether the renderer should render a custom (fake) OS window chrome. */
-export function needsCustomChrome(): boolean {
-  // In the browser we show a decorative titlebar; inside a desktop shell the
-  // real frameless window supplies it (Electron `titleBarStyle: hidden`,
-  // Tauri decorated:false). Both still use the same drag-region markup.
-  return !platform.isDesktop
-}
-
 export default platform

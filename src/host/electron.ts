@@ -43,7 +43,7 @@ interface ElectronBridge {
   pickFolder(): Promise<string | null>
   checkYtDlp(): Promise<ToolStatus>
   checkFfmpeg(): Promise<ToolStatus>
-    checkLibreOffice(): Promise<ToolStatus>
+  checkLibreOffice(): Promise<ToolStatus>
   checkRealesrgan(): Promise<ToolStatus>
   checkRife(): Promise<ToolStatus>
   omarchy: {

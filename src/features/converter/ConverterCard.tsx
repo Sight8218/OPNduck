@@ -4,13 +4,13 @@ import Tag from '../../components/Tag'
 import { host, type ContainerFormat, type ConvertMode } from '../../host'
 import FormatPickerModal from './FormatPickerModal'
 import { CATEGORY_LABELS, FORMATS, PICKER_EXTENSIONS, type FormatCategory } from './formats'
-
-const CATEGORIES: FormatCategory[] = ['video', 'audio', 'image', 'document']
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
 import { IconX } from '@tabler/icons-react'
+
+const CATEGORIES: FormatCategory[] = ['video', 'audio', 'image', 'document']
 
 function basename(fullPath: string): string {
   return fullPath.split(/[/\\]/).pop() ?? fullPath
