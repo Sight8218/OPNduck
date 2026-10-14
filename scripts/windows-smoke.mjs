@@ -139,7 +139,7 @@ try {
 const lines = ['## OPNduck Windows smoke test', '', '| Check | Result | Detail |', '|---|---|---|']
 for (const r of results) {
   const mark = r.ok ? '✅ pass' : r.required ? '❌ fail' : '⚠️ warn'
-  lines.push(`| ${r.name} | ${mark} | ${String(r.detail).replace(/\|/g, '\\|').replace(/\n/g, ' ').slice(0, 400)} |`)
+  lines.push(`| ${r.name} | ${mark} | ${String(r.detail).replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ').slice(0, 400)} |`)
 }
 lines.push('', 'Drag and drop needs a real mouse drag from Explorer and is not covered here.')
 fs.writeFileSync(path.join(outDir, 'report.md'), lines.join('\n') + '\n')
