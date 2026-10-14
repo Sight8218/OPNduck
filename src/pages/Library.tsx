@@ -28,6 +28,7 @@ const RUNNING_LABEL: Record<TaskState['kind'], string> = {
   convert: 'Converting',
   upscale: 'Upscaling',
   interpolate: 'Interpolating',
+  subtitles: 'Transcribing',
 }
 
 function statusLabel(task: TaskState): string {

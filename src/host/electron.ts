@@ -23,6 +23,7 @@ import type {
   DownloadRequest,
   Host,
   InterpolateRequest,
+  SubtitlesRequest,
   TaskState,
   ToolStatus,
   UpscaleRequest,
@@ -47,6 +48,7 @@ interface ElectronBridge {
   checkLibreOffice(): Promise<ToolStatus>
   checkRealesrgan(): Promise<ToolStatus>
   checkRife(): Promise<ToolStatus>
+  checkFasterWhisper(): Promise<ToolStatus>
   omarchy: {
     get(): Promise<OmarchyTheme | null>
     subscribe(listener: (theme: OmarchyTheme | null) => void): () => void
@@ -57,6 +59,7 @@ interface ElectronBridge {
     startUpscale(req: UpscaleRequest): Promise<string>
     startVideoUpscale(req: UpscaleRequest): Promise<string>
     startInterpolate(req: InterpolateRequest): Promise<string>
+    startSubtitles(req: SubtitlesRequest): Promise<string>
     cancel(taskId: string): void
     rerun(taskId: string): Promise<string | null>
     openFolder(taskId: string): Promise<void>
@@ -112,6 +115,7 @@ export function detectElectronHost(): Host | null {
     checkLibreOffice: () => bridge.checkLibreOffice(),
     checkRealesrgan: () => bridge.checkRealesrgan(),
     checkRife: () => bridge.checkRife(),
+    checkFasterWhisper: () => bridge.checkFasterWhisper(),
     omarchy: {
       get: () => bridge.omarchy.get(),
       subscribe: (listener) => bridge.omarchy.subscribe(listener),
@@ -122,6 +126,7 @@ export function detectElectronHost(): Host | null {
       startUpscale: (req) => bridge.tasks.startUpscale(req),
       startVideoUpscale: (req) => bridge.tasks.startVideoUpscale(req),
       startInterpolate: (req) => bridge.tasks.startInterpolate(req),
+      startSubtitles: (req) => bridge.tasks.startSubtitles(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
       rerun: (taskId) => bridge.tasks.rerun(taskId),
       openFolder: (taskId) => bridge.tasks.openFolder(taskId),

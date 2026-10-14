@@ -3,6 +3,7 @@ import {
   IconMovie,
   IconPhotoUp,
   IconPlayerTrackNext,
+  IconTextCaption,
   IconTransform,
   type Icon,
 } from '@tabler/icons-react'
@@ -14,6 +15,7 @@ const FEATURE_ICONS: Record<string, Icon> = {
   'image-upscale': IconPhotoUp,
   'video-upscale': IconMovie,
   interpolate: IconPlayerTrackNext,
+  subtitles: IconTextCaption,
 }
 
 export function FeatureIcon({ name, size = 22 }: { name: string; size?: number }) {

@@ -37,6 +37,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   checkLibreOffice: () => ipcRenderer.invoke('system:checkLibreOffice'),
   checkRealesrgan: () => ipcRenderer.invoke('system:checkRealesrgan'),
   checkRife: () => ipcRenderer.invoke('system:checkRife'),
+  checkFasterWhisper: () => ipcRenderer.invoke('system:checkFasterWhisper'),
   omarchy: {
     get: () => ipcRenderer.invoke('omarchy:get'),
     subscribe: (listener) => {
@@ -51,6 +52,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     startUpscale: (req) => ipcRenderer.invoke('tasks:startUpscale', req),
     startVideoUpscale: (req) => ipcRenderer.invoke('tasks:startVideoUpscale', req),
     startInterpolate: (req) => ipcRenderer.invoke('tasks:startInterpolate', req),
+    startSubtitles: (req) => ipcRenderer.invoke('tasks:startSubtitles', req),
     cancel: (taskId) => ipcRenderer.send('tasks:cancel', taskId),
     rerun: (taskId) => ipcRenderer.invoke('tasks:rerun', taskId),
     openFolder: (taskId) => ipcRenderer.invoke('tasks:openFolder', taskId),
