@@ -13,8 +13,9 @@ import fs from 'node:fs'
 import http from 'node:http'
 import path from 'node:path'
 
-const [exe, outDir] = process.argv.slice(2)
-if (!exe || !outDir) {
+const [exe, outArg] = process.argv.slice(2)
+const outDir = outArg && path.resolve(outArg) // the app only accepts absolute paths
+if (!exe || !outArg) {
   console.error('usage: node scripts/windows-smoke.mjs <OPNduck.exe> <output dir>')
   process.exit(2)
 }
