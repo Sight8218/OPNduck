@@ -143,6 +143,10 @@ function ytDlpInstallHint() {
   return 'sudo pacman -S yt-dlp   (or: pip install -U yt-dlp)'
 }
 
+/** yt-dlp prints in the console code page on Windows when piped (e.g. cp1252), which garbles
+ *  non-ASCII titles in the paths parsed from its output; force UTF-8 everywhere. */
+const YTDLP_ENCODING = ['--encoding', 'utf-8']
+
 ipcMain.handle('system:checkYtDlp', () => {
   return new Promise((resolve) => {
     let child
@@ -164,11 +168,24 @@ function libreOfficeInstallHint() {
   return 'sudo pacman -S libreoffice-fresh   (or your distro\'s package manager)'
 }
 
+/** On Windows neither winget nor the LibreOffice installer adds it to PATH, so also look
+ *  in the default install folders. soffice.com is the console launcher: soffice.exe is a
+ *  GUI program that prints nothing to a pipe. */
+function sofficeCommand() {
+  if (process.platform !== 'win32') return 'soffice'
+  for (const base of [process.env.ProgramFiles, process.env['ProgramFiles(x86)']]) {
+    if (!base) continue
+    const candidate = path.join(base, 'LibreOffice', 'program', 'soffice.com')
+    if (fs.existsSync(candidate)) return candidate
+  }
+  return 'soffice'
+}
+
 ipcMain.handle('system:checkLibreOffice', () => {
   return new Promise((resolve) => {
     let child
     try {
-      child = spawn('soffice', ['--version'])
+      child = spawn(sofficeCommand(), ['--version'])
     } catch {
       resolve({ available: false, installHint: libreOfficeInstallHint() })
       return
@@ -495,7 +512,7 @@ function probePlaylist(url) {
   return new Promise((resolve) => {
     let child
     try {
-      child = spawn('yt-dlp', ['--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', '5000', '--', url])
+      child = spawn('yt-dlp', [...YTDLP_ENCODING, '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', '5000', '--', url])
     } catch {
       resolve(null)
       return
@@ -551,7 +568,7 @@ async function probeInfo(req) {
   const single = await new Promise((resolve) => {
     let child
     try {
-      child = spawn('yt-dlp', ['--dump-json', '--no-warnings', '--no-playlist', '--', effectiveUrl])
+      child = spawn('yt-dlp', [...YTDLP_ENCODING, '--dump-json', '--no-warnings', '--no-playlist', '--', effectiveUrl])
     } catch {
       resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null })
       return
@@ -693,6 +710,7 @@ handleStart('tasks:start', async (_e, req) => {
   const outDirTemplate = destDir.replace(/%/g, '%%')
   const args = wholePlaylist
     ? [
+        ...YTDLP_ENCODING,
         ...formatArgs(req),
         '--newline',
         '--yes-playlist',
@@ -704,6 +722,7 @@ handleStart('tasks:start', async (_e, req) => {
         effectiveUrl,
       ]
     : [
+        ...YTDLP_ENCODING,
         ...formatArgs(req),
         '--newline',
         '--no-playlist',
@@ -948,7 +967,7 @@ function runDocConvert(id, req, fmt, outputPath) {
   const profile = pathToFileURL(path.join(work, 'profile')).href
   let child
   try {
-    child = spawn('soffice', [
+    child = spawn(sofficeCommand(), [
       `-env:UserInstallation=${profile}`,
       '--headless',
       '--convert-to',
