@@ -9,7 +9,7 @@ This is **v0.3.2-Alpha**: jobs started from Home keep their progress when you
 navigate away, plus drag & drop, persistent history and per-card presets (v0.3.0 builds
 opened a blank window; use 0.3.1 or newer). It ships real media downloading
 (`yt-dlp`, now including YouTube playlists) and a rebuilt multi-format Converter (video/audio/image via ffmpeg, documents
-via LibreOffice), on top of the "Liquid Glass" frontend shell — GUI, routing, theming,
+via LibreOffice), on top of the frontend shell — GUI, routing, theming,
 settings, and the adaptive card dashboard. Subtitles (faster-whisper) are now wired
 in; Beat Finder is still not. The Tauri migration is **postponed** (see Desktop Shell below);
 OPNduck ships on Electron.
@@ -21,32 +21,23 @@ OPNduck ships on Electron.
 
 ---
 
-## 🎨 The "Liquid Glass" Design System
+## 🎨 Design System
 
-The defining visual identity of OPNduck:
+OPNduck uses a flat, solid look: no blur, no translucency. (Earlier builds used a
+"Liquid Glass" style; that theme was flattened and renamed Blarange in v0.3.0.)
 
-- **Vibrant fluid background** — a base layer of animated, wavy warm gradients (deep
-  reds, bright oranges, yellows).
-- **Glass overlay engine** — every component (nav bar, cards, buttons) renders like
-  physical frosted glass using heavy `backdrop-filter` blurs.
-- **Translucent tinting** — a faint white overlay tint lifts every container off the
-  background.
-- **Light refraction & edges** — crisp 1-px inner borders catch light on glass edges,
-  with soft drop shadows beneath cards.
-- **Interactive modules** — inputs and "Run Task" buttons are slightly darker, inset
-  modules that match the glass but look pressable.
+### Theme Engine
 
-### Theme Engine (two modes)
-
-Switching happens in Settings → UI Theme:
+Switching happens in Settings → Appearance:
 
 | Mode | Description |
 | ---- | ----------- |
-| **Glass** (default) | The flagship translucent, backdrop-blurred aesthetic over the fluid gradient. |
+| **Blarange** (default) | Flat black + orange, matching the OPNduck website's palette. |
 | **Monochrome** | Strict high-contrast black & white for maximum readability and minimal distraction. |
+| **Synced with Omarchy** | Only shown on an Omarchy desktop; follows its live theme colors. |
 
 Themes are implemented as CSS custom-property tokens switched by a single
-`data-theme` attribute on `<html>` — components never change, only tokens do.
+`data-theme` attribute on `<html>`. Components never change, only tokens do.
 
 ---
 
@@ -54,8 +45,8 @@ Themes are implemented as CSS custom-property tokens switched by a single
 
 - **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, React Router, Framer Motion.
 - **Desktop Shell**: Electron. A full Tauri v2 migration was built and verified
-  (Rust backend, all feature pipelines ported, Windows sidecars vendored — preserved on
-  the `tauri-migration-phase1` branch), but is **postponed, not shipping**: on Linux with
+  (Rust backend, all feature pipelines ported, Windows sidecars vendored; kept on a local
+  `tauri-migration-phase1` branch that isn't published on GitHub), but is **postponed, not shipping**: on Linux with
   an NVIDIA proprietary driver under Wayland, Tauri's webview (WebKitGTK) can't do
   hardware-accelerated compositing — it either segfaults, or falls back to a
   software-rendering path so slow the app is barely usable (confirmed against the
@@ -72,8 +63,9 @@ Themes are implemented as CSS custom-property tokens switched by a single
 - **Subtitles Generator**: faster-whisper (wired in, via your own Python 3 with
   `faster-whisper` installed; set `OPNDUCK_PYTHON` to use a venv's interpreter).
 
-> The Media Downloader is wired in now (via `yt-dlp` on the system PATH). The remaining
-> native sidecars above are **not wired in yet**.
+> Wired in now (as system binaries on the PATH): `yt-dlp`, FFmpeg, LibreOffice,
+> Real-ESRGAN and RIFE, plus faster-whisper through your own Python. The Python sidecar
+> and librosa are **not wired in yet**.
 
 ---
 
@@ -128,8 +120,8 @@ npm run lint       # oxlint
 ```
 
 The frontend runs in any browser today — it is the exact bundle the desktop shell
-hosts. The Electron wrapper and the Media Downloader (`yt-dlp`) are wired in; the
-remaining native sidecars land in later Alpha updates.
+hosts. The Electron wrapper, downloader, converter, upscalers and interpolation are
+wired in; Beat Finder and Subtitles land in later Alpha updates.
 
 ---
 

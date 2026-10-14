@@ -1,29 +1,39 @@
 # OPNduck Session Save — Complete Context & Continuation Guide
 
 ## Project Overview
-**OPNduck v0.2.0-Pre-Alpha** — Local-first media processing workspace (Electron desktop application).
+**OPNduck v0.3.2-Alpha** — Local-first media processing suite (Electron desktop application).
 
 ### Technology Stack
-- **Frontend**: React 18 + TypeScript + Vite
-- **Styling**: Tailwind CSS v4 + CSS custom properties (CSS variables)
-- **Desktop Shell**: Electron (Node.js, no Rust)
-- **State Management**: React Context (NavProvider, DevModeProvider)
-- **Routing**: BrowserRouter (react-router-dom)
+- **Frontend**: React 19 + TypeScript 7 + Vite 8
+- **Styling**: Tailwind CSS v4 + CSS custom properties (theme tokens); JetBrains Mono font
+- **Desktop Shell**: Electron 44 (Node.js, no Rust). Tauri v2 migration postponed (see below)
+- **State Management**: React Context + hooks (NavProvider, DevModeProvider, motion prefs, `useTasks`)
+- **Routing**: `HashRouter` (react-router-dom v7). `BrowserRouter` broke the packaged `file://` build
 - **Animation**: Framer Motion
-- **Build Tool**: Vite with `base: './'`
+- **Icons**: `@tabler/icons-react`
+- **Build Tool**: Vite with `base: './'`; packaging via electron-builder
 
 ### Design & Themes
-- **Glass Theme**: Warm orange (`#b35a2d`) animated blobs, translucent surfaces, 16px blur backdrop filter
-- **Flat Theme**: Solid colors, no blur, performance-optimized
-- **Monochrome Theme**: Neutral grays with subtle grain texture, accessibility-focused
-- **Component Library**: Custom `.glass` class for translucent panels with glassmorphism effects
+- **Blarange** (default): flat, solid black + orange, no blur or translucency. This is the
+  old Glass theme, renamed and flattened; "Liquid Glass" is retired.
+- **Monochrome**: strict high-contrast black & white
+- **Omarchy** (hidden): mirrors the live Omarchy desktop theme, shown only when Omarchy is detected
+- The Flat theme was removed. Legacy names (`.glass`, `GlassSelect`, `--glass-*`, `--fluid-*`,
+  `FluidBackground`) remain but render flat (0px blur, transparent fluid colors).
 
 ### Project Status
-- **Version**: 0.2.0-Pre-Alpha
-- **Scope**: Desktop shell + Settings page only (core features framework in place)
+- **Version**: 0.3.2-Alpha (released 2026-10-10)
+- **Working features**: Downloader (yt-dlp, incl. YouTube playlists), Converter (ffmpeg for
+  video/audio/image, LibreOffice for documents), AI Image Upscaler + AI Video Upscaler
+  (Real-ESRGAN), Frame Interpolation (RIFE). Tools are system binaries on PATH; cards are
+  gated when a binary is missing.
+- **Also shipped**: persistent job progress, drag & drop, Library history (Open folder, Run
+  again, Clear finished), per-card presets, command palette (`Ctrl+K`), rebindable keybinds.
+- **Not wired yet**: Beat Finder (librosa), Subtitles (faster-whisper), Python sidecar, plugin loader
 - **License**: GPL-3.0
-- **Repository**: https://github.com/Sight8218/OPNduck (unpushed, awaiting public release)
-- **Platform Focus**: Linux (X11/Wayland), Hyprland window manager
+- **Repository**: https://github.com/Sight8218/OPNduck (public, `main`)
+- **Platform Focus**: Linux (X11/Wayland), Hyprland window manager; Windows builds made via
+  wine and untested on real Windows
 
 ---
 
@@ -32,79 +42,42 @@
 ```
 /home/ducky/Work/opnduck/
 ├── electron/
-│   ├── main.cjs                 # Electron main process, BrowserWindow config
-│   ├── preload.cjs              # IPC preload script (contextIsolation enabled)
-│   └── (launcher configuration)
+│   ├── main.cjs          # BrowserWindow, IPC handlers, task runner (yt-dlp/ffmpeg/LibreOffice/Real-ESRGAN/RIFE)
+│   ├── preload.cjs       # IPC bridge (contextIsolation enabled)
+│   └── omarchy.cjs       # Reads the live Omarchy desktop theme
 ├── src/
-│   ├── App.tsx                  # Root React component (routers, providers)
-│   ├── index.css                # Global CSS, Tailwind layers, .glass class, animations
-│   ├── main.tsx                 # React entry point
-│   ├── components/
-│   │   ├── FluidBackground.tsx  # Animated blob background (fixed, z-index -2)
-│   │   ├── NavBar.tsx           # Top navigation bar with menu
-│   │   ├── PageTransition.tsx   # Route transition animations (Framer Motion)
-│   │   ├── PreAlphaBanner.tsx   # Yellow warning banner
-│   │   ├── VersionFooter.tsx    # Bottom-right version badge
-│   │   ├── CommandPalette.tsx   # Command/search palette
-│   │   ├── AdaptiveCardGrid.tsx # Feature card grid (responsive)
-│   │   ├── FeatureCard.tsx      # Individual feature card component
-│   │   ├── NavMenuCards.tsx     # Top nav menu cards
-│   │   ├── HamburgerMenu.tsx    # Mobile/compact menu
-│   │   ├── SocialLinks.tsx      # Social icon links
-│   │   ├── WindowControls.tsx   # Custom window minimize/maximize/close
-│   │   ├── GlassSelect.tsx      # Themed select dropdown
-│   │   ├── GlassTune.tsx        # Settings control component
-│   │   ├── SlidingSelector.tsx  # Theme/option selector slider
-│   │   ├── ThemeToggle.tsx      # Theme switcher
-│   │   ├── InfoCard.tsx         # Information card template
-│   │   ├── NavDisplayCard.tsx   # Navigation display variant
-│   │   └── HardwareAllocation.tsx # Hardware info component
-│   ├── pages/
-│   │   ├── Home.tsx             # Main dashboard page
-│   │   ├── Downloads.tsx        # Downloads page
-│   │   ├── Plugins.tsx          # Plugins/extensions page
-│   │   ├── Settings.tsx         # Application settings
-│   │   ├── downloader/          # Download feature module
-│   │   ├── converter/           # Media converter feature module
-│   │   ├── upscaler/            # Upscaler feature module
-│   │   ├── modules.ts           # Feature registration system
-│   │   ├── registry.ts          # Feature registry & discovery
-│   │   └── (other features)
-│   ├── themes/
-│   │   ├── tokens.css           # Theme token definitions (Glass, Flat, Monochrome)
-│   │   ├── theme.ts             # Theme application logic
-│   │   └── (theme utilities)
-│   ├── lib/
-│   │   ├── devMode.tsx          # Dev mode context provider
-│   │   ├── navContext.tsx       # Navigation display mode context
-│   │   ├── nav.ts              # Navigation item definitions
-│   │   └── (utility functions)
+│   ├── App.tsx           # HashRouter, providers, splash hide, global drop guard
+│   ├── main.tsx          # React entry point
+│   ├── index.css         # Global CSS, Tailwind layers, primitives
+│   ├── components/       # NavBar, CommandPalette, AdaptiveCardGrid, FeatureCard, PresetBar,
+│   │                     # Smart*Panel, Settings cards (Theme, Motion, Keybinds, Storage, …)
 │   ├── features/
-│   │   └── modules.ts           # Core feature registration
-│   ├── host/
-│   │   ├── index.ts             # Host/plugin API definitions
-│   │   └── electron.ts          # Electron-specific host implementation
-│   └── main.tsx                 # React DOM render entry
-├── public/
-│   ├── icons/
-│   │   ├── github.png
-│   │   ├── discord.png
-│   │   └── (other icons)
-│   └── index.html               # Static HTML template
-├── index.html                   # Vite entry HTML
-├── package.json                 # Node dependencies & scripts
-├── package-lock.json
-├── vite.config.ts              # Vite build config (base: './')
-├── tsconfig.json               # TypeScript configuration
-├── tsconfig.app.json
-├── tailwind.config.ts          # Tailwind CSS config
-├── SESSION_SAVE.md             # This file
-└── history.md                  # Session-by-session development log
+│   │   ├── registry.ts   # FeatureDefinition + registerFeatures()
+│   │   ├── modules.ts    # registerCoreFeatures(): the five core cards
+│   │   ├── downloader/   # DownloaderCard
+│   │   ├── converter/    # ConverterCard, FormatPickerModal, formats
+│   │   ├── upscaler/     # ImageUpscalerCard, VideoUpscalerCard
+│   │   └── interpolate/  # InterpolationCard
+│   ├── pages/            # Home, Library, Plugins, Settings
+│   ├── host/             # index.ts (Host interface), electron.ts (adapter), platform.ts
+│   ├── lib/              # useTasks, usePresets, keybinds, navContext, devMode, motionPrefs, …
+│   └── themes/           # tokens.css, theme.ts, useTheme.ts, omarchySync.ts
+├── public/               # Static assets and icons
+├── docs/                 # logo/, screenshots/
+├── plugin-examples/      # Example plugin (loader not wired yet)        
+├── index.html            # Vite entry HTML + startup splash
+├── package.json          # Scripts + electron-builder config
+├── vite.config.ts        # base './', port 1420
+├── CHANGELOG.md          # Release notes (git-cliff)
+├── PROJECT_BRIEF.md      # Durable project brief
+├── PLUGINS.md            # Plugin authoring notes
+├── SESSION_SAVE.md       # This file
+└── history.md            # Early session-by-session log (Sessions 1–11)
 ```
 
 ---
 
-## Critical Bug Fix (Session #11 — This Session)
+## Past Bug Fix Still in Force (Session #11): Gray Window Frame
 
 ### Problem: Gray Window Frame
 **Symptom**: A persistent `53,53,53` gray border (~2-4px) appeared on the left, right, and bottom edges of the OPNduck window.
@@ -169,96 +142,63 @@ const win = new BrowserWindow({
 ## Current Working State
 
 ### Electron Configuration
-- **File**: `/home/ducky/Work/opnduck/electron/main.cjs`
-- **Window Options**:
-  - `width: 1280`, `height: 820`
-  - `minWidth: 940`, `minHeight: 600`
-  - `frame: false` (no native titlebar)
-  - `titleBarStyle: 'hidden'`
-  - `transparent: true` (FIX APPLIED)
-  - `backgroundColor: '#00000000'`
-  - `sandbox: true` (security hardened)
-  - `contextIsolation: true` (IPC security)
-
-### CSS Architecture
-- **File**: `/home/ducky/Work/opnduck/src/index.css`
-- **Structure**:
-  - Unlayered `html`, `body`, `#root` (transparent, height 100%)
-  - `.fluid-background`: `position: fixed; inset: 0; z-index: -2;` with animated gradients
-  - `.glass`: Glassmorphism surfaces (backdrop blur, translucent background, border)
-  - `.fluid-blob-1` through `.fluid-blob-6`: Animated blob shapes (Glass theme only)
-  - Tailwind layers: `base`, `components`, `utilities`
+- **File**: `electron/main.cjs`
+- **Window**: 1280×820, min 940×600 (enforced in a `will-resize` handler because
+  `minWidth`/`minHeight` are unreliable on frameless transparent windows), `frame: false`,
+  `titleBarStyle: 'hidden'`, `transparent: true`, `backgroundColor: '#00000000'`,
+  `sandbox: true`, `contextIsolation: true`
+- **Packaged build** loads the UI with `win.loadFile()` (a bare path in `loadURL()` opened a
+  blank window on Electron 44.7, the v0.3.0 bug fixed in v0.3.1)
+- A Content-Security-Policy is set; only `http(s)` links are accepted and IPC requests are validated
 
 ### Theme System
-- **File**: `/home/ducky/Work/opnduck/src/themes/tokens.css`
-- **Themes**: Glass (warm orange, animated), Flat (solid, performant), Monochrome (neutral, accessible)
-- **Token Types**: Colors, gradients, blur, shadows, opacities
-- **Application**: Via `[data-theme='glass']` / `[data-theme='flat']` / `[data-theme='monochrome']` selectors
-- **Switching**: `applyTheme(themeName)` in `src/themes/theme.ts`
+- **Files**: `src/themes/tokens.css`, `theme.ts`, `useTheme.ts`, `omarchySync.ts`
+- **Themes**: `blarange` (default), `monochrome`, hidden `omarchy`
+- **Application**: `data-theme` on `<html>`, persisted in `localStorage['opnduck.theme']`
+- **Switching**: `applyTheme(theme)` in `src/themes/theme.ts`
 
-### Development Server
-- **Command**: `npm run desktop:dev`
-- **What it does**:
-  - Starts Vite dev server on `http://localhost:1420`
-  - Launches Electron (concurrently with Vite)
-  - HMR enabled for hot reload
-- **Manual server** (if needed): `npm run dev` (Vite only)
+### Development
+- `npm run desktop:dev`: Vite on `http://localhost:1420` + Electron, with HMR
+- `npm run dev`: Vite only (UI runs in a browser with a no-op host)
 
-### Build
-- **TypeScript Check**: `npm run typecheck`
-- **Production Build**: `npm run build` (runs `tsc -b && vite build`)
-- **Electron Build**: `npm run desktop:build`
-- **Electron Start**: `npm run desktop:start`
+### Build & Packaging
+- `npm run typecheck`, `npm run lint` (oxlint), `npm run build` (`tsc -b && vite build`)
+- `npm run desktop:build` / `desktop:start`
+- `npm run dist:linux` (AppImage + pacman), `dist:win` (NSIS + portable), `dist` (both)
+- No automated test suite
 
 ---
 
-## Previous Sessions (1-10) — Development History
+## Development History (Summary)
 
-### Session #1: Crash Diagnosis
-- Investigated a Brave renderer crash (unrelated to OPNduck)
-- Diagnosed as V8 JIT bug, not OPNduck issue
-- Closed
+- **Sessions 1–11** (see `history.md`): v0.2.0 frontend foundation, theme system, Dev mode,
+  scrollbar/menu fixes, gray-frame fix.
+- **v0.2.0-Alpha**: first real feature, yt-dlp downloads.
+- **v0.3.0-Alpha**: rebuilt multi-format Converter, YouTube playlists, AI upscaler and
+  interpolation cards, rebindable keybinds, Omarchy theme, Glass → Blarange (flat),
+  audit hardening. Packaged builds opened blank.
+- **v0.3.1-Alpha**: hotfix for the blank packaged window; batch/cancel fixes; CSP.
+- **v0.3.2-Alpha**: persistent job progress, drag & drop, Library history with re-run, presets.
+- Since then on `main`: keyboard-shortcut fix for Ctrl combos (palette default `Ctrl+K`).
 
-### Sessions #2-5: Foundation & Design
-- Set up React + TypeScript + Tailwind v4
-- Implemented theme system (Glass, Flat, Monochrome)
-- Designed glass-morphism components
-- Built NavBar and page transitions
-
-### Session #6: v0.2.0 Frontend Foundation
-- Stabilized routing (BrowserRouter)
-- Finalized component library
-- Set up feature module system
-
-### Sessions #7-9: Live Feedback & Polish
-- Refined glass theme visuals
-- Added Dev Mode (developer-facing debug tools)
-- Optimized gradient rendering
-- Fixed visual inconsistencies
-
-### Session #10: Scrollbar & Menu Fixes
-- **Fixed red scrollbar leak**: Removed duplicate `--bg-base` gradient from `html`; added `--bg-solid` flat token
-- **Fixed menu-swipe flicker**: Replaced live `<Routes>` children in PageTransition with stable `PAGES` module-level map
-- **Investigated gray border**: Hypothesized (incorrectly) that duplicate gradient caused it; later disproven
-
-### Session #11 (This): Gray Frame Resolution
-- Conclusively diagnosed gray frame as Chromium compositor edge
-- Applied `transparent: true` fix to Electron BrowserWindow
-- Verified fix eliminates frame completely
-- Restored full app functionality
+See `CHANGELOG.md` for details.
 
 ---
 
 ## Key Design Decisions (Locked)
 
-1. **Liquid Glass Aesthetic** → Long-term target is Tauri at beta/RC; Electron for now (Node only)
-2. **Tailwind v4 + CSS Custom Properties** → Standard approach for dynamic theming
-3. **Linux-First** → X11/Wayland focus; Windows/macOS secondary
-4. **Pre-Alpha Scope** → Shell + Settings only; core framework for feature cards in place
+1. **Electron now; Tauri postponed** → A full Tauri v2 migration was built but is on hold:
+   WebKitGTK on Linux + NVIDIA proprietary driver + Wayland can't do hardware compositing
+   (upstream bug). The work is on a local `tauri-migration-phase1` branch, not pushed to GitHub.
+2. **Tailwind v4 + CSS Custom Properties** → Theme switching via one `data-theme` attribute
+3. **Linux-First, Windows-parallel** → macOS later
+4. **Version rule** → Pre-Alpha = GUI + settings only; Alpha = real downloading works
 5. **Frameless Window** → Custom window controls; `frame: false` with transparent background
-6. **HashRouter vs BrowserRouter** → Currently BrowserRouter; may switch to HashRouter later
+6. **HashRouter** → Required for the packaged `file://` build
 7. **Vite `base: './'`** → Assets load from relative path
-8. **Hyprland Integration** → Window class `opnduck-desktop` for WM rules; do NOT edit Hyprland config without explicit user approval
+8. **Host seam** → The React tree calls only `src/host` for native work
+9. **Hyprland Integration** → Window class `opnduck-desktop` for WM rules; do NOT edit
+   Hyprland config without explicit user approval
 
 ---
 
@@ -282,34 +222,30 @@ This removes Hyprland's window border for OPNduck only. It does NOT affect other
 
 After making changes, verify:
 
-1. **Build Success**: `npm run typecheck` (no errors)
+1. **Build Success**: `npm run typecheck`, `npm run lint`, `npm run build`
 2. **Dev Server**: `npm run desktop:dev` (app launches without crashes)
-3. **Visual Check**: 
-   - Switch themes (Glass → Flat → Monochrome)
-   - Check window edges (no gray frame, no artifacts)
-   - Navigate between pages (smooth transitions)
-   - Test responsive layout on desktop
-4. **Console**: No errors or warnings (except pre-existing lint warnings)
+3. **Packaged build** for Electron-side changes: `npm run dist:linux` and launch the AppImage
+   (dev mode hid the v0.3.0 blank-window bug)
+4. **Visual Check**: switch themes (Blarange, Monochrome), check window edges, navigate pages
+5. **Console**: No errors or warnings
 
 ---
 
 ## Next Steps (For Continuation)
 
-1. **Verify the fix across all themes**: Restart app, switch themes, confirm no frame regression
-2. **Commit the fix**: Create a clean commit message explaining the `transparent: true` solution
-3. **Resume roadmap**:
-   - Per-card accent tints (subtle theme colors on feature cards)
-   - Monochrome accessibility enhancements
-   - Download queue UI (show active/completed downloads)
-   - Plugin marketplace UI
-   - Windows packaging (later)
-4. **Keep Hyprland untouched** unless explicitly directed otherwise
+1. Beat Finder (librosa) and Subtitles (faster-whisper) engines
+2. Python "Master Engine" sidecar and the plugin loader
+3. Test Windows builds on real Windows
+4. AUR publication and artifact signing (deferred)
+5. Revisit Tauri only when the WebKitGTK/NVIDIA/Wayland issue is fixed upstream
+6. **Keep Hyprland untouched** unless explicitly directed otherwise
 
 ---
 
 ## Continuation Instructions for Next AI Session
 
-**You are continuing OPNduck development.** The user has been systematically building this app and just solved a visual bug (gray window frame). They are methodical, thorough, and test-driven.
+**You are continuing OPNduck development.** The user builds this app systematically and is
+methodical, thorough, and test-driven.
 
 ### Tone & Style
 - **Not impatient**: Take time to understand context before suggesting changes
@@ -324,24 +260,15 @@ After making changes, verify:
 4. **Assume continuity** — understand all prior sessions; don't ask "what happened before"
 5. **Keep `transparent: true` in Electron** — this is the fix for the gray frame
 6. **Test themes & visuals after changes** — verify no regression
-7. **Use TodoWrite for multi-step work** — break tasks into trackable steps
-8. **Commit with clear messages** — reference what was fixed and why
+7. **Commit with clear messages** — reference what was fixed and why
 
-### Preferred Workflow (Based on This Session)
+### Preferred Workflow (Based on Session #11)
 - When investigating a visual issue: capture screenshots, use pixel scanners, strip layers methodically
-- When implementing CSS/theme changes: test across all three themes (Glass, Flat, Monochrome)
+- When implementing CSS/theme changes: test across Blarange and Monochrome (and Omarchy if available)
 - When making Electron changes: restart the app to apply; note which changes require restart vs HMR
 - When stuck: step back, gather data, systematically test hypotheses
 
 ---
 
-## Files Modified This Session
-
-- **`/home/ducky/Work/opnduck/electron/main.cjs`**: Added `transparent: true`
-- **Session commit**: Included all generated context & stripper scripts in `/tmp/opencode/pxscan/`
-
----
-
-**Last Updated**: September 1, 2026 (Session #11)
-**Status**: Gray frame fix applied & verified
-**Next Session Starter**: Continue with roadmap items or investigate other issues using the proven debugging methodology
+**Last Updated**: October 14, 2026 (v0.3.2-Alpha)
+**Next Session Starter**: Read `PROJECT_BRIEF.md` and `CHANGELOG.md`, then continue with the next steps above
