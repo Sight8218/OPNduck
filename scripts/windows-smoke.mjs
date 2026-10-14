@@ -107,7 +107,14 @@ try {
   record('YouTube download (best effort, CI IPs are often blocked)', yt.status === 'done', yt.error ?? yt.label, false)
 
   // Frameless + transparent windows have a history of misbehaving on Windows.
-  const before = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBounds())
+  // CI screens are small (1024x720), so the window starts filling the work area and already
+  // counts as maximized. Shrink it first so the button has something to do.
+  const before = await app.evaluate(({ BrowserWindow }) => {
+    const w = BrowserWindow.getAllWindows()[0]
+    if (w.isMaximized()) w.unmaximize()
+    w.setBounds({ x: 20, y: 20, width: 960, height: 620 })
+    return w.getBounds()
+  })
   await page.evaluate(() => window.opnduckHost.window.maximize())
   await page.waitForTimeout(1500)
   const max = await app.evaluate(({ BrowserWindow, screen }) => {
