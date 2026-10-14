@@ -1,0 +1,72 @@
+name: Windows smoke test
+
+# Builds the NSIS installer on a Windows runner, installs it silently, drives the installed
+# app (scripts/windows-smoke.mjs), then uninstalls it. The report lands in the run summary.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'electron/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/windows-smoke.mjs'
+      - '.github/workflows/windows-smoke.yml'
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build installer (npm run dist:win)
+        run: npm run dist:win
+
+      - name: Install external tools (yt-dlp, ffmpeg, LibreOffice)
+        # LibreOffice installs to Program Files without touching PATH, same as winget.
+        run: choco install yt-dlp ffmpeg libreoffice-fresh -y --no-progress
+
+      - name: Install OPNduck silently
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem release-build -Filter 'OPNduck Setup *.exe' | Select-Object -First 1
+          Start-Process -Wait -FilePath $setup.FullName -ArgumentList '/S'
+          $exe = @("$env:LOCALAPPDATA\Programs\OPNduck\OPNduck.exe", "$env:ProgramFiles\OPNduck\OPNduck.exe") |
+            Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $exe) { throw 'OPNduck.exe not found after install' }
+          Write-Host "Installed to $exe"
+          "OPNDUCK_EXE=$exe" >> $env:GITHUB_ENV
+
+      - name: Run smoke test against the installed app
+        run: |
+          npm install --no-save playwright-core@1.62.0
+          node scripts/windows-smoke.mjs "$env:OPNDUCK_EXE" smoke-out
+
+      - name: Uninstall OPNduck silently
+        if: always() && env.OPNDUCK_EXE != ''
+        shell: pwsh
+        run: |
+          $dir = Split-Path $env:OPNDUCK_EXE
+          Start-Process -Wait -FilePath (Join-Path $dir 'Uninstall OPNduck.exe') -ArgumentList '/S'
+          Start-Sleep -Seconds 5
+          if (Test-Path $env:OPNDUCK_EXE) { throw 'OPNduck.exe still present after uninstall' }
+          Write-Host 'Uninstalled cleanly'
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-smoke
+          path: |
+            smoke-out/report.md
+            smoke-out/*.png
+          retention-days: 7
