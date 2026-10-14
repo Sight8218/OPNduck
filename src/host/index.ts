@@ -122,7 +122,21 @@ export interface InterpolateRequest {
   destination?: string
 }
 
-export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate'
+/** faster-whisper model sizes — bigger is more accurate and slower. Each downloads once on first use. */
+export type WhisperModel = 'tiny' | 'base' | 'small' | 'medium'
+export type SubtitleFormat = 'srt' | 'vtt'
+
+export interface SubtitlesRequest {
+  inputPath: string
+  model: WhisperModel
+  /** 'auto' to let Whisper detect it, otherwise an ISO 639-1 code like 'en'. */
+  language: string
+  format: SubtitleFormat
+  /** Overrides the Settings default destination for this one job. */
+  destination?: string
+}
+
+export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles'
 export type TaskStatus = 'queued' | 'running' | 'done' | 'error' | 'canceled'
 
 export interface TaskState {
@@ -159,6 +173,7 @@ export interface HostTasks {
   startUpscale(req: UpscaleRequest): Promise<string>
   startVideoUpscale(req: UpscaleRequest): Promise<string>
   startInterpolate(req: InterpolateRequest): Promise<string>
+  startSubtitles(req: SubtitlesRequest): Promise<string>
   cancel(taskId: string): void
   /** Replays a finished task's original request as a new task. Resolves to the new id (null if it can't be replayed). */
   rerun(taskId: string): Promise<string | null>
@@ -205,6 +220,8 @@ export interface Host {
   checkRealesrgan(): Promise<ToolStatus>
   /** rife-ncnn-vulkan isn't bundled either — same check shape, for Frame Interpolation. */
   checkRife(): Promise<ToolStatus>
+  /** faster-whisper is a Python library — checks the user's Python can import it, for Subtitles. */
+  checkFasterWhisper(): Promise<ToolStatus>
   tasks: HostTasks
   /** Present only on hosts that can see the OS-level Omarchy theme (Electron
    *  on Linux); undefined everywhere else, including a non-Omarchy Linux
@@ -324,6 +341,27 @@ const browserTasks: HostTasks = {
     browserListeners.forEach((l) => l(browserTaskList))
     return id
   },
+  startSubtitles: async (req) => {
+    const id = crypto.randomUUID()
+    browserTaskList = [
+      {
+        id,
+        kind: 'subtitles',
+        status: 'error',
+        progress: 0,
+        label: 'Subtitles require the desktop app',
+        error: 'Desktop app required',
+        format: req.format.toUpperCase(),
+        quality: `Whisper ${req.model}`,
+        sizeBytes: null,
+        sizeIsEstimate: false,
+        thumbnailUrl: null,
+        experimentalMatch: null,
+      },
+    ]
+    browserListeners.forEach((l) => l(browserTaskList))
+    return id
+  },
   cancel: () => {},
   rerun: async () => null,
   openFolder: async () => {},
@@ -357,6 +395,7 @@ const browserHost: Host = {
   checkLibreOffice: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkRealesrgan: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkRife: async () => ({ available: false, installHint: 'Desktop app required' }),
+  checkFasterWhisper: async () => ({ available: false, installHint: 'Desktop app required' }),
   tasks: browserTasks,
 }
 

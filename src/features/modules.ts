@@ -21,6 +21,7 @@ import { registerFeatures } from './registry'
 import ConverterCard from './converter/ConverterCard'
 import DownloaderCard from './downloader/DownloaderCard'
 import InterpolationCard from './interpolate/InterpolationCard'
+import SubtitlesCard from './subtitles/SubtitlesCard'
 import ImageUpscalerCard from './upscaler/ImageUpscalerCard'
 import VideoUpscalerCard from './upscaler/VideoUpscalerCard'
 
@@ -84,6 +85,17 @@ export function registerCoreFeatures(): void {
       icon: 'interpolate',
       enabled: true,
       render: InterpolationCard,
+      source: 'core',
+    },
+    {
+      id: 'subtitles',
+      title: 'Subtitles',
+      tagline: 'faster-whisper · offline',
+      description: 'Transcribes speech from a video or audio file into SRT or VTT subtitles, entirely on your machine.',
+      scope: 'desktop-exclusive',
+      icon: 'subtitles',
+      enabled: true,
+      render: SubtitlesCard,
       source: 'core',
     },
   ])

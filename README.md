@@ -10,8 +10,8 @@ navigate away, plus drag & drop, persistent history and per-card presets (v0.3.0
 opened a blank window; use 0.3.1 or newer). It ships real media downloading
 (`yt-dlp`, now including YouTube playlists) and a rebuilt multi-format Converter (video/audio/image via ffmpeg, documents
 via LibreOffice), on top of the frontend shell — GUI, routing, theming,
-settings, and the adaptive card dashboard. Other engines (Beat Finder, Subtitles) are
-still not wired in. The Tauri migration is **postponed** (see Desktop Shell below);
+settings, and the adaptive card dashboard. Subtitles (faster-whisper) are now wired
+in; Beat Finder is still not. The Tauri migration is **postponed** (see Desktop Shell below);
 OPNduck ships on Electron.
 
 <p align="center">
@@ -60,11 +60,12 @@ Themes are implemented as CSS custom-property tokens switched by a single
 - **Media Downloader**: yt-dlp (wired in, real downloads).
 - **Universal Converter**: FFmpeg (Hardware Accelerated).
 - **Beat / Tempo Finder**: librosa.
-- **Subtitles Generator**: faster-whisper (Tiny Whisper Model).
+- **Subtitles Generator**: faster-whisper (wired in, via your own Python 3 with
+  `faster-whisper` installed; set `OPNDUCK_PYTHON` to use a venv's interpreter).
 
 > Wired in now (as system binaries on the PATH): `yt-dlp`, FFmpeg, LibreOffice,
-> Real-ESRGAN and RIFE. The Python sidecar, librosa and faster-whisper are **not wired
-> in yet**.
+> Real-ESRGAN and RIFE, plus faster-whisper through your own Python. The Python sidecar
+> and librosa are **not wired in yet**.
 
 ---
 

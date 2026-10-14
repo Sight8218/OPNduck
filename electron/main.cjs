@@ -247,6 +247,36 @@ ipcMain.handle('system:checkRife', () => {
   })
 })
 
+/**
+ * faster-whisper is a Python library, not a binary — so the check is whether the
+ * user's Python can import it. OPNDUCK_PYTHON points at a specific interpreter
+ * (e.g. a venv's), for distros like Arch where a global pip install is refused.
+ */
+function pythonCommand() {
+  return process.env.OPNDUCK_PYTHON || (process.platform === 'win32' ? 'python' : 'python3')
+}
+
+function fasterWhisperInstallHint() {
+  if (process.platform === 'win32') return 'python -m pip install faster-whisper'
+  if (process.platform === 'darwin') return 'python3 -m pip install faster-whisper'
+  return 'yay -S python-faster-whisper   (AUR; or pip install faster-whisper in a venv and set OPNDUCK_PYTHON to its python)'
+}
+
+ipcMain.handle('system:checkFasterWhisper', () => {
+  return new Promise((resolve) => {
+    let child
+    try {
+      child = spawn(pythonCommand(), ['-c', 'import faster_whisper'])
+    } catch {
+      resolve({ available: false, installHint: fasterWhisperInstallHint() })
+      return
+    }
+    // 'error' = no Python at all; a non-zero exit = Python without the module.
+    child.on('error', () => resolve({ available: false, installHint: fasterWhisperInstallHint() }))
+    child.on('close', (code) => resolve({ available: code === 0, installHint: fasterWhisperInstallHint() }))
+  })
+})
+
 ipcMain.handle('omarchy:get', () => readOmarchyTheme())
 
 /**
@@ -1679,6 +1709,108 @@ async function runInterpolate(id, req, outputPath) {
 }
 
 // --- end: interpolate/frame-interpolation-pipeline ---
+
+/**
+ * Subtitle generation — faster-whisper transcribes the source's speech into an
+ * .srt/.vtt written beside the other outputs, named after the source so video
+ * players pick it up automatically. faster-whisper decodes audio itself (PyAV),
+ * so ffmpeg isn't needed. The first run of each model downloads it from
+ * Hugging Face into the user's cache; after that everything is offline.
+ */
+// @category: subtitles/whisper-transcription
+const WHISPER_MODELS = ['tiny', 'base', 'small', 'medium']
+const SUBTITLE_FORMATS = ['srt', 'vtt']
+const WHISPER_SCRIPT = path.join(__dirname, 'whisper_subtitles.py')
+
+handleStart('tasks:startSubtitles', (_e, req) => {
+  assertAbsolutePath(req.inputPath, 'inputPath')
+  if (req.destination != null) assertAbsolutePath(req.destination, 'destination')
+  assertOneOf(req.model, WHISPER_MODELS, 'model')
+  assertOneOf(req.format, SUBTITLE_FORMATS, 'format')
+  if (req.language !== 'auto' && !/^[a-z]{2,3}$/.test(req.language)) throw new Error(`Invalid language: ${req.language}`)
+  const id = crypto.randomUUID()
+  const destDir = req.destination || defaultDownloadDir()
+  fs.mkdirSync(destDir, { recursive: true })
+
+  const inputBase = path.basename(req.inputPath, path.extname(req.inputPath))
+  const outputPath = uniqueOutputPath(destDir, inputBase, req.format)
+
+  tasks.set(id, {
+    state: {
+      id,
+      kind: 'subtitles',
+      status: 'queued',
+      progress: 0,
+      label: path.basename(req.inputPath),
+      format: req.format.toUpperCase(),
+      quality: `Whisper ${req.model}`,
+      sizeBytes: null,
+      sizeIsEstimate: false,
+      thumbnailUrl: null,
+      experimentalMatch: null,
+    },
+    child: null,
+    finalPath: outputPath,
+  })
+  broadcastTasks()
+
+  // Read here rather than passed as a path: inside a packaged app.asar, Node can
+  // read the script but an external Python can't open it.
+  let script
+  try {
+    script = fs.readFileSync(WHISPER_SCRIPT, 'utf8')
+  } catch (err) {
+    updateTask(id, { status: 'error', error: `Subtitle script missing: ${err.message}` })
+    return id
+  }
+
+  const entry = tasks.get(id)
+  updateTask(id, { status: 'running' })
+  let lineBuf = ''
+  spawnTracked(
+    pythonCommand(),
+    ['-c', script, req.inputPath, outputPath, req.model, req.language, req.format],
+    entry,
+    {
+      onStdout: (text) => {
+        lineBuf += text
+        const lines = lineBuf.split(/\r?\n/)
+        lineBuf = lines.pop()
+        for (const line of lines) {
+          const progress = line.match(/^PROGRESS ([\d.]+)/)
+          if (progress) updateTask(id, { progress: Math.min(1, Number(progress[1])) })
+          const lang = line.match(/^LANG (\S+)/)
+          if (lang) updateTask(id, { quality: `Whisper ${req.model} · ${lang[1]}` })
+        }
+      },
+    },
+  )
+    .then(() => {
+      let realSize = null
+      try {
+        realSize = fs.statSync(outputPath).size
+      } catch {
+        /* keep null if the output can't be read */
+      }
+      updateTask(id, {
+        status: 'done',
+        progress: 1,
+        label: path.basename(outputPath),
+        ...(realSize != null ? { sizeBytes: realSize } : {}),
+      })
+    })
+    .catch((err) => {
+      if (isCanceled(id)) return
+      const missing = err.code === 'ENOENT'
+      updateTask(id, {
+        status: 'error',
+        error: missing ? `${pythonCommand()} not found on PATH — faster-whisper needs Python 3` : err.message,
+      })
+    })
+
+  return id
+})
+// --- end: subtitles/whisper-transcription ---
 
 /* --- External links open in the OS browser, not inside the app window --- */
 app.on('web-contents-created', (_e, contents) => {
