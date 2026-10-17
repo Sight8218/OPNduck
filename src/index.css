@@ -519,3 +519,13 @@ body {
 [data-bg='flat'] .fluid-background {
   background: var(--bg-solid);
 }
+
+/* With the flat background there's no gradient behind the cards to set them apart, and
+   some themes' card colour is nearly identical to the page colour. Lift every surface a
+   few percent toward the text colour so cards always read against the background. */
+[data-bg='flat'] .glass:not(.glass-strong) {
+  background: color-mix(in srgb, var(--text) 6%, var(--bg-solid));
+}
+[data-bg='flat'] .glass-strong {
+  background: color-mix(in srgb, var(--text) 10%, var(--bg-solid));
+}

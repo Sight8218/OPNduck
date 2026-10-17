@@ -226,12 +226,27 @@ export interface Host {
   /** Present only on hosts that can see the OS-level Omarchy theme (Electron
    *  on Linux); undefined everywhere else, including a non-Omarchy Linux
    *  desktop that just happens to run Electron. */
+  /** Update check against GitHub releases. Desktop shell only (notify-only: opens the release page). */
+  updates?: {
+    check(): Promise<UpdateCheck>
+    openRelease(url: string): Promise<void>
+  }
   omarchy?: {
     /** Current Omarchy theme, or null if Omarchy isn't installed/detected. */
     get(): Promise<OmarchyTheme | null>
     /** Fires on every live Omarchy theme change. Returns an unsubscribe fn. */
     subscribe(listener: (theme: OmarchyTheme | null) => void): () => void
   }
+}
+
+export interface UpdateCheck {
+  /** Version of the running app. */
+  current: string
+  latest: { tag: string; name: string; url: string; notes: string } | null
+  /** True when `latest` has a higher version number than `current`. */
+  newer: boolean
+  /** Set when GitHub couldn't be reached. */
+  error: string | null
 }
 
 /** No-op task queue for the browser preview — desktop features aren't available there. */

@@ -296,6 +296,53 @@ ipcMain.handle('system:checkFasterWhisper', () => {
 
 ipcMain.handle('omarchy:get', () => readOmarchyTheme())
 
+/* --- Update check: asks GitHub for the newest published release and compares versions. ---
+ * Deliberately notify-only: OPNduck's builds are unsigned, so rather than silently
+ * replacing itself it opens the release page and lets the user choose what to install. */
+const RELEASES_API = 'https://api.github.com/repos/Sight8218/OPNduck/releases?per_page=10'
+const RELEASES_PAGE_PREFIX = 'https://github.com/Sight8218/OPNduck/releases'
+
+function versionParts(v) {
+  const m = String(v).match(/(\d+)\.(\d+)\.(\d+)/)
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null
+}
+/** True when version a is strictly newer than b (pre-release suffixes like -Alpha are ignored). */
+function isNewerVersion(a, b) {
+  const x = versionParts(a)
+  const y = versionParts(b)
+  if (!x || !y) return false
+  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i]
+  return false
+}
+
+ipcMain.handle('updates:check', async () => {
+  const current = app.getVersion()
+  try {
+    const res = await fetch(RELEASES_API, {
+      headers: { 'User-Agent': 'OPNduck-update-check', Accept: 'application/vnd.github+json' },
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) throw new Error(`GitHub answered ${res.status}`)
+    const releases = (await res.json()).filter((r) => !r.draft && versionParts(r.tag_name))
+    // Every OPNduck release is a pre-release for now, so /releases/latest (which skips
+    // pre-releases) isn't usable — pick the highest version ourselves.
+    releases.sort((a, b) => (isNewerVersion(a.tag_name, b.tag_name) ? -1 : isNewerVersion(b.tag_name, a.tag_name) ? 1 : 0))
+    const top = releases[0]
+    if (!top) return { current, latest: null, newer: false, error: null }
+    return {
+      current,
+      latest: { tag: top.tag_name, name: top.name || top.tag_name, url: top.html_url, notes: String(top.body || '').slice(0, 1500) },
+      newer: isNewerVersion(top.tag_name, current),
+      error: null,
+    }
+  } catch (err) {
+    return { current, latest: null, newer: false, error: err.message }
+  }
+})
+ipcMain.handle('updates:openRelease', (_e, url) => {
+  if (typeof url === 'string' && url.startsWith(RELEASES_PAGE_PREFIX)) return shell.openExternal(url)
+})
+
 /**
  * Spotify tracks are DRM-protected — yt-dlp has no Spotify extractor and
  * never will (there's no legitimate way to pull audio directly off it).

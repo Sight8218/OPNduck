@@ -7,6 +7,7 @@ import KeybindsCard from '../components/KeybindsCard'
 import NavDisplayCard from '../components/NavDisplayCard'
 import MotionCard from '../components/MotionCard'
 import BackgroundCard from '../components/BackgroundCard'
+import UpdatesCard from '../components/UpdatesCard'
 import StorageCard from '../components/StorageCard'
 import DevTools from '../components/DevTools'
 import { useDevMode } from '../lib/devMode'
@@ -135,6 +136,7 @@ export default function Settings() {
             <CategoryLabel label="System" />
             <HardwareAllocation />
             <StorageCard />
+            <UpdatesCard />
           </section>
           <section
             id="settings-about"

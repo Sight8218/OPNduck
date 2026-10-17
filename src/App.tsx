@@ -5,6 +5,7 @@ import FluidBackground from './components/FluidBackground'
 import NavBar from './components/NavBar'
 import PageTransition from './components/PageTransition'
 import PreAlphaBanner from './components/PreAlphaBanner'
+import UpdatePrompt from './components/UpdatePrompt'
 import VersionFooter from './components/VersionFooter'
 import { registerCoreFeatures } from './features/modules'
 import { DevModeProvider } from './lib/devMode'
@@ -83,6 +84,7 @@ export default function App() {
               <VersionFooter />
             </div>
             <CommandPalette />
+            <UpdatePrompt />
           </NavProvider>
         </ReduceMotionProvider>
       </DevModeProvider>

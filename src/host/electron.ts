@@ -19,6 +19,7 @@
 
 import type {
   ConvertRequest,
+  UpdateCheck,
   DownloadProbe,
   DownloadRequest,
   Host,
@@ -49,6 +50,10 @@ interface ElectronBridge {
   checkRealesrgan(): Promise<ToolStatus>
   checkRife(): Promise<ToolStatus>
   checkFasterWhisper(): Promise<ToolStatus>
+  updates: {
+    check(): Promise<UpdateCheck>
+    openRelease(url: string): Promise<void>
+  }
   omarchy: {
     get(): Promise<OmarchyTheme | null>
     subscribe(listener: (theme: OmarchyTheme | null) => void): () => void
@@ -116,6 +121,10 @@ export function detectElectronHost(): Host | null {
     checkRealesrgan: () => bridge.checkRealesrgan(),
     checkRife: () => bridge.checkRife(),
     checkFasterWhisper: () => bridge.checkFasterWhisper(),
+    updates: {
+      check: () => bridge.updates.check(),
+      openRelease: (url) => bridge.updates.openRelease(url),
+    },
     omarchy: {
       get: () => bridge.omarchy.get(),
       subscribe: (listener) => bridge.omarchy.subscribe(listener),
