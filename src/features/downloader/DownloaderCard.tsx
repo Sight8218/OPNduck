@@ -112,7 +112,16 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
   const ytDlpMissing = ytDlp?.available === false
 
   return (
-    <FeatureCard feature={feature} onDropText={running ? undefined : (t) => /^https?:\/\//i.test(t) && setUrl(t)}>
+    <FeatureCard feature={feature} onDropText={
+        running
+          ? undefined
+          : (t) => {
+              if (!/^https?:\/\//i.test(t)) return
+              setUrl(t)
+              setPreview(null)
+              setPlaylistMode('single')
+            }
+      }>
       {ytDlpMissing && (
         <div className="flex flex-col gap-1 rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-xs">
           <span className="font-medium text-[var(--text)]">yt-dlp isn't installed</span>
@@ -141,6 +150,7 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
         value={url}
         onChange={(e) => {
           setUrl(e.target.value)
+          setPreview(null) // a stale thumbnail/size must not be attached to the new link
           setPlaylistMode('single')
         }}
         disabled={running}

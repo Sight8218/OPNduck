@@ -300,7 +300,7 @@ ipcMain.handle('omarchy:get', () => readOmarchyTheme())
  * Deliberately notify-only: OPNduck's builds are unsigned, so rather than silently
  * replacing itself it opens the release page and lets the user choose what to install. */
 const RELEASES_API = 'https://api.github.com/repos/Sight8218/OPNduck/releases?per_page=10'
-const RELEASES_PAGE_PREFIX = 'https://github.com/Sight8218/OPNduck/releases'
+const RELEASES_PAGE_PATH = '/Sight8218/OPNduck/releases'
 
 function versionParts(v) {
   const m = String(v).match(/(\d+)\.(\d+)\.(\d+)/)
@@ -340,7 +340,11 @@ ipcMain.handle('updates:check', async () => {
   }
 })
 ipcMain.handle('updates:openRelease', (_e, url) => {
-  if (typeof url === 'string' && url.startsWith(RELEASES_PAGE_PREFIX)) return shell.openExternal(url)
+  // Compare parsed parts: a bare startsWith() would also accept look-alike prefixes.
+  const u = parseHttpUrl(url)
+  if (u && u.protocol === 'https:' && u.hostname === 'github.com' && (u.pathname + '/').startsWith(RELEASES_PAGE_PATH + '/')) {
+    return shell.openExternal(u.href)
+  }
 })
 
 /**
@@ -358,8 +362,6 @@ ipcMain.handle('updates:openRelease', (_e, url) => {
 const SPOTIFY_TRACK_RE = /open\.spotify\.com\/(?:intl-\w+\/)?track\/[a-zA-Z0-9]+/
 const SPOTIFY_OTHER_RE = /open\.spotify\.com\/(?:intl-\w+\/)?(album|playlist|artist|show|episode)\//
 
-/** Returns null for a non-Spotify URL, { error } for an unsupported Spotify
- *  link type or a lookup failure, or { query, label } once resolved. */
 /** Parses a user-supplied link; only http(s) is allowed (yt-dlp would otherwise happily
  *  open file: and other schemes). Returns a URL or null. */
 function parseHttpUrl(str) {
@@ -392,6 +394,8 @@ function assertOneOf(value, allowed, what) {
 }
 const UPSCALE_MODELS = ['realesr-animevideov3', 'realesrgan-x4plus', 'realesrgan-x4plus-anime']
 
+/** Returns null for a non-Spotify URL, { error } for an unsupported Spotify
+ *  link type or a lookup failure, or { query, label } once resolved. */
 async function resolveSpotifyTrack(url) {
   const other = url.match(SPOTIFY_OTHER_RE)
   if (other) {
@@ -468,7 +472,10 @@ function saveHistory() {
       .slice(-MAX_HISTORY)
       .map((t) => ({ state: t.state, channel: t.channel, req: t.req, finalPath: t.finalPath ?? null }))
     fs.mkdirSync(path.dirname(historyFile()), { recursive: true })
-    fs.writeFileSync(historyFile(), JSON.stringify(finished))
+    // Write-then-rename so a crash mid-write can't leave a truncated history.json.
+    const tmp = `${historyFile()}.tmp`
+    fs.writeFileSync(tmp, JSON.stringify(finished))
+    fs.renameSync(tmp, historyFile())
   } catch {
     /* history is a convenience — never let a disk error break a job */
   }
@@ -476,8 +483,9 @@ function saveHistory() {
 function loadHistory() {
   try {
     const rows = JSON.parse(fs.readFileSync(historyFile(), 'utf8'))
-    for (const r of rows) {
-      if (!r?.state?.id || !TERMINAL.includes(r.state.status)) continue
+    if (!Array.isArray(rows)) return
+    for (const r of rows.slice(-MAX_HISTORY)) {
+      if (typeof r?.state?.id !== 'string' || !TERMINAL.includes(r.state.status)) continue
       tasks.set(r.state.id, { state: r.state, child: null, finalPath: r.finalPath, channel: r.channel, req: r.req })
     }
   } catch {
@@ -504,10 +512,13 @@ function handleStart(channel, fn) {
 function updateTask(id, patch) {
   const entry = tasks.get(id)
   if (!entry) return
+  // A finished task never changes outcome: a cancel that races a normal exit (or a late
+  // 'error'/'close' event after a kill) must not flip 'canceled' to 'done' or vice versa.
+  if (patch.status && TERMINAL.includes(entry.state.status)) return
   Object.assign(entry.state, patch)
   if (TERMINAL.includes(entry.state.status)) scheduleHistorySave()
   // A finished conversion frees its concurrency slot for the next queued one.
-  if (entry.releaseSlot && ['done', 'error', 'canceled'].includes(entry.state.status)) entry.releaseSlot()
+  if (entry.releaseSlot && TERMINAL.includes(entry.state.status)) entry.releaseSlot()
   broadcastTasks()
 }
 
@@ -1116,7 +1127,7 @@ handleStart('tasks:startConvert', async (_e, req) => {
   const destDir = req.destination || defaultDownloadDir()
   fs.mkdirSync(destDir, { recursive: true })
 
-  const fmt = FORMATS[req.container]
+  const fmt = Object.hasOwn(FORMATS, req.container) ? FORMATS[req.container] : null
   if (!fmt) throw new Error(`Unsupported format: ${req.container}`)
   const ext = fmt.ext
   // Remux only makes sense for video containers; other targets always re-encode.
@@ -1900,6 +1911,16 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+
+// Don't orphan ffmpeg/soffice/python on exit, and don't lose a result that finished inside
+// the 400ms history-save debounce.
+app.on('before-quit', () => {
+  clearTimeout(saveTimer)
+  for (const entry of tasks.values()) {
+    if (entry.state.status === 'queued' || entry.state.status === 'running') killTask(entry)
+  }
+  saveHistory()
 })
 
 app.on('window-all-closed', () => {

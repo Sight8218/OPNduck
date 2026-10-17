@@ -24,8 +24,8 @@
  * This is what makes the Electron → Tauri swap cheap: each shell gets an
  * adapter that implements the same interface, so the UI never changes.
  *
- * Currently every implementation is a browser no-op — the desktop shell
- * adapters (Electron IPC / Tauri commands) are added when that phase lands.
+ * Two implementations exist: the Electron adapter (src/host/electron.ts, over the preload
+ * bridge) and a browser no-op fallback below. A Tauri adapter could join later.
  */
 
 import { detectElectronHost } from './electron'
@@ -223,14 +223,14 @@ export interface Host {
   /** faster-whisper is a Python library — checks the user's Python can import it, for Subtitles. */
   checkFasterWhisper(): Promise<ToolStatus>
   tasks: HostTasks
-  /** Present only on hosts that can see the OS-level Omarchy theme (Electron
-   *  on Linux); undefined everywhere else, including a non-Omarchy Linux
-   *  desktop that just happens to run Electron. */
   /** Update check against GitHub releases. Desktop shell only (notify-only: opens the release page). */
   updates?: {
     check(): Promise<UpdateCheck>
     openRelease(url: string): Promise<void>
   }
+  /** Present only on hosts that can see the OS-level Omarchy theme (Electron
+   *  on Linux); undefined everywhere else, including a non-Omarchy Linux
+   *  desktop that just happens to run Electron. */
   omarchy?: {
     /** Current Omarchy theme, or null if Omarchy isn't installed/detected. */
     get(): Promise<OmarchyTheme | null>
