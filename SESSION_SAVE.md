@@ -29,7 +29,7 @@
   gated when a binary is missing.
 - **Also shipped**: persistent job progress, drag & drop, Library history (Open folder, Run
   again, Clear finished), per-card presets, command palette (`Ctrl+K`), rebindable keybinds.
-- **Not wired yet**: Beat Finder (librosa), Subtitles (faster-whisper), Python sidecar, plugin loader
+- **Not wired yet**: Beat Finder (librosa), Python sidecar, plugin loader
 - **License**: GPL-3.0
 - **Repository**: https://github.com/Sight8218/OPNduck (public, `main`)
 - **Platform Focus**: Linux (X11/Wayland), Hyprland window manager; Windows builds made via
@@ -40,7 +40,7 @@
 ## Directory Structure
 
 ```
-/home/ducky/Work/opnduck/
+opnduck/
 ├── electron/
 │   ├── main.cjs          # BrowserWindow, IPC handlers, task runner (yt-dlp/ffmpeg/LibreOffice/Real-ESRGAN/RIFE)
 │   ├── preload.cjs       # IPC bridge (contextIsolation enabled)
@@ -110,7 +110,7 @@ The gray frame was a **Chromium frameless window compositor edge** on X11/XWayla
 - Theme rendering (proven via full glass theme neutralization test)
 
 ### The Fix
-**File**: `/home/ducky/Work/opnduck/electron/main.cjs`
+**File**: `electron/main.cjs`
 
 Added `transparent: true` to the BrowserWindow constructor:
 
@@ -179,7 +179,10 @@ const win = new BrowserWindow({
   audit hardening. Packaged builds opened blank.
 - **v0.3.1-Alpha**: hotfix for the blank packaged window; batch/cancel fixes; CSP.
 - **v0.3.2-Alpha**: persistent job progress, drag & drop, Library history with re-run, presets.
-- Since then on `main`: keyboard-shortcut fix for Ctrl combos (palette default `Ctrl+K`).
+- Since then on `main`: keyboard-shortcut fix for Ctrl combos (palette default `Ctrl+K`),
+  Subtitles card wired to faster-whisper, Windows fixes (LibreOffice lookup, yt-dlp UTF-8),
+  Windows smoke-test workflow, Flat/Gradient background setting (flat default), notify-only
+  update check, dependency refresh.
 
 See `CHANGELOG.md` for details.
 
@@ -233,7 +236,7 @@ After making changes, verify:
 
 ## Next Steps (For Continuation)
 
-1. Beat Finder (librosa) and Subtitles (faster-whisper) engines
+1. Beat Finder (librosa) engine
 2. Python "Master Engine" sidecar and the plugin loader
 3. Test Windows builds on real Windows
 4. AUR publication and artifact signing (deferred)
@@ -270,5 +273,5 @@ methodical, thorough, and test-driven.
 
 ---
 
-**Last Updated**: October 14, 2026 (v0.3.2-Alpha)
+**Last Updated**: October 17, 2026 (v0.3.2-Alpha + unreleased changes on `main`)
 **Next Session Starter**: Read `PROJECT_BRIEF.md` and `CHANGELOG.md`, then continue with the next steps above

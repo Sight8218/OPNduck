@@ -57,8 +57,9 @@ real video downloading works. Respect this.
 - **Wired** (system binaries on PATH, spawned from `electron/main.cjs`): yt-dlp
   (downloads + YouTube playlists), FFmpeg (video/audio/image conversion),
   LibreOffice (document conversion), Real-ESRGAN NCNN-Vulkan (image + video
-  upscaling), RIFE NCNN-Vulkan (frame interpolation).
-- **Not wired yet:** librosa (Beat Finder), faster-whisper (Subtitles), the
+  upscaling), RIFE NCNN-Vulkan (frame interpolation), faster-whisper (Subtitles, via
+  the user's own Python 3; see `electron/whisper_subtitles.py`).
+- **Not wired yet:** librosa (Beat Finder), the
   Python 3 "Master Engine" sidecar (PyInstaller), the plugin loader.
 
 ---
@@ -78,6 +79,9 @@ real video downloading works. Respect this.
   (theme, nav display, motion & density), Keybinds, System (Hardware Allocation,
   Storage), About.
 - **Command palette** (default `Ctrl+K`, rebindable) and Dev mode (`Ctrl+Shift+D`).
+- **Appearance/system settings:** theme (Blarange, Monochrome, Synced with Omarchy on Omarchy),
+  Background (Flat by default, optional Gradient), menu icons, motion & density, keybinds, and
+  an Updates card (notify-only check against GitHub releases, with an on-launch prompt).
 
 Routes (React Router v7, **`HashRouter`**, because `BrowserRouter` can't resolve routes
 when the packaged app loads `index.html` over `file://`):
@@ -177,11 +181,11 @@ mount (`hideSplash()`).
 
 ## 11. Current repo state
 
-- Location: `/home/ducky/Work/opnduck/` · GitHub: `Sight8218/OPNduck` (`main`).
+- GitHub: `Sight8218/OPNduck` (`main`).
 - Version: **`0.3.2-alpha`** (released 2026-10-10; see `CHANGELOG.md`).
 - Electron 44, React 19, TypeScript 7, Vite 8, Tailwind 4.
 - `npm run build`, `npm run typecheck`, `npm run lint` are expected to be clean. No
-  automated test suite; GitHub workflows are Claude Code + Claude code review.
+  automated test suite; GitHub workflows: Claude Code, Claude code review, and a Windows smoke test (`.github/workflows/windows-smoke.yml`).
 - Audit notes: `.claude/audit-log.md`. Source tree: see `src/` (the map in
   `history.md` predates v0.3).
 
@@ -189,8 +193,8 @@ mount (`hideSplash()`).
 
 ## 12. How to pick up / continue
 
-1. Read this brief + `CHANGELOG.md` + `history.md` + `personality.md`.
-2. Open items: Beat Finder (librosa), Subtitles (faster-whisper), Python sidecar,
+1. Read this brief + `CHANGELOG.md` + `SESSION_SAVE.md` (`history.md` and `CHAT_HISTORY.md` are old historical snapshots).
+2. Open items: Beat Finder (librosa), Python sidecar,
    plugin loader, testing the Windows builds on real Windows, AUR publication and
    artifact signing (deferred).
 3. Tauri stays postponed until the WebKitGTK/NVIDIA/Wayland issue is fixed upstream,

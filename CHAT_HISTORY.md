@@ -1,5 +1,7 @@
 # OPNduck Development Chat History — Session #11
 
+> **Historical snapshot** (v0.2.0 era). Kept for context only.
+
 ## Overview
 This is the complete conversation history from Session #11, where the user and I investigated and fixed a gray window frame bug in OPNduck. The session demonstrates systematic debugging methodology (layer stripping, pixel verification, hypothesis testing).
 
@@ -122,7 +124,7 @@ I summarized the session #10 findings (scrollbar red leak fixed, menu-swipe flic
 
 ## The Fix
 
-**File**: `/home/ducky/Work/opnduck/electron/main.cjs`
+**File**: `electron/main.cjs`
 
 **Change**:
 ```javascript
@@ -186,10 +188,10 @@ const win = new BrowserWindow({
 ## Files Changed This Session
 
 1. **`~/.config/hypr/hyprland.lua`**: Added OPNduck window rule (kept in place, benign)
-2. **`/home/ducky/Work/opnduck/electron/main.cjs`**: Added `transparent: true` to BrowserWindow (THE FIX)
+2. **`electron/main.cjs`**: Added `transparent: true` to BrowserWindow (THE FIX)
 3. **`/tmp/opencode/pxscan/`**: Created pixel verification scripts (not committed, for debugging)
-4. **`/home/ducky/Work/opnduck/SESSION_SAVE.md`**: Comprehensive session context document (committed)
-5. **`/home/ducky/Work/opnduck/CHAT_HISTORY.md`**: This file (this session's conversation log)
+4. **`SESSION_SAVE.md`**: Comprehensive session context document (committed)
+5. **`CHAT_HISTORY.md`**: This file (this session's conversation log)
 
 ---
 

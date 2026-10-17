@@ -13,8 +13,8 @@
 //
 // See PLUGINS.md at the repo root for the full manifest schema and current
 // loading status (this contract is locked; the loader that actually reads
-// plugin.json from disk and runs this file lands with the Tauri desktop
-// shell — see that doc for why).
+// plugin.json from disk and runs this file is not built yet; it waits
+// on the desktop-shell decision, see that doc for why).
 
 export default function HelloWorldCard({ feature }) {
   const { React } = window.OPNduck

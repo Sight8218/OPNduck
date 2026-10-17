@@ -10,9 +10,9 @@ Downloader/Converter/Upscaler cards use — see `src/features/registry.ts`.
 **The manifest format and entry contract below are stable — build against
 them now.** What's *not* built yet is the part that reads `plugin.json` off
 disk at startup and turns it into a running card automatically. That loader
-is intentionally deferred to the Tauri desktop-shell migration (Electron and
-Tauri load third-party code very differently, and building the real
-mechanism twice isn't worth it). Until then, a finished plugin gets included
+is intentionally deferred until the desktop-shell question is settled (the Tauri
+migration is postponed, and Electron and Tauri load third-party code very
+differently, so building the real mechanism twice isn't worth it). Until then, a finished plugin gets included
 by opening a PR — see [Getting a plugin included today](#getting-a-plugin-included-today).
 
 ## Where plugins live
@@ -90,6 +90,6 @@ your starting point.
 Since the dynamic loader isn't live yet, the path to actually running your
 plugin right now is a pull request: open one adding your plugin under
 `plugin-examples/` (or, if you'd rather it ship as a real feature, propose
-folding it into `src/features/` directly). Once the Tauri-era loader lands,
+folding it into `src/features/` directly). Once the loader lands,
 anything already following this manifest format should need little to no
 rework to load automatically from the plugins folder above.

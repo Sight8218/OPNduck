@@ -42,7 +42,7 @@ export interface FeatureDefinition {
  * A plugin's plugin.json — the on-disk, author-facing format. Locked down now
  * so plugin authors have a stable target to build against; the loader that
  * reads this from disk and turns it into a registered FeatureDefinition
- * arrives with the Tauri desktop shell (see PLUGINS.md for why). `entry`'s
+ * is not built yet (see PLUGINS.md for why). `entry`'s
  * default export must match FeatureDefinition['render']'s signature exactly:
  * `(props: { feature: FeatureDefinition }) => JSX.Element`.
  */

@@ -49,7 +49,7 @@
 
 This project's work has been verified end-to-end on the machine (build, lint, headless
 browser E2E). Keep that habit: don't just write code and claim it works — **run it.**
-Aaron is on Linux (Arch + Hyprland, NVIDIA RTX 3080 10GB, CUDA 13.3).
+The project is developed on Linux (Arch + Hyprland).
 
 ## Running theme of user intent
 

@@ -1,5 +1,8 @@
 # OPNduck — Session History
 
+> **Historical snapshot** from the v0.2.0 era (sessions 1–11). Kept for context only;
+> `SESSION_SAVE.md` and `PROJECT_BRIEF.md` are the current references.
+
 > Auto-save point created when conversation context was ~50% (limits) to guarantee no
 > knowledge is lost on compaction or when switching models. Read `PROJECT_BRIEF.md`
 > for architecture, `personality.md` for working style, and this file for what actually
@@ -9,25 +12,15 @@
 
 ## Session timeline
 
-### 1. Crash diagnosis (unrelated to OPNduck — done & closed)
-- User reported a Brave renderer crash (SIGILL, PID 286504) via the `diagnose-crash`
-  skill.
-- **Findings:** Brave *renderer* sub-process died with SIGILL (ILL_ILLOPN "invalid
-  opcode") inside `/opt/brave-origin-bin/brave` (stripped binary, frames unsymbolized).
-  Most likely a V8 JIT bug or renderer memory corruption. **Not** OOM, not a repeated
-  pattern, not hardware (i7-4770K has no MCE). No permanent data loss (renderer crash
-  → tab restore). **Not an Omarchy bug** — Brave's own binary; report upstream to Brave
-  if it recurs. Closed.
-
 ### 2. "Can you make apps?" → design doc → OPNduck v0.2.0
 - User confirmed I can build apps, then pointed me to
-  `/home/ducky/promptforOPNducky.txt` (the OPNduck design document) and told me to study
+  a local design document (the OPNduck brief) and told me to study
   it and bring ideas, "you're my bro".
 
 ### 3. Environment reconnaissance
-- Machine: Arch Linux, **Node v26.7.0**, npm 11.19, **no Rust toolchain**.
-- **NVIDIA RTX 3080 10GB, CUDA 13.3**, working `nvidia-smi` (great for future AI work).
-- `ffmpeg n9.0.1`, `yt-dlp`, `gcc`, `make` present. Python 3.14.
+- Machine: Arch Linux with Node and npm; no Rust toolchain at the time.
+- A CUDA-capable NVIDIA GPU was available for future AI work.
+- ffmpeg, yt-dlp, gcc and make were present.
 - These facts drove the Electron-now / Tauri-at-beta decision.
 
 ### 4. Framework decision (user-driven)
@@ -38,7 +31,7 @@
   **frontend foundation first**.
 
 ### 5. Researched the existing OPNduck v0.1.0
-- Files in `/home/ducky/OPNduck-plans-and-things/`:
+- Files in a local planning-notes folder:
   - README + release notes (v0.1.0 was also **shell-only, no functionality**).
   - **GPL-3.0** LICENSE (copyright Aaron Jonsson 2026) — despite README mentioning an
     "OLOS" license, the actual commit is GPL-3.0. We used GPL-3.0.
@@ -49,7 +42,6 @@
   **v0.2.0-Alpha** only if real download works. Linux-first + Windows-parallel.
 
 ### 6. Built the v0.2.0 frontend foundation
-Location: `/home/ducky/Work/opnduck/`
 
 **Scaffold:** Vite `react-ts` → added `tailwindcss`+`@tailwindcss/vite`, `react-router-dom`,
 `framer-motion`. Set dev port 1420.
@@ -86,7 +78,7 @@ Screenshots: `/tmp/opnduck-{glass,flat,monochrome}.png`. Git repo initialized on
 
 ### 8. Live UI feedback round (gradient + glass + Dev mode)
 - **User is reviewing live at `http://localhost:1420`** and giving piecemeal visual fixes.
-- **Gradient cutoff bug** (see `/home/ducky/OPNduck-plans-and-things/gradient-bug.txt`):
+- **Gradient cutoff bug** (see a local bug note):
   top was solid dark, only the bottom had the gradient. Root cause located via the user's
   **debug-color troubleshooting idea**: every solid `#1f0508` was repainted to a unique
   color (blue = `--bg-base`, green = html, red = btn-text). `--bg-base` turned the whole
@@ -142,7 +134,7 @@ Screenshots: `/tmp/opnduck-{glass,flat,monochrome}.png`. Git repo initialized on
   `<Routes>`/unused imports. Verified headless: clean single 0→1 enter, no premature content
   swap, all 4 routes + unknown→Home fallback render.
 - **Gray `#353535` border on left/right/bottom edges (all themes)** — user report + screenshot
-  (`/home/ducky/OPNduck-plans-and-things/screenshot/`). Pixel scan (1920×1080) found a
+  (a local screenshots folder). Pixel scan (1920×1080) found a
   **~4px neutral-gray frame**: x0=`72,72,72`, x1–3=`40,40,40`, right/L/B mirrored; warm glass
   only begins at x4. **Root cause**: a **duplicate `--bg-base` GRADIENT** painted at document
   level on `html`/`body` alongside the fixed viewport `.fluid-background` — the two gradients

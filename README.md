@@ -15,8 +15,8 @@ in; Beat Finder is still not. The Tauri migration is **postponed** (see Desktop 
 OPNduck ships on Electron.
 
 <p align="center">
-  <img src="docs/screenshots/home.png" alt="OPNduck home screen — Downloader and AI Upscaler cards over the Liquid Glass fluid gradient" width="49%" />
-  <img src="docs/screenshots/settings.png" alt="OPNduck settings screen — theme, icon, and motion controls" width="49%" />
+  <img src="docs/screenshots/home.png" alt="OPNduck home screen — Downloader, Converter and AI upscaler cards in the Blarange theme" width="49%" />
+  <img src="docs/screenshots/settings.png" alt="OPNduck settings screen — theme, background, icon, and motion controls" width="49%" />
 </p>
 
 ---
@@ -121,7 +121,7 @@ npm run lint       # oxlint
 
 The frontend runs in any browser today — it is the exact bundle the desktop shell
 hosts. The Electron wrapper, downloader, converter, upscalers and interpolation are
-wired in; Beat Finder and Subtitles land in later Alpha updates.
+wired in, as is Subtitles (faster-whisper); Beat Finder lands in a later Alpha update.
 
 ---
 

@@ -4,6 +4,31 @@ All notable changes to OPNduck are documented in this file. Generated with
 [git-cliff](https://github.com/orhun/git-cliff) from Conventional Commit
 history; entries are curated for readability.
 
+## [Unreleased]
+
+### Added
+
+- **Subtitles card** wired to faster-whisper (uses your own Python 3 with `faster-whisper`
+  installed; set `OPNDUCK_PYTHON` to point at a venv).
+- **Background setting** (Settings → Appearance): **Flat** is now the default; **Gradient**
+  restores the theme's fade. In flat mode cards are lifted slightly so they never blend
+  into the page.
+- **Update check** (notify-only): on launch OPNduck asks GitHub whether a newer release
+  exists and offers Download / Later / Skip this version; Settings → System → Updates has an
+  on/off switch and Check now. Nothing is installed automatically.
+- Windows smoke-test GitHub workflow (`windows-smoke.yml`).
+
+### Changed
+
+- Command palette default shortcut is now **Ctrl+K** (existing rebinds are untouched).
+- Dependency refresh (Electron, framer-motion, oxlint).
+
+### Fixed
+
+- Keyboard shortcuts with Ctrl no longer miss letters/Space on input methods and non-US
+  layouts (shortcuts read the physical key).
+- Windows: LibreOffice is found outside PATH; yt-dlp output is forced to UTF-8.
+
 ## [0.3.2-Alpha] - 2026-10-10
 
 ### Fixed
