@@ -18,8 +18,13 @@ export default function UpdatesCard() {
 
   async function checkNow() {
     setChecking(true)
-    setResult(await host.updates!.check())
-    setChecking(false)
+    try {
+      setResult(await host.updates!.check())
+    } catch (err) {
+      setResult({ current: '', latest: null, newer: false, error: err instanceof Error ? err.message : String(err) })
+    } finally {
+      setChecking(false)
+    }
   }
 
   let status: string | null = null

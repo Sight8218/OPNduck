@@ -53,6 +53,7 @@ export default function SmartDownloadPanel({ url, onDone }: { url: string; onDon
   const [playlist, setPlaylist] = useState<PlaylistInfo | null>(null)
   const [playlistMode, setPlaylistMode] = useState<'single' | 'all'>('single')
   const [checking, setChecking] = useState(true)
+  const [startError, setStartError] = useState<string | null>(null)
 
   // Same link check the Downloader card does, so a pasted playlist link isn't
   // silently reduced to one video.
@@ -60,11 +61,16 @@ export default function SmartDownloadPanel({ url, onDone }: { url: string; onDon
     let stale = false
     setChecking(true)
     setPlaylistMode('single')
-    host.tasks.probe({ url, format: 'MP4' }).then((r) => {
-      if (stale) return
-      setPlaylist(r.playlist ?? null)
-      setChecking(false)
-    })
+    host.tasks
+      .probe({ url, format: 'MP4' })
+      .then((r) => {
+        if (stale) return
+        setPlaylist(r.playlist ?? null)
+        setChecking(false)
+      })
+      .catch(() => {
+        if (!stale) setChecking(false) // link check failed — still allow a plain download
+      })
     return () => {
       stale = true
     }
@@ -72,14 +78,19 @@ export default function SmartDownloadPanel({ url, onDone }: { url: string; onDon
   const wholePlaylist = !!playlist && (!playlist.ambiguous || playlistMode === 'all')
 
   async function run() {
-    await host.tasks.startDownload({
+    try {
+      await host.tasks.startDownload({
       url,
       format,
       videoQuality: isVideo ? videoQuality : undefined,
       audioQuality: format === 'MP3' ? audioQuality : undefined,
       destination: getDownloadDirOverride() ?? undefined,
       playlist: playlistMode,
-    })
+      })
+    } catch (err) {
+      setStartError(err instanceof Error ? err.message : String(err))
+      return
+    }
     onDone()
   }
 
@@ -147,6 +158,7 @@ export default function SmartDownloadPanel({ url, onDone }: { url: string; onDon
           )}
         </div>
       )}
+      {startError && <span className="text-xs text-red-400">{startError}</span>}
       <button type="button" className="glass-btn" onClick={run} disabled={checking}>
         {checking ? 'Checking link…' : wholePlaylist ? 'Download playlist' : 'Download'}
       </button>

@@ -53,6 +53,7 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
   // Only consulted for "video inside a playlist" links, where the user picks.
   const [playlistMode, setPlaylistMode] = useState<'single' | 'all'>('single')
   const [previewing, setPreviewing] = useState(false)
+  const [startError, setStartError] = useState<string | null>(null)
   const [ytDlp, setYtDlp] = useState<{ available: boolean; installHint: string } | null>(null)
 
   useEffect(() => {
@@ -79,13 +80,15 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
     // A slow probe for an older url/format must not overwrite a newer one's result.
     let stale = false
     const timer = setTimeout(async () => {
-      const result = await host.tasks.probe({ url: trimmed, format, videoQuality, audioQuality })
+      let next = { sizeBytes: null as number | null, thumbnailUrl: null as string | null, playlist: null as PlaylistInfo | null }
+      try {
+        const result = await host.tasks.probe({ url: trimmed, format, videoQuality, audioQuality })
+        next = { sizeBytes: result.approxSizeBytes, thumbnailUrl: result.thumbnailUrl, playlist: result.playlist ?? null }
+      } catch {
+        /* link check failed — fall through with an empty preview rather than hang on 'Checking link…' */
+      }
       if (stale) return
-      setPreview({
-        sizeBytes: result.approxSizeBytes,
-        thumbnailUrl: result.thumbnailUrl,
-        playlist: result.playlist ?? null,
-      })
+      setPreview(next)
       setPreviewing(false)
     }, 700)
     return () => {
@@ -96,7 +99,10 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
   }, [url, format, videoQuality, audioQuality])
 
   async function run() {
-    const id = await host.tasks.startDownload({
+    setStartError(null)
+    let id: string
+    try {
+      id = await host.tasks.startDownload({
       url: url.trim(),
       format,
       videoQuality: isVideo ? videoQuality : undefined,
@@ -105,7 +111,11 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
       approxSizeBytes: wholePlaylist ? null : (preview?.sizeBytes ?? null),
       thumbnailUrl: preview?.thumbnailUrl ?? null,
       playlist: playlistMode,
-    })
+      })
+    } catch (err) {
+      setStartError(err instanceof Error ? err.message : String(err))
+      return
+    }
     setTaskId(id)
   }
 
@@ -265,6 +275,8 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
           </div>
         </div>
       )}
+
+      {startError && <span className="text-xs text-red-400">{startError}</span>}
 
       <div className="flex gap-2">
         <button

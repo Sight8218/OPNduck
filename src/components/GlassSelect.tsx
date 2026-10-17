@@ -88,7 +88,7 @@ export default function GlassSelect<T extends string>({
   }
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (disabled) return
+    if (disabled || options.length === 0) return
     switch (e.key) {
       case 'ArrowDown':
       case 'ArrowUp': {

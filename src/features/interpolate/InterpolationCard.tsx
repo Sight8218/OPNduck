@@ -7,6 +7,7 @@ import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
 import PresetBar from '../../components/PresetBar'
 import { usePresets } from '../../lib/usePresets'
+import { startBatch } from '../../lib/startBatch'
 import { useSubmittedIds } from '../../lib/submittedTasks'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
@@ -60,9 +61,7 @@ export default function InterpolationCard({ feature }: { feature: FeatureDefinit
 
   async function interpolateAll() {
     const destination = getDownloadDirOverride() ?? undefined
-    const ids = await Promise.all(
-      files.map((inputPath) => host.tasks.startInterpolate({ inputPath, multiplier, destination })),
-    )
+    const ids = await startBatch(files, (inputPath) => host.tasks.startInterpolate({ inputPath, multiplier, destination }))
     setSubmittedIds(ids)
     setFiles([])
   }

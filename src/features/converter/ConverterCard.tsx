@@ -8,6 +8,7 @@ import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
 import PresetBar from '../../components/PresetBar'
 import { usePresets } from '../../lib/usePresets'
+import { startBatch } from '../../lib/startBatch'
 import { useSubmittedIds } from '../../lib/submittedTasks'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
@@ -58,11 +59,7 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
   async function convertAll(container: ContainerFormat, mode: ConvertMode) {
     setPickerOpen(false)
     const destination = getDownloadDirOverride() ?? undefined
-    // allSettled: one failed start must not lose the ids of the jobs that did start.
-    const results = await Promise.allSettled(
-      files.map((inputPath) => host.tasks.startConvert({ inputPath, container, mode, destination })),
-    )
-    const ids = results.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []))
+    const ids = await startBatch(files, (inputPath) => host.tasks.startConvert({ inputPath, container, mode, destination }))
     setSubmittedIds(ids)
     setFiles([])
   }

@@ -41,7 +41,9 @@ const STORAGE_KEY = 'opnduck.keybinds'
 function readOverrides(): Record<string, string> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : {}
+    const parsed = raw ? JSON.parse(raw) : {}
+    // A hand-edited/corrupt value like "null" or an array would otherwise throw on every keydown.
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
   } catch {
     return {}
   }

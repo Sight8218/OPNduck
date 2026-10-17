@@ -16,6 +16,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { memo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import Tag from '../components/Tag'
 import Thumbnail from '../components/Thumbnail'
@@ -36,7 +37,7 @@ function statusLabel(task: TaskState): string {
   return { queued: 'Queued', done: 'Done', error: 'Error', canceled: 'Canceled' }[task.status]
 }
 
-function TaskRow({ task }: { task: TaskState }) {
+function TaskRowImpl({ task }: { task: TaskState }) {
   const running = task.status === 'queued' || task.status === 'running'
   const size = formatBytes(task.sizeBytes)
   return (
@@ -61,7 +62,7 @@ function TaskRow({ task }: { task: TaskState }) {
             </button>
           )}
           {!running && (
-            <button type="button" className="glass-btn px-2 py-1 text-xs" onClick={() => host.tasks.rerun(task.id)}>
+            <button type="button" className="glass-btn px-2 py-1 text-xs" onClick={() => void host.tasks.rerun(task.id).catch(() => {})}>
               Run again
             </button>
           )}
@@ -99,6 +100,25 @@ function TaskRow({ task }: { task: TaskState }) {
     </motion.div>
   )
 }
+
+/** Every task update from the main process arrives as fresh objects, so without this each
+ *  of the (up to 200) history rows re-rendered on every progress tick of a running job.
+ *  Compare only the fields a row actually shows. */
+const TaskRow = memo(
+  TaskRowImpl,
+  (a, b) =>
+    a.task.id === b.task.id &&
+    a.task.status === b.task.status &&
+    a.task.progress === b.task.progress &&
+    a.task.label === b.task.label &&
+    a.task.error === b.task.error &&
+    a.task.sizeBytes === b.task.sizeBytes &&
+    a.task.sizeIsEstimate === b.task.sizeIsEstimate &&
+    a.task.format === b.task.format &&
+    a.task.quality === b.task.quality &&
+    a.task.thumbnailUrl === b.task.thumbnailUrl &&
+    a.task.experimentalMatch === b.task.experimentalMatch,
+)
 
 // @category: library/library-queue-page
 export default function Library() {

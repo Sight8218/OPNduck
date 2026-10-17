@@ -283,7 +283,9 @@ ipcMain.handle('system:checkFasterWhisper', () => {
   return new Promise((resolve) => {
     let child
     try {
-      child = spawn(pythonCommand(), ['-c', 'import faster_whisper'])
+      // cwd = tmpdir: `python -c` puts the cwd on sys.path, so never run it from a folder
+      // that could hold a planted faster_whisper.py.
+      child = spawn(pythonCommand(), ['-c', 'import faster_whisper'], { cwd: os.tmpdir() })
     } catch {
       resolve({ available: false, installHint: fasterWhisperInstallHint() })
       return
@@ -411,7 +413,9 @@ async function resolveSpotifyTrack(url) {
 
   let html
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } })
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000) })
+    // A redirect off open.spotify.com is not something to scrape.
+    if (new URL(res.url).hostname !== 'open.spotify.com') return { error: "Spotify redirected somewhere unexpected — can't read this track." }
     html = await res.text()
   } catch (err) {
     return { error: `Couldn't reach Spotify to identify the track: ${err.message}` }
@@ -522,21 +526,50 @@ function updateTask(id, patch) {
   broadcastTasks()
 }
 
-/** Batch conversions would otherwise spawn one ffmpeg/soffice per file all at once. */
-const CONVERT_CONCURRENCY = 2
-let convertActive = 0
-const convertWaiters = []
-function acquireConvertSlot() {
-  if (convertActive < CONVERT_CONCURRENCY) {
-    convertActive++
-    return Promise.resolve()
+/** A counting semaphore: queued jobs wait here for a slot instead of all starting at once. */
+function makePool(limit) {
+  let active = 0
+  const waiters = []
+  return {
+    acquire() {
+      if (active < limit) {
+        active++
+        return Promise.resolve()
+      }
+      return new Promise((resolve) => waiters.push(resolve))
+    },
+    release() {
+      const next = waiters.shift()
+      if (next) next() // hand the slot straight over
+      else active--
+    },
   }
-  return new Promise((resolve) => convertWaiters.push(resolve))
 }
-function releaseConvertSlot() {
-  const next = convertWaiters.shift()
-  if (next) next() // hand the slot straight over
-  else convertActive--
+// Batches would otherwise spawn one process per file at once: ffmpeg/soffice conversions are
+// light (2 at a time); upscalers/interpolation fight over one GPU and Whisper loads a whole
+// model per process (1 at a time each).
+const convertPool = makePool(2)
+const gpuPool = makePool(1)
+const whisperPool = makePool(1)
+
+/** Runs `work` once the pool has a free slot. The slot is released by updateTask() when the
+ *  task reaches a terminal state, or immediately if the task was canceled while waiting. */
+async function runInPool(pool, id, work) {
+  await pool.acquire()
+  const entry = tasks.get(id)
+  if (!entry || isCanceled(id)) return pool.release()
+  let released = false
+  entry.releaseSlot = () => {
+    if (!released) {
+      released = true
+      pool.release()
+    }
+  }
+  try {
+    await work()
+  } catch (err) {
+    updateTask(id, { status: 'error', error: `Failed to start: ${err.message}` })
+  }
 }
 
 /** Kill a job's process, including children: soffice is a launcher whose real worker
@@ -546,7 +579,7 @@ function killTask(entry) {
   if (!child) return
   try {
     if (entry.killGroup && process.platform !== 'win32' && child.pid) process.kill(-child.pid, 'SIGTERM')
-    else if (entry.killGroup && process.platform === 'win32' && child.pid) spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'])
+    else if (entry.killGroup && process.platform === 'win32' && child.pid) spawn('taskkill', ['/pid', String(child.pid), '/T', '/F']).on('error', () => child.kill())
     else child.kill()
   } catch {
     child.kill()
@@ -567,14 +600,14 @@ function qualityLabel(req) {
 
 /** Maps a Downloader format + quality choice to yt-dlp CLI args. */
 function formatArgs(req) {
-  if (req.format in AUDIO_EXT) {
+  if (Object.hasOwn(AUDIO_EXT, req.format)) {
     const args = ['-x', '--audio-format', AUDIO_EXT[req.format]]
     if (req.format === 'MP3') {
       args.push('--audio-quality', req.audioQuality && req.audioQuality !== 'best' ? req.audioQuality : '0')
     }
     return args
   }
-  if (req.format in VIDEO_EXT) {
+  if (Object.hasOwn(VIDEO_EXT, req.format)) {
     const height = req.videoQuality && req.videoQuality !== 'best' ? Number(req.videoQuality) : null
     const selector = height ? `bv*[height<=${height}]+ba/b[height<=${height}]` : 'bv*+ba/b'
     return ['-f', selector, '--merge-output-format', VIDEO_EXT[req.format]]
@@ -694,7 +727,22 @@ async function probeInfo(req) {
   }
 }
 
-ipcMain.handle('tasks:probe', (_e, req) => probeInfo(req))
+/** Checks a Downloader request up front, so a bad one is rejected instead of leaving a task
+ *  stuck in 'queued' after it has already been created. Also trims the URL. */
+function validateDownloadRequest(req) {
+  req.url = String(req.url ?? '').trim()
+  if (!Object.hasOwn(AUDIO_EXT, req.format) && !Object.hasOwn(VIDEO_EXT, req.format)) {
+    throw new Error(`Unsupported format: ${req.format}`)
+  }
+  if (req.videoQuality != null && req.videoQuality !== 'best' && !/^\d{3,4}$/.test(String(req.videoQuality))) {
+    throw new Error(`Invalid video quality: ${req.videoQuality}`)
+  }
+}
+
+ipcMain.handle('tasks:probe', (_e, req) => {
+  req.url = String(req.url ?? '').trim()
+  return probeInfo(req)
+})
 
 function formatSize(f) {
   return f?.filesize ?? f?.filesize_approx ?? null
@@ -737,6 +785,7 @@ function estimateSize(info, req) {
 }
 
 handleStart('tasks:start', async (_e, req) => {
+  validateDownloadRequest(req)
   if (req.destination != null) assertAbsolutePath(req.destination, 'destination')
   if (req.audioQuality != null) {
     if (typeof req.audioQuality !== 'string' || !/^(best|\d{1,3}k?)$/i.test(req.audioQuality)) {
@@ -1161,18 +1210,10 @@ handleStart('tasks:startConvert', async (_e, req) => {
 })
 
 async function runConvert(id, req, fmt, outputPath) {
-  await acquireConvertSlot()
-  const entry0 = tasks.get(id)
-  if (!entry0) return releaseConvertSlot()
-  let released = false
-  entry0.releaseSlot = () => {
-    if (!released) {
-      released = true
-      releaseConvertSlot()
-    }
-  }
-  if (isCanceled(id)) return entry0.releaseSlot()
+  await runInPool(convertPool, id, () => convertJob(id, req, fmt, outputPath))
+}
 
+async function convertJob(id, req, fmt, outputPath) {
   if (fmt.kind === 'doc') {
     runDocConvert(id, req, fmt, outputPath)
     return
@@ -1286,55 +1327,57 @@ handleStart('tasks:startUpscale', (_e, req) => {
   })
   broadcastTasks()
 
-  let child
-  try {
-    child = spawn('realesrgan-ncnn-vulkan', upscaleArgs(req, outputPath))
-  } catch (err) {
-    updateTask(id, { status: 'error', error: `Failed to start realesrgan-ncnn-vulkan: ${err.message}` })
-    return id
-  }
-
-  const entry = tasks.get(id)
-  entry.child = child
-  updateTask(id, { status: 'running' })
-
-  // Everything — GPU info, per-tile progress percentages, and the final
-  // "done" line — comes out on stderr, not stdout (verified directly).
-  let stderrTail = ''
-  child.stderr.on('data', (chunk) => {
-    const text = chunk.toString()
-    stderrTail = (stderrTail + text).slice(-2000)
-    const match = text.match(/(\d+(?:\.\d+)?)%/)
-    if (match) updateTask(id, { progress: Math.min(1, Number(match[1]) / 100) })
-  })
-  child.on('error', (err) => {
-    updateTask(id, { status: 'error', error: `realesrgan-ncnn-vulkan not found on PATH (${err.message})` })
-  })
-  child.on('close', (code, signal) => {
-    if (!tasks.has(id)) return
-    // A spawn failure (ENOENT) fires 'error' and then 'close'(-2); keep the clearer 'error' message.
-    if (entry.state.status === 'canceled' || entry.state.status === 'error') return
-    if (signal || code !== 0) {
-      updateTask(id, {
-        status: 'error',
-        error: stderrTail.trim().split('\n').pop() || `realesrgan-ncnn-vulkan exited with code ${code}`,
-      })
+  runInPool(gpuPool, id, () => {
+    let child
+    try {
+      child = spawn('realesrgan-ncnn-vulkan', upscaleArgs(req, outputPath))
+    } catch (err) {
+      updateTask(id, { status: 'error', error: `Failed to start realesrgan-ncnn-vulkan: ${err.message}` })
       return
     }
-    let realSize = null
-    try {
-      realSize = fs.statSync(outputPath).size
-    } catch {
-      /* keep null if the output can't be read */
-    }
-    updateTask(id, {
-      status: 'done',
-      progress: 1,
-      label: path.basename(outputPath),
-      ...(realSize != null ? { sizeBytes: realSize } : {}),
-    })
-  })
 
+    const entry = tasks.get(id)
+    entry.child = child
+    updateTask(id, { status: 'running' })
+
+    // Everything — GPU info, per-tile progress percentages, and the final
+    // "done" line — comes out on stderr, not stdout (verified directly).
+    let stderrTail = ''
+    child.stderr.on('data', (chunk) => {
+      const text = chunk.toString()
+      stderrTail = (stderrTail + text).slice(-2000)
+      const match = text.match(/(\d+(?:\.\d+)?)%/)
+      if (match) updateTask(id, { progress: Math.min(1, Number(match[1]) / 100) })
+    })
+    child.on('error', (err) => {
+      updateTask(id, { status: 'error', error: `realesrgan-ncnn-vulkan not found on PATH (${err.message})` })
+    })
+    child.on('close', (code, signal) => {
+      if (!tasks.has(id)) return
+      // A spawn failure (ENOENT) fires 'error' and then 'close'(-2); keep the clearer 'error' message.
+      if (entry.state.status === 'canceled' || entry.state.status === 'error') return
+      if (signal || code !== 0) {
+        updateTask(id, {
+          status: 'error',
+          error: stderrTail.trim().split('\n').pop() || `realesrgan-ncnn-vulkan exited with code ${code}`,
+        })
+        return
+      }
+      let realSize = null
+      try {
+        realSize = fs.statSync(outputPath).size
+      } catch {
+        /* keep null if the output can't be read */
+      }
+      updateTask(id, {
+        status: 'done',
+        progress: 1,
+        label: path.basename(outputPath),
+        ...(realSize != null ? { sizeBytes: realSize } : {}),
+      })
+    })
+
+  })
   return id
 })
 // --- end: upscaler/task-orchestration-main-process ---
@@ -1356,11 +1399,11 @@ handleStart('tasks:startUpscale', (_e, req) => {
  *  and forwarding each output chunk to onChunk for progress parsing. Resolves on
  *  exit code 0, rejects with the tail of stderr (or stdout, if that's where a
  *  given tool logs) otherwise. */
-function spawnTracked(cmd, args, entry, { onStdout, onStderr } = {}) {
+function spawnTracked(cmd, args, entry, { onStdout, onStderr, cwd } = {}) {
   return new Promise((resolve, reject) => {
     let child
     try {
-      child = spawn(cmd, args)
+      child = spawn(cmd, args, cwd ? { cwd } : undefined)
     } catch (err) {
       reject(err)
       return
@@ -1476,7 +1519,9 @@ handleStart('tasks:startVideoUpscale', async (_e, req) => {
   return id
 })
 
-async function runVideoUpscale(id, req, outputPath) {
+const runVideoUpscale = (id, req, outputPath) => runInPool(gpuPool, id, () => videoUpscaleJob(id, req, outputPath))
+
+async function videoUpscaleJob(id, req, outputPath) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opnduck-upscale-'))
   const framesDir = path.join(tempDir, 'frames')
   const upscaledDir = path.join(tempDir, 'upscaled')
@@ -1662,7 +1707,9 @@ handleStart('tasks:startInterpolate', async (_e, req) => {
   return id
 })
 
-async function runInterpolate(id, req, outputPath) {
+const runInterpolate = (id, req, outputPath) => runInPool(gpuPool, id, () => interpolateJob(id, req, outputPath))
+
+async function interpolateJob(id, req, outputPath) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opnduck-interpolate-'))
   const framesDir = path.join(tempDir, 'frames')
   const interpolatedDir = path.join(tempDir, 'interpolated')
@@ -1839,66 +1886,81 @@ handleStart('tasks:startSubtitles', (_e, req) => {
   })
   broadcastTasks()
 
-  // Read here rather than passed as a path: inside a packaged app.asar, Node can
-  // read the script but an external Python can't open it.
-  let script
-  try {
-    script = fs.readFileSync(WHISPER_SCRIPT, 'utf8')
-  } catch (err) {
-    updateTask(id, { status: 'error', error: `Subtitle script missing: ${err.message}` })
-    return id
-  }
+  runInPool(whisperPool, id, () => {
+    // Read here rather than passed as a path: inside a packaged app.asar, Node can
+    // read the script but an external Python can't open it.
+    let script
+    try {
+      script = fs.readFileSync(WHISPER_SCRIPT, 'utf8')
+    } catch (err) {
+      updateTask(id, { status: 'error', error: `Subtitle script missing: ${err.message}` })
+      return
+    }
 
-  const entry = tasks.get(id)
-  updateTask(id, { status: 'running' })
-  let lineBuf = ''
-  spawnTracked(
-    pythonCommand(),
-    ['-c', script, req.inputPath, outputPath, req.model, req.language, req.format],
-    entry,
-    {
-      onStdout: (text) => {
-        lineBuf += text
-        const lines = lineBuf.split(/\r?\n/)
-        lineBuf = lines.pop()
-        for (const line of lines) {
-          const progress = line.match(/^PROGRESS ([\d.]+)/)
-          if (progress) updateTask(id, { progress: Math.min(1, Number(progress[1])) })
-          const lang = line.match(/^LANG (\S+)/)
-          if (lang) updateTask(id, { quality: `Whisper ${req.model} · ${lang[1]}` })
-        }
+    const entry = tasks.get(id)
+    updateTask(id, { status: 'running' })
+    let lineBuf = ''
+    spawnTracked(
+      pythonCommand(),
+      ['-c', script, req.inputPath, outputPath, req.model, req.language, req.format],
+      entry,
+      {
+        cwd: os.tmpdir(), // `python -c` imports from the cwd; keep it out of user folders
+        onStdout: (text) => {
+          lineBuf += text
+          const lines = lineBuf.split(/\r?\n/)
+          lineBuf = lines.pop()
+          for (const line of lines) {
+            const progress = line.match(/^PROGRESS ([\d.]+)/)
+            if (progress) updateTask(id, { progress: Math.min(1, Number(progress[1])) })
+            const lang = line.match(/^LANG (\S+)/)
+            if (lang) updateTask(id, { quality: `Whisper ${req.model} · ${lang[1]}` })
+          }
+        },
       },
-    },
-  )
-    .then(() => {
-      let realSize = null
-      try {
-        realSize = fs.statSync(outputPath).size
-      } catch {
-        /* keep null if the output can't be read */
-      }
-      updateTask(id, {
-        status: 'done',
-        progress: 1,
-        label: path.basename(outputPath),
-        ...(realSize != null ? { sizeBytes: realSize } : {}),
+    )
+      .then(() => {
+        let realSize = null
+        try {
+          realSize = fs.statSync(outputPath).size
+        } catch {
+          /* keep null if the output can't be read */
+        }
+        updateTask(id, {
+          status: 'done',
+          progress: 1,
+          label: path.basename(outputPath),
+          ...(realSize != null ? { sizeBytes: realSize } : {}),
+        })
       })
-    })
-    .catch((err) => {
-      if (isCanceled(id)) return
-      const missing = err.code === 'ENOENT'
-      updateTask(id, {
-        status: 'error',
-        error: missing ? `${pythonCommand()} not found on PATH — faster-whisper needs Python 3` : err.message,
+      .catch((err) => {
+        if (isCanceled(id)) return
+        const missing = err.code === 'ENOENT'
+        updateTask(id, {
+          status: 'error',
+          error: missing ? `${pythonCommand()} not found on PATH — faster-whisper needs Python 3` : err.message,
+        })
       })
-    })
 
+  })
   return id
 })
 // --- end: subtitles/whisper-transcription ---
 
 /* --- External links open in the OS browser, not inside the app window --- */
 app.on('web-contents-created', (_e, contents) => {
+  // The window should only ever show the app itself — block any navigation away from it
+  // (a stray link, a dropped file) instead of replacing the whole UI.
+  contents.on('will-navigate', (event, url) => {
+    try {
+      const target = new URL(url)
+      const current = new URL(contents.getURL())
+      const same = target.protocol === 'file:' ? current.protocol === 'file:' && target.pathname === current.pathname : target.origin === current.origin
+      if (!same) event.preventDefault()
+    } catch {
+      event.preventDefault()
+    }
+  })
   contents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://') || url.startsWith('http://')) shell.openExternal(url)
     return { action: 'deny' }

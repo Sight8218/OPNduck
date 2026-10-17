@@ -16,7 +16,12 @@ export default function UpdatePrompt() {
     let stale = false
     // Wait a few seconds so the check never competes with startup.
     const timer = setTimeout(async () => {
-      const result = await host.updates!.check()
+      let result
+      try {
+        result = await host.updates!.check()
+      } catch {
+        return // offline or GitHub down — the prompt is optional, stay quiet
+      }
       if (stale || !result.newer || !result.latest) return
       if (getSkippedTag() === result.latest.tag) return
       setInfo(result)

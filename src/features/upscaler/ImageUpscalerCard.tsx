@@ -7,6 +7,7 @@ import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
 import PresetBar from '../../components/PresetBar'
 import { usePresets } from '../../lib/usePresets'
+import { startBatch } from '../../lib/startBatch'
 import { useSubmittedIds } from '../../lib/submittedTasks'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
@@ -76,9 +77,7 @@ export default function ImageUpscalerCard({ feature }: { feature: FeatureDefinit
 
   async function upscaleAll() {
     const destination = getDownloadDirOverride() ?? undefined
-    const ids = await Promise.all(
-      files.map((inputPath) => host.tasks.startUpscale({ inputPath, scale, model, destination })),
-    )
+    const ids = await startBatch(files, (inputPath) => host.tasks.startUpscale({ inputPath, scale, model, destination }))
     setSubmittedIds(ids)
     setFiles([])
   }
