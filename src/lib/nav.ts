@@ -65,7 +65,7 @@ export const HAMBURGER_ICON = IconMenu2
  */
 export type NavDisplay = 'text' | 'hybrid' | 'icon'
 
-export const NAV_STORAGE_KEY = 'opnduck.navDisplay'
+const NAV_STORAGE_KEY = 'opnduck.navDisplay'
 
 export function readNavDisplay(): NavDisplay {
   if (typeof window === 'undefined') return 'hybrid'

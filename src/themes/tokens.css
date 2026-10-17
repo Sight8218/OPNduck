@@ -41,8 +41,6 @@
     --glass-bg: #171310;
     --glass-bg-strong: #0f0c0a;
     --glass-tint: transparent;
-    --glass-blur: 0px;
-    --glass-saturate: 1;
     --glass-border: rgba(225, 137, 47, 0.18);
     --glass-border-inner: rgba(225, 137, 47, 0.25);
     --glass-shadow: 0 10px 26px -16px rgba(0, 0, 0, 0.85);
@@ -70,21 +68,6 @@
     /* --- Background — flat, no animated blobs, no film grain ------------ */
     --bg-base: linear-gradient(180deg, #17130f 0%, #120f0c 60%, #0f0c0a 100%);
     --bg-solid: #17130f;
-    --bg-scrim: transparent;
-    --bg-wash: transparent;
-    --bg-grad-a: linear-gradient(transparent, transparent);
-    --bg-grad-b: linear-gradient(transparent, transparent);
-    --bg-grad-c: linear-gradient(transparent, transparent);
-    --bg-grad-d: linear-gradient(transparent, transparent);
-    --fluid-1: transparent;
-    --fluid-2: transparent;
-    --fluid-3: transparent;
-    --fluid-4: transparent;
-    --fluid-5: transparent;
-    --fluid-6: transparent;
-    --glass-on: 1;
-    --fluid-on: 0;
-    --grain-on: 0;
   }
 
   [data-theme='monochrome'] {
@@ -92,8 +75,6 @@
     --glass-bg: #1a1a1a;
     --glass-bg-strong: #252525;
     --glass-tint: transparent;
-    --glass-blur: 0px;
-    --glass-saturate: 1;
     --glass-border: #3a3a3a;
     --glass-border-inner: #444;
     --glass-shadow: 0 10px 26px -16px rgba(0, 0, 0, 0.9);
@@ -116,25 +97,10 @@
     --accent-soft: #9f9f9f;
 
     /* Monochrome gradient background — a cool silver-to-charcoal depth,
-       distinct from Blarange's warm black/orange. No blobs (--fluid-on: 0);
+       distinct from Blarange's warm black/orange. No blobs;
        the gentle depth stays subtle so the drifting film grain is clearly
        visible. */
     --bg-base: linear-gradient(180deg, #222222 0%, #141414 42%, #0a0a0a 72%, #030303 100%);
     --bg-solid: #141414;
-    --bg-scrim: transparent;
-    --bg-wash: transparent;
-    --bg-grad-a: linear-gradient(transparent, transparent);
-    --bg-grad-b: linear-gradient(transparent, transparent);
-    --bg-grad-c: linear-gradient(transparent, transparent);
-    --bg-grad-d: linear-gradient(transparent, transparent);
-    --fluid-1: transparent;
-    --fluid-2: transparent;
-    --fluid-3: transparent;
-    --fluid-4: transparent;
-    --fluid-5: transparent;
-    --fluid-6: transparent;
-    --glass-on: 1;
-    --fluid-on: 0;
-    --grain-on: 1;
   }
 }

@@ -30,9 +30,9 @@ export default function GlassSelect<T extends string>({
   const [active, setActive] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
-  // The list is portaled to <body>: every .glass card has a backdrop-filter,
-  // which makes it a stacking context, so an in-card list would be trapped
-  // underneath the next card no matter its z-index.
+  // The list is portaled to <body>: cards form their own stacking contexts (transforms,
+  // pop-in/hover effects), so an in-card list could be trapped underneath the next
+  // card no matter its z-index.
   const [pos, setPos] = useState<{ left: number; width: number; top?: number; bottom?: number } | null>(null)
 
   const selected = options.find((o) => o.value === value)

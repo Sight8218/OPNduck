@@ -23,6 +23,16 @@ history; entries are curated for readability.
 - Command palette default shortcut is now **Ctrl+K** (existing rebinds are untouched).
 - Dependency refresh (Electron, framer-motion, oxlint).
 
+### Performance
+
+- Removed the per-card `backdrop-filter` (a no-op blur that cost a compositing layer on every
+  card), the six animated blurred background blobs (invisible but still drawn every frame) and
+  the whole-page blur animation on page switches. Measured on the packaged UI: idle ~103 → ~200
+  fps, scrolling ~97 → ~199 fps, page switching ~60 → ~160 fps.
+- Job-progress updates are coalesced (max one per 120 ms) so a running upscale no longer
+  re-renders every card dozens of times a second.
+- Removed unused theme tokens, dead code and a leftover platform helper.
+
 ### Fixed
 
 - Keyboard shortcuts with Ctrl no longer miss letters/Space on input methods and non-US

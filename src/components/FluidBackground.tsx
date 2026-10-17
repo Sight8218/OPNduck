@@ -17,21 +17,7 @@
  */
 
 
-/**
- * The vibrant fluid gradient background layer.
- * Rendered behind everything (z-index -2), animated warm blobs.
- * Automatically deactivates (opacity 0) in the Monochrome theme.
- */
+/** The single fixed background layer (styled by `.fluid-background` in index.css). */
 export default function FluidBackground() {
-  return (
-    <div className="fluid-background" aria-hidden="true">
-      <div className="fluid-blob fluid-blob-1" />
-      <div className="fluid-blob fluid-blob-2" />
-      <div className="fluid-blob fluid-blob-3" />
-      <div className="fluid-blob fluid-blob-4" />
-      <div className="fluid-blob fluid-blob-5" />
-      <div className="fluid-blob fluid-blob-6" />
-      <div className="fluid-scrim" />
-    </div>
-  )
+  return <div className="fluid-background" aria-hidden="true" />
 }

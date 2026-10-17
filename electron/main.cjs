@@ -434,9 +434,17 @@ function defaultDownloadDir() {
   return path.join(app.getPath('downloads'), 'OPNduck')
 }
 
+// Progress callbacks can fire many times a second (ffmpeg, upscalers); every broadcast makes
+// the renderer re-render each subscribed card, so coalesce them to at most one per 120ms
+// (trailing edge — the latest snapshot always goes out).
+let broadcastTimer = null
 function broadcastTasks() {
-  const snapshot = [...tasks.values()].map((t) => t.state)
-  for (const win of BrowserWindow.getAllWindows()) win.webContents.send('tasks:update', snapshot)
+  if (broadcastTimer) return
+  broadcastTimer = setTimeout(() => {
+    broadcastTimer = null
+    const snapshot = [...tasks.values()].map((t) => t.state)
+    for (const win of BrowserWindow.getAllWindows()) win.webContents.send('tasks:update', snapshot)
+  }, 120)
 }
 
 /* --- History: finished tasks persist across restarts, with the request needed to re-run them --- */

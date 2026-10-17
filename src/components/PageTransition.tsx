@@ -36,21 +36,18 @@ function PageFrame({
   location: ReturnType<typeof useLocation>
   children: React.ReactNode
 }) {
-  // `filter: blur(0px)` is NOT the same as `filter: none` to the browser —
-  // a non-none filter on an ancestor creates a new containing block for
-  // position: sticky/fixed descendants, exactly like `transform` does. Left
-  // permanently at blur(0px), this silently broke sticky elements on every
-  // page (e.g. the Settings category rail before it was portaled out).
-  // Settle to a real `none` once the enter animation finishes.
+  // The slide/fade is opacity + transform only: animating `filter: blur()` over a whole
+  // page re-rasterizes it every frame and was the main cause of janky page switches.
+  // Once the enter animation finishes the transform is reset to a literal `none`, because a
+  // lingering transform on an ancestor breaks position: sticky/fixed descendants.
   const [settled, setSettled] = useState(false)
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: swipe.direction * 40, filter: 'blur(6px)' }}
+      initial={{ opacity: 0, x: swipe.direction * 40 }}
       animate={{
         opacity: 1,
         x: 0,
-        filter: settled ? 'none' : 'blur(0px)',
         transition: {
           duration: swipe.inDuration,
           ease: [0.22, 1, 0.36, 1],
@@ -59,15 +56,12 @@ function PageFrame({
       exit={{
         opacity: 0,
         x: -swipe.direction * swipe.outDistance,
-        filter: 'blur(6px)',
         transition: { duration: swipe.outDuration, ease: [0.22, 1, 0.36, 1] },
       }}
       onAnimationComplete={() => setSettled(true)}
       // Framer Motion keeps a real `transform` (e.g. translateX(0px)) applied
       // even when x has animated back to 0 — it never resets to a literal
       // `none`, since it's built for repeated GPU-accelerated animation.
-      // Same containing-block problem as the filter fix above: any non-none
-      // transform on an ancestor breaks position: sticky/fixed descendants.
       // Force it to a true `none` once settled; let Framer generate it
       // normally while the enter/exit animation is actually running.
       transformTemplate={(_, generated) => (settled ? 'none' : generated)}

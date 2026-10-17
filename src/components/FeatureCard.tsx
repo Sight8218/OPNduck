@@ -93,7 +93,7 @@ export default function FeatureCard({
   const { reduceMotion } = useReduceMotion()
   return (
     <section
-      className={`glass relative flex h-full flex-col rounded-3xl p-5 transition-all duration-300 ease-out ${
+      className={`glass relative flex h-full flex-col rounded-3xl p-5 transition-[transform,box-shadow] duration-300 ease-out ${
         reduceMotion ? '' : 'card-glow-hover'
       }`}
       {...dragProps}

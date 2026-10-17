@@ -51,7 +51,7 @@ function luminance(hex: string): number {
  * inline styles on <html> (see useTheme.ts) — that wins over any stylesheet
  * rule, so no static `[data-theme='omarchy']` block is needed.
  */
-export function deriveOmarchyTokens(theme: OmarchyTheme): Record<string, string> {
+function deriveOmarchyTokens(theme: OmarchyTheme): Record<string, string> {
   const c = theme.colors
   const accent = c.accent || '#e1892f'
   const background = c.background || '#17130f'
@@ -71,8 +71,6 @@ export function deriveOmarchyTokens(theme: OmarchyTheme): Record<string, string>
     '--glass-bg': background,
     '--glass-bg-strong': darkerBackground,
     '--glass-tint': 'transparent',
-    '--glass-blur': '0px',
-    '--glass-saturate': '1',
     '--glass-border': `color-mix(in srgb, ${accent} 18%, transparent)`,
     '--glass-border-inner': `color-mix(in srgb, ${accent} 25%, transparent)`,
     '--glass-shadow': isLight ? '0 10px 26px -16px rgba(0, 0, 0, 0.35)' : '0 10px 26px -16px rgba(0, 0, 0, 0.85)',
@@ -96,35 +94,17 @@ export function deriveOmarchyTokens(theme: OmarchyTheme): Record<string, string>
 
     '--bg-base': `linear-gradient(180deg, ${lighterBackground} 0%, ${background} 60%, ${darkerBackground} 100%)`,
     '--bg-solid': background,
-    '--bg-scrim': 'transparent',
-    '--bg-wash': 'transparent',
-    '--bg-grad-a': 'linear-gradient(transparent, transparent)',
-    '--bg-grad-b': 'linear-gradient(transparent, transparent)',
-    '--bg-grad-c': 'linear-gradient(transparent, transparent)',
-    '--bg-grad-d': 'linear-gradient(transparent, transparent)',
-    '--fluid-1': 'transparent',
-    '--fluid-2': 'transparent',
-    '--fluid-3': 'transparent',
-    '--fluid-4': 'transparent',
-    '--fluid-5': 'transparent',
-    '--fluid-6': 'transparent',
-    '--glass-on': '1',
-    '--fluid-on': '0',
-    '--grain-on': '0',
   }
 }
 
 const TOKEN_KEYS = [
-  '--glass-bg', '--glass-bg-strong', '--glass-tint', '--glass-blur', '--glass-saturate',
+  '--glass-bg', '--glass-bg-strong', '--glass-tint',
   '--glass-border', '--glass-border-inner', '--glass-shadow', '--card-glow',
   '--input-bg', '--input-bg-hover', '--input-border', '--input-border-focus',
   '--btn-bg', '--btn-bg-hover', '--btn-text',
   '--text', '--text-dim', '--text-faint',
   '--accent', '--accent-strong', '--accent-soft',
-  '--bg-base', '--bg-solid', '--bg-scrim', '--bg-wash',
-  '--bg-grad-a', '--bg-grad-b', '--bg-grad-c', '--bg-grad-d',
-  '--fluid-1', '--fluid-2', '--fluid-3', '--fluid-4', '--fluid-5', '--fluid-6',
-  '--glass-on', '--fluid-on', '--grain-on',
+  '--bg-base', '--bg-solid',
 ] as const
 
 /** Applies a live Omarchy theme's derived tokens as inline styles on <html> —

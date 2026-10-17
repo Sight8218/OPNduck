@@ -196,134 +196,29 @@ body {
 
 /* ------------------------------------------------------------
    The Background Layer
-   A fixed, full-viewport backdrop. Both themes are flat/solid
-   (--fluid-on: 0) — no animated blobs, no glass effects.
+   One fixed, full-viewport solid/gradient fill (theme --bg-base,
+   or --bg-solid in flat mode). No animated blobs, no blur.
    ------------------------------------------------------------ */
 @layer components {
   .fluid-background {
     position: fixed;
     inset: 0;
     z-index: -2;
-    overflow: hidden;
-    background:
-      var(--bg-grad-c),
-      var(--bg-grad-b),
-      var(--bg-grad-a),
-      var(--bg-base);
-    opacity: var(--glass-on);
+    background: var(--bg-base);
     pointer-events: none;
-    transition: opacity 600ms ease;
-  }
-  .fluid-background::before {
-    /* Theme-aware via --bg-wash (defined per-theme in tokens.css); both
-       themes currently set this to transparent, keeping the background flat. */
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--bg-wash);
-  }
-
-  .fluid-scrim {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    background: var(--bg-scrim);
-    pointer-events: none;
-  }
-
-  .fluid-blob {
-    position: absolute;
-    border-radius: 48% 52% 60% 40% / 45% 45% 55% 55%;
-    filter: blur(86px);
-    opacity: var(--fluid-opacity, 0.23);
-    mix-blend-mode: screen;
-    will-change: transform, border-radius;
-    animation: fluid-morph 26s ease-in-out infinite alternate;
-  }
-
-  .fluid-blob-1 {
-    width: 56vmax;
-    height: 56vmax;
-    top: -16vmax;
-    left: -12vmax;
-    background: radial-gradient(circle at 30% 30%, var(--fluid-3), var(--fluid-2) 55%, transparent 80%);
-  }
-
-  .fluid-blob-2 {
-    width: 52vmax;
-    height: 52vmax;
-    bottom: -16vmax;
-    right: -12vmax;
-    background: radial-gradient(circle at 60% 60%, var(--fluid-5), var(--fluid-4) 48%, transparent 78%);
-    animation-delay: -6s;
-    animation-duration: 30s;
-  }
-
-  .fluid-blob-3 {
-    width: 46vmax;
-    height: 46vmax;
-    top: 30%;
-    left: 36%;
-    background: radial-gradient(circle at 50% 50%, var(--fluid-6), var(--fluid-2) 46%, transparent 76%);
-    animation-delay: -12s;
-    animation-duration: 34s;
-  }
-
-  .fluid-blob-4 {
-    width: 38vmax;
-    height: 38vmax;
-    top: -6vmax;
-    left: 30%;
-    background: radial-gradient(circle at 50% 50%, var(--fluid-4), var(--fluid-6) 55%, transparent 78%);
-    animation-delay: -20s;
-    animation-duration: 28s;
-  }
-
-  .fluid-blob-5 {
-    width: 34vmax;
-    height: 34vmax;
-    bottom: 8vmax;
-    left: 2vmax;
-    background: radial-gradient(circle at 50% 50%, var(--fluid-5), var(--fluid-3) 50%, transparent 74%);
-    animation-delay: -9s;
-    animation-duration: 24s;
-  }
-
-  .fluid-blob-6 {
-    width: 42vmax;
-    height: 42vmax;
-    top: 52%;
-    right: 0;
-    background: radial-gradient(circle at 50% 50%, var(--fluid-2), var(--fluid-4) 50%, transparent 76%);
-    animation-delay: -16s;
-    animation-duration: 30s;
-  }
-
-  @keyframes fluid-morph {
-    0%   { border-radius: 46% 54% 58% 42% / 44% 46% 54% 56%; transform: translate(0, 0) rotate(0deg) scale(1); }
-    33%  { border-radius: 56% 44% 40% 60% / 60% 44% 56% 40%; transform: translate(4vmax, -3vmax) rotate(45deg) scale(1.08); }
-    66%  { border-radius: 42% 58% 60% 40% / 46% 56% 44% 54%; transform: translate(-3vmax, 4vmax) rotate(90deg) scale(0.94); }
-    100% { border-radius: 50% 50% 44% 56% / 54% 42% 58% 46%; transform: translate(2vmax, 1vmax) rotate(135deg) scale(1.06); }
-  }
-
-  /* Reduce motion: freeze the fluid layer into a static gradient */
-  @media (prefers-reduced-motion: reduce) {
-    .fluid-blob { animation: none !important; }
   }
 }
 
 /* ------------------------------------------------------------
    .glass — the core reusable surface primitive
    Solid background + 1px inner light-catch edge + soft lift
-   shadow. --glass-blur is 0px on both themes now (flat, no
-   backdrop blur); the class name is kept for compatibility.
+   shadow. No backdrop blur (it was a no-op at 0px and cost a
+   compositing layer per card); the class name is kept for compatibility.
    ------------------------------------------------------------ */
 @layer components {
   .glass {
     position: relative;
     background: var(--glass-bg);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     border: 1px solid var(--glass-border);
     box-shadow:
       var(--glass-shadow),
@@ -332,7 +227,6 @@ body {
     color: var(--text);
     transition:
       background-color 500ms cubic-bezier(0.22, 1, 0.36, 1),
-      backdrop-filter 500ms cubic-bezier(0.22, 1, 0.36, 1),
       border-color 500ms cubic-bezier(0.22, 1, 0.36, 1),
       box-shadow 500ms cubic-bezier(0.22, 1, 0.36, 1);
   }

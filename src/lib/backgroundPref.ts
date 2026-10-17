@@ -22,7 +22,7 @@ function apply(style: BackgroundStyle) {
 // Apply at import time so the very first paint already uses the saved choice.
 if (typeof document !== 'undefined') apply(current)
 
-export function setBackgroundStyle(style: BackgroundStyle) {
+function setBackgroundStyle(style: BackgroundStyle) {
   current = style
   try {
     localStorage.setItem(STORAGE_KEY, style)
