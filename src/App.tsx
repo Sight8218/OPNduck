@@ -16,6 +16,7 @@ import Plugins from './pages/Plugins'
 import Settings from './pages/Settings'
 import { readStoredTheme, applyTheme } from './themes/theme'
 import { useOmarchyThemeSync } from './themes/useTheme'
+import { useBackgroundSync } from './lib/backgroundPref'
 
 // Register core adaptive cards once at startup.
 registerCoreFeatures()
@@ -52,6 +53,7 @@ export default function App() {
   // Always-on, independent of which page's Settings/useTheme() may or may
   // not be mounted — see useOmarchyThemeSync()'s own doc comment.
   useOmarchyThemeSync()
+  useBackgroundSync()
 
   return (
     // BrowserRouter needs a real HTTP server to resolve paths like /library.

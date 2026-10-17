@@ -6,6 +6,7 @@ import InfoCard from '../components/InfoCard'
 import KeybindsCard from '../components/KeybindsCard'
 import NavDisplayCard from '../components/NavDisplayCard'
 import MotionCard from '../components/MotionCard'
+import BackgroundCard from '../components/BackgroundCard'
 import StorageCard from '../components/StorageCard'
 import DevTools from '../components/DevTools'
 import { useDevMode } from '../lib/devMode'
@@ -108,6 +109,7 @@ export default function Settings() {
           >
             <CategoryLabel label="Appearance" />
             <ThemeToggle theme={theme} onChange={setTheme} omarchy={omarchy} />
+            <BackgroundCard />
             <NavDisplayCard />
             <MotionCard />
 

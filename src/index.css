@@ -512,3 +512,10 @@ body {
 [data-density='compact'] {
   --spacing: 0.2rem;
 }
+
+/* Settings > Appearance > Background. Default is flat: the theme's single solid
+   colour. 'gradient' keeps the theme's own --bg-base fade. Set on <html> by
+   lib/backgroundPref.ts. */
+[data-bg='flat'] .fluid-background {
+  background: var(--bg-solid);
+}
