@@ -58,7 +58,10 @@ export function applyView(tasks: TaskState[], o: ViewOptions): LibraryItem[] {
   // Members of a batch collapse into one group (only if 2+ of them survive the filter).
   const byGroup = new Map<string, TaskState[]>()
   for (const t of kept) {
-    if (t.group) byGroup.set(t.group.id, [...(byGroup.get(t.group.id) ?? []), t])
+    if (!t.group) continue
+    const members = byGroup.get(t.group.id)
+    if (members) members.push(t)
+    else byGroup.set(t.group.id, [t])
   }
   const items: LibraryItem[] = []
   const emitted = new Set<string>()

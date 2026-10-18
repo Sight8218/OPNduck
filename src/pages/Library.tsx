@@ -127,7 +127,7 @@ function TaskRowImpl({ task }: { task: TaskState }) {
 }
 
 /** Every task update from the main process arrives as fresh objects, so without this each
- *  of the (up to 200) history rows re-rendered on every progress tick of a running job.
+ *  of the (up to 500) history rows re-rendered on every progress tick of a running job.
  *  Compare only the fields a row actually shows. */
 const TaskRow = memo(
   TaskRowImpl,
