@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { IconAdjustmentsHorizontal, IconCpu, IconInfoCircle, IconKeyboard } from '@tabler/icons-react'
+import { IconAdjustmentsHorizontal, IconCpu, IconDownload, IconInfoCircle, IconKeyboard } from '@tabler/icons-react'
 import HardwareAllocation from '../components/HardwareAllocation'
 import InfoCard from '../components/InfoCard'
 import KeybindsCard from '../components/KeybindsCard'
@@ -8,6 +8,8 @@ import NavDisplayCard from '../components/NavDisplayCard'
 import MotionCard from '../components/MotionCard'
 import BackgroundCard from '../components/BackgroundCard'
 import UpdatesCard from '../components/UpdatesCard'
+import DownloadsCard from '../components/DownloadsCard'
+import { host } from '../host'
 import StorageCard from '../components/StorageCard'
 import DevTools from '../components/DevTools'
 import { useDevMode } from '../lib/devMode'
@@ -30,6 +32,7 @@ function CategoryLabel({ label }: { label: string }) {
 const CATEGORIES: SettingsCategory[] = [
   { id: 'appearance', label: 'Appearance', icon: IconAdjustmentsHorizontal },
   { id: 'keybinds', label: 'Keybinds', icon: IconKeyboard },
+  { id: 'downloads', label: 'Downloads', icon: IconDownload },
   { id: 'system', label: 'System', icon: IconCpu },
   { id: 'about', label: 'About', icon: IconInfoCircle },
 ]
@@ -92,7 +95,7 @@ export default function Settings() {
           document-relative — no need to scroll to the very end to see it). */}
       {createPortal(
         <div className="fixed left-4 top-24 bottom-6 z-30 w-60 sm:left-5">
-          <SettingsNav categories={CATEGORIES} activeId={activeId} onSelect={select} />
+          <SettingsNav categories={CATEGORIES.filter((c) => c.id !== 'downloads' || !!host.settings)} activeId={activeId} onSelect={select} />
         </div>,
         document.body,
       )}
@@ -126,6 +129,18 @@ export default function Settings() {
             <CategoryLabel label="Keybinds" />
             <KeybindsCard />
           </section>
+          {host.settings && (
+            <section
+              id="settings-downloads"
+              ref={(el) => {
+                sectionRefs.current.downloads = el
+              }}
+              className="scroll-mt-24 flex flex-col gap-6"
+            >
+              <CategoryLabel label="Downloads" />
+              <DownloadsCard />
+            </section>
+          )}
           <section
             id="settings-system"
             ref={(el) => {

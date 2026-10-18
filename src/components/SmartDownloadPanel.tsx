@@ -19,36 +19,24 @@
 import { useEffect, useState } from 'react'
 import GlassSelect from './GlassSelect'
 import { host, type AudioQuality, type DownloadFormat, type PlaylistInfo, type VideoQuality } from '../host'
+import {
+  AUDIO_QUALITY_OPTIONS,
+  FORMAT_OPTIONS,
+  VIDEO_FORMATS,
+  VIDEO_QUALITY_OPTIONS,
+} from '../features/downloader/options'
+import { initialPrefs } from '../lib/smartMode'
 import { getDownloadDirOverride } from '../lib/downloadPrefs'
 import { IconDownload } from '@tabler/icons-react'
-
-const FORMAT_OPTIONS = ['MP4', 'MP3', 'MKV', 'MOV', 'FLAC', 'WAV'].map((f) => ({
-  value: f as DownloadFormat,
-  label: f,
-}))
-const VIDEO_QUALITY_OPTIONS: { value: VideoQuality; label: string }[] = [
-  { value: 'best', label: 'Best available' },
-  { value: '2160', label: '2160p (4K)' },
-  { value: '1080', label: '1080p' },
-  { value: '720', label: '720p' },
-  { value: '480', label: '480p' },
-  { value: '360', label: '360p' },
-]
-const AUDIO_QUALITY_OPTIONS: { value: AudioQuality; label: string }[] = [
-  { value: 'best', label: 'Best (VBR)' },
-  { value: '320k', label: '320 kbps' },
-  { value: '192k', label: '192 kbps' },
-  { value: '128k', label: '128 kbps' },
-]
-const VIDEO_FORMATS: DownloadFormat[] = ['MP4', 'MKV', 'MOV']
 
 /** The command palette's "you pasted a link" quick action — same controls as
  *  the Downloader card, condensed for an inline popup instead of a full card. */
 // @category: palette/smart-detection
 export default function SmartDownloadPanel({ url, onDone }: { url: string; onDone: () => void }) {
-  const [format, setFormat] = useState<DownloadFormat>('MP4')
-  const [videoQuality, setVideoQuality] = useState<VideoQuality>('best')
-  const [audioQuality, setAudioQuality] = useState<AudioQuality>('best')
+  const [start] = useState(initialPrefs) // Smart Mode: begin with the last-used setup
+  const [format, setFormat] = useState<DownloadFormat>(start.format)
+  const [videoQuality, setVideoQuality] = useState<VideoQuality>(start.videoQuality)
+  const [audioQuality, setAudioQuality] = useState<AudioQuality>(start.audioQuality)
   const isVideo = VIDEO_FORMATS.includes(format)
   const [playlist, setPlaylist] = useState<PlaylistInfo | null>(null)
   const [playlistMode, setPlaylistMode] = useState<'single' | 'all'>('single')
@@ -75,7 +63,8 @@ export default function SmartDownloadPanel({ url, onDone }: { url: string; onDon
       stale = true
     }
   }, [url])
-  const wholePlaylist = !!playlist && (!playlist.ambiguous || playlistMode === 'all')
+  const wholePlaylist = !!playlist && playlist.count > 0 && (!playlist.ambiguous || playlistMode === 'all')
+  const needsLogin = !!playlist?.needsLogin
 
   async function run() {
     try {
@@ -153,13 +142,15 @@ export default function SmartDownloadPanel({ url, onDone }: { url: string; onDon
             </>
           ) : (
             <span className="text-xs text-[var(--text-dim)]">
-              Playlist: {playlist.title} — {playlist.count} videos
+              {needsLogin
+                ? 'This list needs you to be signed in — set a cookie source in Settings → Downloads.'
+                : `${playlist.type === 'channel' ? 'Channel' : playlist.type === 'search' ? 'Search results' : 'Playlist'}: ${playlist.title} — ${playlist.count} videos`}
             </span>
           )}
         </div>
       )}
       {startError && <span className="text-xs text-red-400">{startError}</span>}
-      <button type="button" className="glass-btn" onClick={run} disabled={checking}>
+      <button type="button" className="glass-btn" onClick={run} disabled={checking || needsLogin}>
         {checking ? 'Checking link…' : wholePlaylist ? 'Download playlist' : 'Download'}
       </button>
     </div>

@@ -38,6 +38,10 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   checkRealesrgan: () => ipcRenderer.invoke('system:checkRealesrgan'),
   checkRife: () => ipcRenderer.invoke('system:checkRife'),
   checkFasterWhisper: () => ipcRenderer.invoke('system:checkFasterWhisper'),
+  settings: {
+    get: () => ipcRenderer.invoke('settings:get'),
+    set: (patch) => ipcRenderer.invoke('settings:set', patch),
+  },
   updates: {
     check: () => ipcRenderer.invoke('updates:check'),
     openRelease: (url) => ipcRenderer.invoke('updates:openRelease', url),

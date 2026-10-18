@@ -40,10 +40,22 @@ export interface HostWindowControls {
 export type DownloadFormat = 'MP4' | 'MP3' | 'MKV' | 'MOV' | 'FLAC' | 'WAV'
 
 /** Max vertical resolution to download at; 'best' takes whatever the source offers. */
-export type VideoQuality = 'best' | '2160' | '1080' | '720' | '480' | '360'
+export type VideoQuality = 'best' | '4320' | '2160' | '1440' | '1080' | '720' | '480' | '360'
 
 /** Target MP3 bitrate; 'best' uses yt-dlp's best VBR. FLAC/WAV are lossless — no bitrate choice. */
 export type AudioQuality = 'best' | '320k' | '192k' | '128k'
+
+/** Which subtitles to fetch alongside (or instead of) the media. */
+export interface SubtitleOptions {
+  /** off = none; manual = uploaded by the creator; auto = YouTube's auto-generated; both = either. */
+  mode: 'off' | 'manual' | 'auto' | 'both'
+  /** Language codes as yt-dlp lists them, e.g. 'en', 'sv', 'en-orig'. */
+  langs: string[]
+  /** Embed into the video file (MP4/MKV/MOV) as well as saving .srt files. */
+  embed: boolean
+  /** Download only the subtitle files, no video/audio. */
+  only?: boolean
+}
 
 export interface DownloadRequest {
   url: string
@@ -60,6 +72,13 @@ export interface DownloadRequest {
    *  see DownloadProbe.playlist.ambiguous): 'all' downloads the whole list,
    *  anything else just that video. Pure playlist links always download the lot. */
   playlist?: 'all' | 'single'
+  /** For a list/channel/search: only the first N entries (omit for all; searches default to 20). */
+  limit?: number
+  subs?: SubtitleOptions
+  /** Extra language audio tracks (dubbed audio) to save as separate MP3 files. */
+  audioTracks?: string[]
+  /** Internal: this job is one language track of a parent download. */
+  audioLang?: string
 }
 
 export interface PlaylistInfo {
@@ -69,6 +88,10 @@ export interface PlaylistInfo {
   /** True when the link is a single video that merely belongs to a playlist,
    *  so the user has to choose; false for a pure playlist link. */
   ambiguous: boolean
+  /** What kind of list this is, when known. */
+  type?: 'playlist' | 'channel' | 'search' | 'watchlater' | 'liked' | null
+  /** True when the list needs a signed-in account and no cookie source is configured. */
+  needsLogin?: boolean
 }
 
 export interface DownloadProbe {
@@ -77,6 +100,24 @@ export interface DownloadProbe {
   thumbnailUrl: string | null
   /** Non-null when the link is (or contains) a YouTube playlist. */
   playlist?: PlaylistInfo | null
+  /** Subtitle languages the video offers: uploaded by the creator vs auto-generated. */
+  subtitleLangs?: string[]
+  autoLangs?: string[]
+  /** Language codes of separate audio tracks (dubbed audio), when the video has several. */
+  audioLangs?: string[]
+  /** '360' = spherical video, '3d' = stereoscopic. */
+  flags?: Array<'360' | '3d'>
+}
+
+/** Settings the main process reads itself (see electron/settings.cjs). */
+export interface AppSettings {
+  /** '' = no proxy; otherwise an http(s)/socks4/socks5 URL used for every yt-dlp call. */
+  proxy: string
+  cookies: {
+    mode: 'none' | 'browser' | 'file'
+    browser: string
+    file: string
+  }
 }
 
 /** Output format for the Converter: video containers, audio formats and image
@@ -231,6 +272,11 @@ export interface Host {
   /** Present only on hosts that can see the OS-level Omarchy theme (Electron
    *  on Linux); undefined everywhere else, including a non-Omarchy Linux
    *  desktop that just happens to run Electron. */
+  /** Main-process settings (proxy, login cookies). Desktop shell only. */
+  settings?: {
+    get(): Promise<AppSettings>
+    set(patch: { proxy?: string; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+  }
   omarchy?: {
     /** Current Omarchy theme, or null if Omarchy isn't installed/detected. */
     get(): Promise<OmarchyTheme | null>

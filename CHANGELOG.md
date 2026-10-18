@@ -18,6 +18,12 @@ history; entries are curated for readability.
   on/off switch and Check now. Nothing is installed automatically.
 - Windows smoke-test GitHub workflow (`windows-smoke.yml`).
 
+- **Downloader power-ups:** 8K (4320p) and 1440p quality; subtitles (uploaded or auto-generated, any
+  language the video offers, saved as .srt, optionally embedded, or subtitles-only); dubbed/multi-language
+  audio tracks saved as separate MP3 files; 360°/3D tags; whole channels, search results, Watch Later and
+  Liked lists with a "first N" choice; a proxy setting (Settings → Downloads); and **Smart mode**, which
+  remembers your choices for every new download (card and command palette).
+
 ### Changed
 
 - Command palette default shortcut is now **Ctrl+K** (existing rebinds are untouched).

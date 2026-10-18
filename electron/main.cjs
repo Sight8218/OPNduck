@@ -24,6 +24,7 @@ const { spawn } = require('node:child_process')
 const crypto = require('node:crypto')
 const { pathToFileURL } = require('node:url')
 const { readOmarchyTheme, watchOmarchyTheme } = require('./omarchy.cjs')
+const { getSettings, setSettings, ytdlpBaseArgs, hasCookies } = require('./settings.cjs')
 
 const DEV_SERVER_URL = process.env.OPNDUCK_DEV_URL || 'http://localhost:1420'
 
@@ -143,9 +144,9 @@ function ytDlpInstallHint() {
   return 'sudo pacman -S yt-dlp   (or: pip install -U yt-dlp)'
 }
 
-/** yt-dlp prints in the console code page on Windows when piped (e.g. cp1252), which garbles
- *  non-ASCII titles in the paths parsed from its output; force UTF-8 everywhere. */
-const YTDLP_ENCODING = ['--encoding', 'utf-8']
+// Shared yt-dlp args (UTF-8 output, proxy, login cookies) come from ytdlpBaseArgs() in settings.cjs.
+ipcMain.handle('settings:get', () => getSettings())
+ipcMain.handle('settings:set', (_e, patch) => setSettings(patch))
 
 ipcMain.handle('system:checkYtDlp', () => {
   return new Promise((resolve) => {
@@ -591,6 +592,7 @@ const VIDEO_EXT = { MP4: 'mp4', MKV: 'mkv', MOV: 'mov' }
 
 /** Human label shown in the UI/tags for whichever quality field applies to this format. */
 function qualityLabel(req) {
+  if (req.audioLang) return `Audio · ${req.audioLang}`
   if (req.format in AUDIO_EXT) {
     if (req.format !== 'MP3') return 'Lossless'
     return !req.audioQuality || req.audioQuality === 'best' ? 'Best' : req.audioQuality
@@ -598,42 +600,90 @@ function qualityLabel(req) {
   return !req.videoQuality || req.videoQuality === 'best' ? 'Best' : `${req.videoQuality}p`
 }
 
+/** Subtitle flags for a request (empty when the user didn't ask for any). */
+function subtitleArgs(req) {
+  const subs = req.subs
+  if (!subs || subs.mode === 'off' || subs.langs.length === 0) return []
+  const args = ['--sub-langs', subs.langs.join(','), '--convert-subs', 'srt']
+  if (subs.mode === 'manual' || subs.mode === 'both') args.push('--write-subs')
+  if (subs.mode === 'auto' || subs.mode === 'both') args.push('--write-auto-subs')
+  // Embedding only makes sense when there's a video container to put them in.
+  if (subs.embed && !subs.only && Object.hasOwn(VIDEO_EXT, req.format)) args.push('--embed-subs')
+  if (subs.only) args.push('--skip-download')
+  return args
+}
+
 /** Maps a Downloader format + quality choice to yt-dlp CLI args. */
 function formatArgs(req) {
+  const subs = subtitleArgs(req)
+  // "Subtitles only": no media at all, so no -f / -x / merge flags.
+  if (req.subs?.only && subs.length) return subs
   if (Object.hasOwn(AUDIO_EXT, req.format)) {
     const args = ['-x', '--audio-format', AUDIO_EXT[req.format]]
+    if (req.audioLang) args.push('-f', `ba[language^=${req.audioLang}]/ba`) // one dubbed/language track
     if (req.format === 'MP3') {
       args.push('--audio-quality', req.audioQuality && req.audioQuality !== 'best' ? req.audioQuality : '0')
     }
-    return args
+    return [...args, ...subs]
   }
   if (Object.hasOwn(VIDEO_EXT, req.format)) {
     const height = req.videoQuality && req.videoQuality !== 'best' ? Number(req.videoQuality) : null
     const selector = height ? `bv*[height<=${height}]+ba/b[height<=${height}]` : 'bv*+ba/b'
-    return ['-f', selector, '--merge-output-format', VIDEO_EXT[req.format]]
+    return ['-f', selector, '--merge-output-format', VIDEO_EXT[req.format], ...subs]
   }
   throw new Error(`Unsupported format: ${req.format}`)
 }
 
+const YT_HOST_RE = /(^|\.)youtube\.com$|^youtu\.be$/
+const CHANNEL_PATH_RE = /^\/(@[^/]+|channel\/[^/]+|c\/[^/]+|user\/[^/]+)(\/(videos|shorts|streams|live|playlists))?\/?$/
+
 /**
- * Classifies a URL as a YouTube playlist link. 'only' = a pure playlist page
- * (always the whole list); 'mixed' = a video that happens to carry a list
- * param (user picks single vs whole list); null = not a playlist. YouTube's
- * auto-generated "Mix" lists (list=RD...) are endless, so they're never
- * treated as playlists — those links just download the one video.
+ * Classifies a pasted link as a list of videos.
+ *  kind 'only'  = always a whole list (playlist page, channel, search results, Watch Later/Liked)
+ *  kind 'mixed' = a video that also carries a list param (the user picks single vs whole list)
+ *  kind null    = just a video
+ * `url` is what yt-dlp should be given for the list (channel roots get /videos appended so we
+ * get the uploads, not a list of tabs); search pages give a `query` instead (turned into a
+ * `ytsearchN:` URL by listUrl()). YouTube's auto-generated "Mix" lists (list=RD...) are endless,
+ * so they're never lists — those links just download the one video.
+ * `needsLogin` marks lists YouTube only shows to a signed-in account (WL/LL/LM).
  */
-function playlistKind(url) {
+function classifyLink(rawUrl) {
+  const none = { kind: null, type: null, url: rawUrl, query: null, needsLogin: false }
   let u
   try {
-    u = new URL(url)
+    u = new URL(rawUrl)
   } catch {
-    return null
+    return none
   }
-  if (!/(^|\.)youtube\.com$|^youtu\.be$/.test(u.hostname)) return null
+  if (!YT_HOST_RE.test(u.hostname)) return none
   const list = u.searchParams.get('list')
-  if (!list || list.startsWith('RD')) return null
-  if (u.pathname === '/playlist') return 'only'
-  return u.searchParams.get('v') || u.hostname === 'youtu.be' ? 'mixed' : null
+  const loginList = list === 'WL' || list === 'LL' || list === 'LM'
+
+  if (u.pathname === '/results' && u.searchParams.get('search_query')) {
+    return { kind: 'only', type: 'search', url: rawUrl, query: u.searchParams.get('search_query'), needsLogin: false }
+  }
+  if (CHANNEL_PATH_RE.test(u.pathname)) {
+    const hasTab = /\/(videos|shorts|streams|live|playlists)\/?$/.test(u.pathname)
+    const url = hasTab ? rawUrl : `${u.origin}${u.pathname.replace(/\/$/, '')}/videos`
+    return { kind: 'only', type: 'channel', url, query: null, needsLogin: false }
+  }
+  if (list && !list.startsWith('RD')) {
+    if (u.pathname === '/playlist') {
+      const type = list === 'WL' ? 'watchlater' : loginList ? 'liked' : 'playlist'
+      return { kind: 'only', type, url: rawUrl, query: null, needsLogin: loginList }
+    }
+    if (u.searchParams.get('v') || u.hostname === 'youtu.be') {
+      return { kind: 'mixed', type: 'playlist', url: rawUrl, query: null, needsLogin: loginList }
+    }
+  }
+  return none
+}
+
+/** The URL yt-dlp should actually be given for a classified list. */
+function listUrl(link, limit) {
+  if (link.type === 'search') return `ytsearch${Math.min(limit || 20, 100)}:${link.query}`
+  return link.url
 }
 
 /** Title + video count of a playlist without downloading anything (--flat-playlist is fast). */
@@ -641,17 +691,23 @@ function probePlaylist(url) {
   return new Promise((resolve) => {
     let child
     try {
-      child = spawn('yt-dlp', [...YTDLP_ENCODING, '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', '5000', '--', url])
+      child = spawn('yt-dlp', [...ytdlpBaseArgs(), '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', '5000', '--', url])
     } catch {
       resolve(null)
       return
     }
     let out = ''
+    // A channel can hold thousands of videos; never let a link check hang the UI.
+    const timer = setTimeout(() => child.kill(), 45_000)
     child.stdout.on('data', (c) => {
       out += c
     })
-    child.on('error', () => resolve(null))
+    child.on('error', () => {
+      clearTimeout(timer)
+      resolve(null)
+    })
     child.on('close', () => {
+      clearTimeout(timer)
       try {
         const info = JSON.parse(out)
         const entries = Array.isArray(info.entries) ? info.entries : []
@@ -675,38 +731,50 @@ function probePlaylist(url) {
  * debounced preview had time to resolve before Run Task was clicked.
  */
 async function probeInfo(req) {
-  if (!parseHttpUrl(req.url)) {
-    return { title: 'Only http(s) links are supported', approxSizeBytes: null, thumbnailUrl: null, playlist: null }
-  }
+  const empty = { approxSizeBytes: null, thumbnailUrl: null, playlist: null }
+  if (!parseHttpUrl(req.url)) return { title: 'Only http(s) links are supported', ...empty }
   const spotify = await resolveSpotifyTrack(req.url)
-  if (spotify?.error) return { title: spotify.error, approxSizeBytes: null, thumbnailUrl: null, playlist: null }
+  if (spotify?.error) return { title: spotify.error, ...empty }
   const effectiveUrl = spotify?.query ?? req.url
 
-  const kind = spotify ? null : playlistKind(req.url)
+  const link = spotify ? classifyLink('') : classifyLink(req.url)
+  const kind = link.kind
+  const loginMissing = link.needsLogin && !hasCookies()
   // Playlist lookup runs alongside the single-video lookup below instead of
   // before it, so a playlist link doesn't take the sum of both round trips.
-  const playlistPromise = kind ? probePlaylist(req.url) : Promise.resolve(null)
+  const playlistPromise = kind ? probePlaylist(listUrl(link, req.limit)) : Promise.resolve(null)
   const playlist = kind === 'only' ? await playlistPromise : null
-  const playlistInfo = playlist ? { title: playlist.title, count: playlist.count, ambiguous: kind === 'mixed' } : null
-  // A pure playlist page has no single video to size up — a total would mean
-  // probing every entry. The UI shows the video count instead.
-  if (kind === 'only' && playlist) {
-    return { title: playlist.title, approxSizeBytes: null, thumbnailUrl: playlist.thumbnailUrl, playlist: playlistInfo }
+  const playlistInfo = playlist
+    ? { title: playlist.title, count: playlist.count, ambiguous: false, type: link.type, needsLogin: loginMissing }
+    : null
+  // A pure list page has no single video to size up — a total would mean probing every entry.
+  // The UI shows the video count instead.
+  if (kind === 'only') {
+    if (playlist) return { title: playlist.title, approxSizeBytes: null, thumbnailUrl: playlist.thumbnailUrl, playlist: playlistInfo }
+    // The list couldn't be read (most often: it needs a signed-in account). Say so instead of
+    // quietly treating a list URL as a single video.
+    return {
+      title: loginMissing ? 'This list needs you to be signed in' : "Couldn't read this list",
+      approxSizeBytes: null,
+      thumbnailUrl: null,
+      playlist: { title: loginMissing ? 'Sign-in required' : 'Unavailable', count: 0, ambiguous: false, type: link.type, needsLogin: loginMissing },
+    }
   }
 
   const single = await new Promise((resolve) => {
+    const fallback = { title: req.url, approxSizeBytes: null, thumbnailUrl: null }
     let child
     try {
-      child = spawn('yt-dlp', [...YTDLP_ENCODING, '--dump-json', '--no-warnings', '--no-playlist', '--', effectiveUrl])
+      child = spawn('yt-dlp', [...ytdlpBaseArgs(), '--dump-json', '--no-warnings', '--no-playlist', '--', effectiveUrl])
     } catch {
-      resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null })
+      resolve(fallback)
       return
     }
     let out = ''
     child.stdout.on('data', (c) => {
       out += c
     })
-    child.on('error', () => resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null }))
+    child.on('error', () => resolve(fallback))
     child.on('close', () => {
       try {
         const info = JSON.parse(out.trim().split('\n')[0])
@@ -714,21 +782,46 @@ async function probeInfo(req) {
           title: spotify ? `${spotify.label} (YouTube match)` : (info.title ?? req.url),
           approxSizeBytes: estimateSize(info, req),
           thumbnailUrl: info.thumbnail ?? null,
+          ...extraInfo(info),
         })
       } catch {
-        resolve({ title: req.url, approxSizeBytes: null, thumbnailUrl: null })
+        resolve(fallback)
       }
     })
   })
   const mixedPlaylist = kind === 'mixed' ? await playlistPromise : null
   return {
     ...single,
-    playlist: mixedPlaylist ? { title: mixedPlaylist.title, count: mixedPlaylist.count, ambiguous: true } : null,
+    playlist: mixedPlaylist
+      ? { title: mixedPlaylist.title, count: mixedPlaylist.count, ambiguous: true, type: link.type, needsLogin: loginMissing }
+      : null,
   }
+}
+
+/** The options a video actually offers, so the UI only shows choices that exist: subtitle
+ *  languages (uploaded vs auto-generated), separate-language audio tracks, 360°/3D. */
+function extraInfo(info) {
+  const subtitleLangs = Object.keys(info.subtitles || {}).filter((k) => k !== 'live_chat')
+  // YouTube lists ~150 auto-translations; offer the original-language track plus common ones.
+  const COMMON = ['en', 'sv', 'es', 'de', 'fr', 'pt', 'it', 'nl', 'ru', 'ja', 'ko', 'zh-Hans', 'ar', 'tr', 'pl']
+  const autoLangs = Object.keys(info.automatic_captions || {}).filter((k) => k.endsWith('-orig') || COMMON.includes(k))
+  const audioLangs = [
+    ...new Set(
+      (info.formats || [])
+        .filter((f) => f.vcodec === 'none' && f.acodec && f.acodec !== 'none' && f.language)
+        .map((f) => String(f.language)),
+    ),
+  ]
+  const flags = []
+  if (info.projection && info.projection !== 'rectangular') flags.push('360')
+  if (info.stereo_mode || (info.formats || []).some((f) => /3d/i.test(String(f.format_note || '')))) flags.push('3d')
+  return { subtitleLangs, autoLangs, audioLangs, flags }
 }
 
 /** Checks a Downloader request up front, so a bad one is rejected instead of leaving a task
  *  stuck in 'queued' after it has already been created. Also trims the URL. */
+const LANG_RE = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/
+
 function validateDownloadRequest(req) {
   req.url = String(req.url ?? '').trim()
   if (!Object.hasOwn(AUDIO_EXT, req.format) && !Object.hasOwn(VIDEO_EXT, req.format)) {
@@ -737,6 +830,23 @@ function validateDownloadRequest(req) {
   if (req.videoQuality != null && req.videoQuality !== 'best' && !/^\d{3,4}$/.test(String(req.videoQuality))) {
     throw new Error(`Invalid video quality: ${req.videoQuality}`)
   }
+  // "First N" of a list/channel/search.
+  if (req.limit != null && !(Number.isInteger(req.limit) && req.limit >= 1 && req.limit <= 5000)) {
+    throw new Error(`Invalid list limit: ${req.limit}`)
+  }
+  if (req.subs != null) {
+    const subs = req.subs
+    if (!['off', 'manual', 'auto', 'both'].includes(subs.mode)) throw new Error(`Invalid subtitle mode: ${subs.mode}`)
+    if (!Array.isArray(subs.langs) || subs.langs.length > 20 || !subs.langs.every((l) => typeof l === 'string' && LANG_RE.test(l))) {
+      throw new Error('Invalid subtitle languages')
+    }
+  }
+  if (req.audioTracks != null) {
+    if (!Array.isArray(req.audioTracks) || req.audioTracks.length > 10 || !req.audioTracks.every((l) => typeof l === 'string' && LANG_RE.test(l))) {
+      throw new Error('Invalid audio track languages')
+    }
+  }
+  if (req.audioLang != null && !LANG_RE.test(String(req.audioLang))) throw new Error('Invalid audio language')
 }
 
 ipcMain.handle('tasks:probe', (_e, req) => {
@@ -825,13 +935,39 @@ handleStart('tasks:start', async (_e, req) => {
     return id
   }
   if (isCanceled(id)) return id // canceled while the Spotify lookup was running
-  const effectiveUrl = spotify?.query ?? req.url
-
-  // Whole-playlist mode: pure playlist pages always, "video inside a playlist"
-  // links only when the user explicitly chose the whole list.
-  const kind = spotify ? null : playlistKind(req.url)
+  // Whole-list mode: list pages (playlist, channel, search, Watch Later/Liked) always, a
+  // "video inside a playlist" link only when the user explicitly chose the whole list.
+  const link = spotify ? classifyLink('') : classifyLink(req.url)
+  const kind = link.kind
   const wholePlaylist = kind === 'only' || (kind === 'mixed' && req.playlist === 'all')
+  if (wholePlaylist && link.needsLogin && !hasCookies()) {
+    updateTask(id, { status: 'error', error: 'This list needs you to be signed in. Set a cookie source in Settings → Downloads.' })
+    return id
+  }
+  const effectiveUrl = spotify?.query ?? (wholePlaylist && kind === 'only' ? listUrl(link, req.limit) : req.url)
   if (wholePlaylist) updateTask(id, { sizeBytes: null, playlist: { index: 0, total: 0 } })
+
+  // Extra dubbed/language audio tracks become their own small audio tasks, so each shows up
+  // (and can be re-run) separately in the Library.
+  if (req.audioTracks?.length && !req.audioLang) {
+    const startOne = startHandlers.get('tasks:start')
+    for (const lang of req.audioTracks) {
+      startOne(null, {
+        ...req,
+        format: 'MP3',
+        audioQuality: 'best',
+        videoQuality: undefined,
+        audioTracks: undefined,
+        subs: undefined,
+        audioLang: lang,
+        playlist: 'single',
+        approxSizeBytes: null,
+        thumbnailUrl: req.thumbnailUrl ?? null,
+      }).catch(() => {
+        /* a failed track start is reported on its own task; never block the main download */
+      })
+    }
+  }
   if (spotify) updateTask(id, { label: spotify.label, experimentalMatch: 'YT Match (Experimental)' })
 
   // Backfill size/thumbnail if the renderer's own preview never got to run
@@ -853,12 +989,16 @@ handleStart('tasks:start', async (_e, req) => {
   // yt-dlp treats the -o value as a template, so a literal '%' in the
   // destination folder name must be escaped or it breaks/garbles the path.
   const outDirTemplate = destDir.replace(/%/g, '%%')
+  // "First N" of a list (search results already carry N inside their ytsearchN: URL).
+  const limitArgs = wholePlaylist && req.limit && link.type !== 'search' ? ['--playlist-end', String(req.limit)] : []
+  const fileTemplate = req.audioLang ? '%(title)s [%(language)s].%(ext)s' : '%(title)s.%(ext)s'
   const args = wholePlaylist
     ? [
-        ...YTDLP_ENCODING,
+        ...ytdlpBaseArgs(),
         ...formatArgs(req),
         '--newline',
         '--yes-playlist',
+        ...limitArgs,
         // One unavailable/private video shouldn't abort the other 99.
         '--ignore-errors',
         '-o',
@@ -867,12 +1007,12 @@ handleStart('tasks:start', async (_e, req) => {
         effectiveUrl,
       ]
     : [
-        ...YTDLP_ENCODING,
+        ...ytdlpBaseArgs(),
         ...formatArgs(req),
         '--newline',
         '--no-playlist',
         '-o',
-        path.join(outDirTemplate, '%(title)s.%(ext)s'),
+        path.join(outDirTemplate, fileTemplate),
         '--',
         effectiveUrl,
       ]
@@ -917,8 +1057,16 @@ handleStart('tasks:start', async (_e, req) => {
           updateTask(id, { progress: pct })
         }
       }
+      // Subtitles-only jobs have no media file: the subtitle file is the result.
+      const subFile = req.subs?.only ? line.match(/Writing video subtitles to:\s+(.+)$/) : null
+      if (subFile) {
+        // yt-dlp writes the original (.vtt etc.) and converts to .srt, deleting the original.
+        entry.finalPath = subFile[1].trim().replace(/\.[^./\\]+$/, '.srt')
+        files.add(entry.finalPath)
+        updateTask(id, { label: path.basename(entry.finalPath) })
+      }
       const dest = line.match(/(?:Destination|Merging formats into):?\s+"?([^"\n]+)"?/)
-      if (dest) {
+      if (dest && !req.subs?.only) {
         entry.finalPath = dest[1].trim()
         files.add(entry.finalPath)
         updateTask(id, { label: path.basename(entry.finalPath) })

@@ -19,6 +19,7 @@
 
 import type {
   ConvertRequest,
+  AppSettings,
   UpdateCheck,
   DownloadProbe,
   DownloadRequest,
@@ -50,6 +51,10 @@ interface ElectronBridge {
   checkRealesrgan(): Promise<ToolStatus>
   checkRife(): Promise<ToolStatus>
   checkFasterWhisper(): Promise<ToolStatus>
+  settings: {
+    get(): Promise<AppSettings>
+    set(patch: { proxy?: string; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+  }
   updates: {
     check(): Promise<UpdateCheck>
     openRelease(url: string): Promise<void>
@@ -121,6 +126,10 @@ export function detectElectronHost(): Host | null {
     checkRealesrgan: () => bridge.checkRealesrgan(),
     checkRife: () => bridge.checkRife(),
     checkFasterWhisper: () => bridge.checkFasterWhisper(),
+    settings: {
+      get: () => bridge.settings.get(),
+      set: (patch) => bridge.settings.set(patch),
+    },
     updates: {
       check: () => bridge.updates.check(),
       openRelease: (url) => bridge.updates.openRelease(url),

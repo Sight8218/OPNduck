@@ -1,55 +1,75 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { IconChevronDown } from '@tabler/icons-react'
+import ChipSelect from '../../components/ChipSelect'
 import FeatureCard from '../../components/FeatureCard'
 import GlassSelect from '../../components/GlassSelect'
+import PresetBar from '../../components/PresetBar'
+import SlidingSelector from '../../components/SlidingSelector'
 import Tag from '../../components/Tag'
 import Thumbnail from '../../components/Thumbnail'
-import { host, type AudioQuality, type DownloadFormat, type PlaylistInfo, type VideoQuality } from '../../host'
+import {
+  host,
+  type AudioQuality,
+  type DownloadFormat,
+  type DownloadProbe,
+  type PlaylistInfo,
+  type SubtitleOptions,
+  type VideoQuality,
+} from '../../host'
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
-import PresetBar from '../../components/PresetBar'
-import { usePresets } from '../../lib/usePresets'
+import { initialPrefs, isSmartMode, rememberPrefs, setSmartMode } from '../../lib/smartMode'
 import { useSubmittedIds } from '../../lib/submittedTasks'
 import { useTasks } from '../../lib/useTasks'
+import { usePresets } from '../../lib/usePresets'
 import type { FeatureDefinition } from '../registry'
+import {
+  AUDIO_QUALITY_OPTIONS,
+  FORMAT_OPTIONS,
+  LIMIT_OPTIONS,
+  SEARCH_LIMIT_OPTIONS,
+  SUB_MODE_OPTIONS,
+  VIDEO_FORMATS,
+  VIDEO_QUALITY_OPTIONS,
+  languageLabel,
+  normalizePrefs,
+  type DownloaderPrefs,
+} from './options'
 
-const FORMAT_OPTIONS = ['MP4', 'MP3', 'MKV', 'MOV', 'FLAC', 'WAV'].map((f) => ({
-  value: f as DownloadFormat,
-  label: f,
-}))
+const LIST_TYPE_LABEL: Record<NonNullable<PlaylistInfo['type']>, string> = {
+  playlist: 'Playlist',
+  channel: 'Channel',
+  search: 'Search results',
+  watchlater: 'Watch Later',
+  liked: 'Liked videos',
+}
 
-const VIDEO_QUALITY_OPTIONS: { value: VideoQuality; label: string }[] = [
-  { value: 'best', label: 'Best available' },
-  { value: '2160', label: '2160p (4K)' },
-  { value: '1080', label: '1080p' },
-  { value: '720', label: '720p' },
-  { value: '480', label: '480p' },
-  { value: '360', label: '360p' },
-]
-
-const AUDIO_QUALITY_OPTIONS: { value: AudioQuality; label: string }[] = [
-  { value: 'best', label: 'Best (VBR)' },
-  { value: '320k', label: '320 kbps' },
-  { value: '192k', label: '192 kbps' },
-  { value: '128k', label: '128 kbps' },
-]
-
-const VIDEO_FORMATS: DownloadFormat[] = ['MP4', 'MKV', 'MOV']
+type Preview = Pick<DownloadProbe, 'subtitleLangs' | 'autoLangs' | 'audioLangs' | 'flags'> & {
+  sizeBytes: number | null
+  thumbnailUrl: string | null
+  playlist: PlaylistInfo | null
+}
 
 // @category: downloader/download-card
 export default function DownloaderCard({ feature }: { feature: FeatureDefinition }) {
   const [url, setUrl] = useState('')
-  const presets = usePresets<{ format: DownloadFormat; videoQuality: VideoQuality; audioQuality: AudioQuality }>('downloader')
-  const [format, setFormat] = useState<DownloadFormat>('MP4')
-  const [videoQuality, setVideoQuality] = useState<VideoQuality>('best')
-  const [audioQuality, setAudioQuality] = useState<AudioQuality>('best')
+  const presets = usePresets<DownloaderPrefs>('downloader')
+  const [start] = useState(initialPrefs) // Smart Mode restores the last-used setup
+  const [format, setFormat] = useState<DownloadFormat>(start.format)
+  const [videoQuality, setVideoQuality] = useState<VideoQuality>(start.videoQuality)
+  const [audioQuality, setAudioQuality] = useState<AudioQuality>(start.audioQuality)
+  const [subMode, setSubMode] = useState<SubtitleOptions['mode']>(start.subMode)
+  const [subLangs, setSubLangs] = useState<string[]>(start.subLangs)
+  const [subEmbed, setSubEmbed] = useState(start.subEmbed)
+  const [subOnly, setSubOnly] = useState(start.subOnly)
+  const [audioTracks, setAudioTracks] = useState<string[]>([])
+  const [limit, setLimit] = useState('all')
+  const [showMore, setShowMore] = useState(start.subMode !== 'off')
+  const [smart, setSmart] = useState(isSmartMode)
   const [submitted, setSubmitted] = useSubmittedIds('downloader')
   const taskId = submitted[0] ?? null
   const setTaskId = (id: string) => setSubmitted([id])
-  const [preview, setPreview] = useState<{
-    sizeBytes: number | null
-    thumbnailUrl: string | null
-    playlist: PlaylistInfo | null
-  } | null>(null)
+  const [preview, setPreview] = useState<Preview | null>(null)
   // Only consulted for "video inside a playlist" links, where the user picks.
   const [playlistMode, setPlaylistMode] = useState<'single' | 'all'>('single')
   const [previewing, setPreviewing] = useState(false)
@@ -66,7 +86,25 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
   const running = task?.status === 'queued' || task?.status === 'running'
   const isVideo = VIDEO_FORMATS.includes(format)
   const playlist = preview?.playlist ?? null
-  const wholePlaylist = !!playlist && (!playlist.ambiguous || playlistMode === 'all')
+  const wholePlaylist = !!playlist && playlist.count > 0 && (!playlist.ambiguous || playlistMode === 'all')
+  const isSearch = playlist?.type === 'search'
+  const needsLogin = !!playlist?.needsLogin
+  // Searches always have a count; every other list defaults to all.
+  const effectiveLimit = isSearch ? (limit === 'all' ? '20' : limit) : limit
+  const probeLimit = isSearch ? Number(effectiveLimit) : undefined
+
+  const prefs: DownloaderPrefs = { format, videoQuality, audioQuality, subMode, subLangs, subEmbed, subOnly }
+  const applyPrefs = (raw: Partial<DownloaderPrefs>) => {
+    const p = normalizePrefs(raw)
+    setFormat(p.format)
+    setVideoQuality(p.videoQuality)
+    setAudioQuality(p.audioQuality)
+    setSubMode(p.subMode)
+    setSubLangs(p.subLangs)
+    setSubEmbed(p.subEmbed)
+    setSubOnly(p.subOnly)
+    if (p.subMode !== 'off') setShowMore(true)
+  }
 
   // Debounced size preview: re-probe shortly after the url/format/quality settle,
   // rather than on every keystroke — a yt-dlp lookup takes a real network round trip.
@@ -80,10 +118,18 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
     // A slow probe for an older url/format must not overwrite a newer one's result.
     let stale = false
     const timer = setTimeout(async () => {
-      let next = { sizeBytes: null as number | null, thumbnailUrl: null as string | null, playlist: null as PlaylistInfo | null }
+      let next: Preview = { sizeBytes: null, thumbnailUrl: null, playlist: null }
       try {
-        const result = await host.tasks.probe({ url: trimmed, format, videoQuality, audioQuality })
-        next = { sizeBytes: result.approxSizeBytes, thumbnailUrl: result.thumbnailUrl, playlist: result.playlist ?? null }
+        const r = await host.tasks.probe({ url: trimmed, format, videoQuality, audioQuality, limit: probeLimit })
+        next = {
+          sizeBytes: r.approxSizeBytes,
+          thumbnailUrl: r.thumbnailUrl,
+          playlist: r.playlist ?? null,
+          subtitleLangs: r.subtitleLangs,
+          autoLangs: r.autoLangs,
+          audioLangs: r.audioLangs,
+          flags: r.flags,
+        }
       } catch {
         /* link check failed — fall through with an empty preview rather than hang on 'Checking link…' */
       }
@@ -96,30 +142,63 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
       clearTimeout(timer)
       setPreviewing(false)
     }
-  }, [url, format, videoQuality, audioQuality])
+  }, [url, format, videoQuality, audioQuality, probeLimit])
+
+  // Subtitle languages this video actually offers for the chosen kind of subtitles.
+  const subChoices = useMemo(() => {
+    const manual = preview?.subtitleLangs ?? []
+    const auto = preview?.autoLangs ?? []
+    const codes = subMode === 'manual' ? manual : subMode === 'auto' ? auto : subMode === 'both' ? [...new Set([...manual, ...auto])] : []
+    return codes.map((c) => ({ value: c, label: languageLabel(c) }))
+  }, [preview, subMode])
+  const audioChoices = useMemo(
+    () => (preview?.audioLangs ?? []).map((c) => ({ value: c, label: languageLabel(c) })),
+    [preview],
+  )
+
+  // A new link (or mode) changes which languages exist: drop ones that vanished, and preselect
+  // English (or the first available) so turning subtitles on never leaves nothing chosen.
+  useEffect(() => {
+    if (subMode === 'off' || subChoices.length === 0) return
+    const have = new Set(subChoices.map((c) => c.value))
+    const kept = subLangs.filter((l) => have.has(l))
+    const next = kept.length ? kept : [have.has('en') ? 'en' : subChoices[0].value]
+    if (next.join() !== subLangs.join()) setSubLangs(next)
+  }, [subChoices, subMode, subLangs])
+  useEffect(() => {
+    setAudioTracks((prev) => prev.filter((l) => audioChoices.some((c) => c.value === l)))
+  }, [audioChoices])
 
   async function run() {
     setStartError(null)
     let id: string
     try {
       id = await host.tasks.startDownload({
-      url: url.trim(),
-      format,
-      videoQuality: isVideo ? videoQuality : undefined,
-      audioQuality: format === 'MP3' ? audioQuality : undefined,
-      destination: getDownloadDirOverride() ?? undefined,
-      approxSizeBytes: wholePlaylist ? null : (preview?.sizeBytes ?? null),
-      thumbnailUrl: preview?.thumbnailUrl ?? null,
-      playlist: playlistMode,
+        url: url.trim(),
+        format,
+        videoQuality: isVideo ? videoQuality : undefined,
+        audioQuality: format === 'MP3' ? audioQuality : undefined,
+        destination: getDownloadDirOverride() ?? undefined,
+        approxSizeBytes: wholePlaylist ? null : (preview?.sizeBytes ?? null),
+        thumbnailUrl: preview?.thumbnailUrl ?? null,
+        playlist: playlistMode,
+        limit: wholePlaylist && effectiveLimit !== 'all' ? Number(effectiveLimit) : undefined,
+        subs:
+          subMode !== 'off' && subLangs.length > 0
+            ? { mode: subMode, langs: subLangs, embed: subEmbed && isVideo, only: subOnly }
+            : undefined,
+        audioTracks: audioTracks.length > 0 ? audioTracks : undefined,
       })
     } catch (err) {
       setStartError(err instanceof Error ? err.message : String(err))
       return
     }
+    rememberPrefs(prefs)
     setTaskId(id)
   }
 
   const ytDlpMissing = ytDlp?.available === false
+  const subsOnlyRun = subOnly && subMode !== 'off' && subLangs.length > 0
 
   return (
     <FeatureCard feature={feature} onDropText={
@@ -143,16 +222,30 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
           </code>
         </div>
       )}
-      <PresetBar
-        presets={presets.presets}
-        onApply={(p) => {
-          setFormat(p.format)
-          setVideoQuality(p.videoQuality)
-          setAudioQuality(p.audioQuality)
-        }}
-        onSave={(name) => presets.save(name, { format, videoQuality, audioQuality })}
-        onRemove={presets.remove}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <PresetBar
+          presets={presets.presets}
+          onApply={applyPrefs}
+          onSave={(name) => presets.save(name, prefs)}
+          onRemove={presets.remove}
+        />
+        <label
+          className="flex cursor-pointer items-center gap-1.5 text-xs text-[var(--text-dim)]"
+          title="Remember your choices and apply them to every new download, here and in the command palette"
+        >
+          <input
+            type="checkbox"
+            className="accent-[var(--accent)]"
+            checked={smart}
+            onChange={(e) => {
+              setSmart(e.target.checked)
+              setSmartMode(e.target.checked)
+              if (e.target.checked) rememberPrefs(prefs)
+            }}
+          />
+          Smart mode
+        </label>
+      </div>
       <input
         className="glass-input"
         type="url"
@@ -208,14 +301,107 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
           <span className="text-xs text-[var(--text-dim)]">
             {previewing
               ? 'Checking link…'
-              : wholePlaylist
-                ? `Playlist: ${playlist?.title} — ${playlist?.count} videos`
-                : formatBytes(preview?.sizeBytes)
-                  ? `Approx. size: ${formatBytes(preview?.sizeBytes)}`
-                  : 'Size unavailable'}
+              : needsLogin
+                ? 'This list needs you to be signed in — set a cookie source in Settings → Downloads.'
+                : wholePlaylist
+                  ? `${LIST_TYPE_LABEL[playlist?.type ?? 'playlist']}: ${playlist?.title} — ${playlist?.count} videos`
+                  : formatBytes(preview?.sizeBytes)
+                    ? `Approx. size: ${formatBytes(preview?.sizeBytes)}`
+                    : 'Size unavailable'}
           </span>
+          {!previewing && preview?.flags?.includes('360') && <Tag>360°</Tag>}
+          {!previewing && preview?.flags?.includes('3d') && <Tag>3D</Tag>}
         </div>
       )}
+
+      {wholePlaylist && !running && !previewing && (
+        <div>
+          <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">How many</span>
+          <GlassSelect
+            id="downloader-limit"
+            options={isSearch ? SEARCH_LIMIT_OPTIONS : LIMIT_OPTIONS}
+            value={effectiveLimit}
+            onChange={setLimit}
+          />
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3">
+        <button
+          type="button"
+          className="flex items-center gap-1 self-start text-xs font-medium text-[var(--text-dim)] hover:text-[var(--text)]"
+          aria-expanded={showMore}
+          onClick={() => setShowMore((v) => !v)}
+        >
+          <IconChevronDown
+            size={14}
+            aria-hidden="true"
+            style={{ transform: showMore ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }}
+          />
+          More options
+          {!showMore && (subMode !== 'off' || audioTracks.length > 0) && (
+            <span className="text-[var(--accent)]">
+              {' '}
+              · {[subMode !== 'off' ? 'subtitles' : '', audioTracks.length ? `${audioTracks.length} audio` : ''].filter(Boolean).join(', ')}
+            </span>
+          )}
+        </button>
+        {showMore && (
+          <div className="flex flex-col gap-3 rounded-xl border border-[var(--glass-border)] p-3">
+            <div>
+              <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Subtitles</span>
+              <SlidingSelector<SubtitleOptions['mode']>
+                id="downloader-sub-mode"
+                options={SUB_MODE_OPTIONS}
+                value={subMode}
+                onChange={setSubMode}
+                className="w-full grid-cols-4"
+              />
+            </div>
+            {subMode !== 'off' &&
+              (subChoices.length > 0 ? (
+                <>
+                  <ChipSelect options={subChoices} value={subLangs} onChange={setSubLangs} max={20} disabled={running} />
+                  <div className="flex flex-wrap gap-4 text-xs text-[var(--text-dim)]">
+                    {isVideo && (
+                      <label className="flex cursor-pointer items-center gap-1.5">
+                        <input
+                          type="checkbox"
+                          className="accent-[var(--accent)]"
+                          checked={subEmbed && !subOnly}
+                          disabled={subOnly}
+                          onChange={(e) => setSubEmbed(e.target.checked)}
+                        />
+                        Embed in the video
+                      </label>
+                    )}
+                    <label className="flex cursor-pointer items-center gap-1.5">
+                      <input
+                        type="checkbox"
+                        className="accent-[var(--accent)]"
+                        checked={subOnly}
+                        onChange={(e) => setSubOnly(e.target.checked)}
+                      />
+                      Subtitles only (no video)
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <span className="text-xs text-[var(--text-faint)]">
+                  {preview ? 'This video lists no subtitles of that kind.' : 'Paste a link to see which languages exist.'}
+                </span>
+              ))}
+            {audioChoices.length > 1 && (
+              <div>
+                <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">
+                  Also save audio tracks (dubs) as separate MP3 files
+                </span>
+                <ChipSelect options={audioChoices} value={audioTracks} onChange={setAudioTracks} max={10} disabled={running} />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {playlist?.ambiguous && !running && !previewing && (
         <div>
@@ -282,10 +468,10 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
         <button
           className="glass-btn flex-1"
           onClick={run}
-          disabled={!url.trim() || running || ytDlpMissing}
-          title={ytDlpMissing ? 'Install yt-dlp first' : undefined}
+          disabled={!url.trim() || running || ytDlpMissing || needsLogin}
+          title={ytDlpMissing ? 'Install yt-dlp first' : needsLogin ? 'Sign-in required — see Settings → Downloads' : undefined}
         >
-          Run Task
+          {subsOnlyRun ? 'Download subtitles' : 'Run Task'}
         </button>
         {running && (
           <button
