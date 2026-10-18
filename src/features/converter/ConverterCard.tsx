@@ -100,11 +100,15 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
           <span className="font-medium text-[var(--text)]">Supports {FORMATS.length} formats</span>
           <div className="flex flex-1 flex-col justify-evenly gap-2">
             {CATEGORIES.map((cat) => (
-              <div key={cat} className="flex flex-wrap items-center gap-1">
-                <span className="w-[5.5rem] shrink-0 text-[var(--text-dim)]">{CATEGORY_LABELS[cat]}</span>
-                {FORMATS.filter((f) => f.category === cat).map((f) => (
-                  <Tag key={f.id}>{f.label}</Tag>
-                ))}
+              // Label above the chips (not beside them): beside, the 7 image chips outgrew the
+              // card and ICO wrapped onto a line of its own.
+              <div key={cat}>
+                <span className="mb-1 block text-[var(--text-dim)]">{CATEGORY_LABELS[cat]}</span>
+                <div className="flex flex-wrap gap-1">
+                  {FORMATS.filter((f) => f.category === cat).map((f) => (
+                    <Tag key={f.id}>{f.label}</Tag>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
