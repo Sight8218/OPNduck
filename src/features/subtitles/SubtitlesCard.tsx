@@ -89,7 +89,9 @@ export default function SubtitlesCard({ feature }: { feature: FeatureDefinition 
 
   async function transcribeAll() {
     const destination = getDownloadDirOverride() ?? undefined
-    const ids = await startBatch(files, (inputPath) => host.tasks.startSubtitles({ inputPath, model, language, format, destination }))
+    const ids = await startBatch(files, `Subtitles (${model})`, (inputPath, batch) =>
+      host.tasks.startSubtitles({ inputPath, model, language, format, destination, batch }),
+    )
     setSubmittedIds(ids)
     setFiles([])
   }

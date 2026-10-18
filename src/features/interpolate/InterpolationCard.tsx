@@ -61,7 +61,9 @@ export default function InterpolationCard({ feature }: { feature: FeatureDefinit
 
   async function interpolateAll() {
     const destination = getDownloadDirOverride() ?? undefined
-    const ids = await startBatch(files, (inputPath) => host.tasks.startInterpolate({ inputPath, multiplier, destination }))
+    const ids = await startBatch(files, `Interpolate ${multiplier}×`, (inputPath, batch) =>
+      host.tasks.startInterpolate({ inputPath, multiplier, destination, batch }),
+    )
     setSubmittedIds(ids)
     setFiles([])
   }

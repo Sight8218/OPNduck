@@ -77,7 +77,9 @@ export default function ImageUpscalerCard({ feature }: { feature: FeatureDefinit
 
   async function upscaleAll() {
     const destination = getDownloadDirOverride() ?? undefined
-    const ids = await startBatch(files, (inputPath) => host.tasks.startUpscale({ inputPath, scale, model, destination }))
+    const ids = await startBatch(files, `Image upscale ${scale}×`, (inputPath, batch) =>
+      host.tasks.startUpscale({ inputPath, scale, model, destination, batch }),
+    )
     setSubmittedIds(ids)
     setFiles([])
   }

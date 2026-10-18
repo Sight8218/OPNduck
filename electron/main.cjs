@@ -462,6 +462,12 @@ async function resolveSpotifyTrack(url) {
 // @category: downloader/task-orchestration-main-process
 const tasks = new Map() // taskId -> { state: TaskState, child: ChildProcess|null }
 
+/** Registers a new task, stamping when it was created (the Library sorts on it). */
+function addTask(id, entry) {
+  entry.state.createdAt = Date.now()
+  tasks.set(id, entry)
+}
+
 function defaultDownloadDir() {
   return path.join(app.getPath('downloads'), 'OPNduck')
 }
@@ -481,7 +487,7 @@ function broadcastTasks() {
 
 /* --- History: finished tasks persist across restarts, with the request needed to re-run them --- */
 const TERMINAL = ['done', 'error', 'canceled']
-const MAX_HISTORY = 200
+const MAX_HISTORY = 500
 const startHandlers = new Map() // IPC channel -> start function, so a stored request can be re-run
 
 function historyFile() {
@@ -521,6 +527,16 @@ function loadHistory() {
   }
 }
 
+/** A batch tag from a request: `{ id, label, size }` or null if it isn't a sane one. */
+function sanitizeBatch(b) {
+  if (!b || typeof b !== 'object') return null
+  const { id, label, size } = b
+  if (typeof id !== 'string' || id.length < 1 || id.length > 80) return null
+  if (typeof label !== 'string' || label.length > 120) return null
+  if (!Number.isInteger(size) || size < 2 || size > 1000) return null
+  return { id, label, size }
+}
+
 /** Registers a job-start IPC handler and remembers (channel, request) on the task it
  *  creates, which is what lets the Library "Run again" button replay it. */
 function handleStart(channel, fn) {
@@ -530,6 +546,9 @@ function handleStart(channel, fn) {
     if (entry) {
       entry.channel = channel
       entry.req = req
+      // Jobs started together (a batch of files, or a download plus its audio tracks) share a
+      // group, which the Library shows as one collapsible block.
+      entry.state.group = sanitizeBatch(req?.batch)
     }
     return id
   }
@@ -928,8 +947,12 @@ handleStart('tasks:start', async (_e, req) => {
   const id = crypto.randomUUID()
   const destDir = req.destination || defaultDownloadDir()
   fs.mkdirSync(destDir, { recursive: true })
+  // A download plus its separate audio-track files reads as one group in the Library.
+  if (req.audioTracks?.length && !req.audioLang && !req.batch) {
+    req.batch = { id: `tracks-${id}`, label: 'Download + audio tracks', size: 1 + req.audioTracks.length }
+  }
 
-  tasks.set(id, {
+  addTask(id, {
     state: {
       id,
       kind: 'download',
@@ -1172,11 +1195,123 @@ ipcMain.handle('tasks:openFolder', (_e, id) => {
   if (entry.finalPath && fs.existsSync(entry.finalPath)) shell.showItemInFolder(entry.finalPath)
   else shell.openPath(entry.req?.destination || defaultDownloadDir())
 })
+// Removes specific finished tasks from the history (running ones are never touched).
+ipcMain.handle('tasks:remove', (_e, ids) => {
+  if (!Array.isArray(ids)) return 0
+  let removed = 0
+  for (const id of ids.slice(0, 1000)) {
+    const t = typeof id === 'string' ? tasks.get(id) : null
+    if (t && TERMINAL.includes(t.state.status)) {
+      tasks.delete(id)
+      removed++
+    }
+  }
+  if (removed) {
+    saveHistory()
+    broadcastTasks()
+  }
+  return removed
+})
 ipcMain.handle('tasks:clearFinished', () => {
   for (const [id, t] of tasks) if (TERMINAL.includes(t.state.status)) tasks.delete(id)
   saveHistory()
   broadcastTasks()
 })
+/* --- Library export / import ---
+ * Export writes the finished tasks (with the requests needed to run them again) as JSON. Import
+ * reads such a file back: every field is re-validated here — a hand-edited or hostile file must
+ * never smuggle in a channel, path or value the app wouldn't accept from its own UI. */
+const TASK_KINDS = ['download', 'convert', 'upscale', 'interpolate', 'subtitles']
+
+function sanitizeImported(rows) {
+  if (!Array.isArray(rows)) return []
+  const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '')
+  const out = []
+  for (const r of rows.slice(0, 1000)) {
+    const st = r?.state
+    if (!st || typeof st !== 'object' || !startHandlers.has(r.channel)) continue
+    if (!r.req || typeof r.req !== 'object' || Array.isArray(r.req) || JSON.stringify(r.req).length > 20_000) continue
+    out.push({
+      channel: r.channel,
+      req: r.req,
+      state: {
+        id: crypto.randomUUID(),
+        kind: TASK_KINDS.includes(st.kind) ? st.kind : 'download',
+        status: TERMINAL.includes(st.status) ? st.status : 'canceled',
+        progress: Number.isFinite(st.progress) ? Math.min(1, Math.max(0, st.progress)) : 0,
+        label: str(st.label, 300),
+        ...(typeof st.error === 'string' ? { error: st.error.slice(0, 500) } : {}),
+        format: str(st.format, 40),
+        quality: str(st.quality, 60),
+        sizeBytes: Number.isFinite(st.sizeBytes) && st.sizeBytes >= 0 ? st.sizeBytes : null,
+        sizeIsEstimate: false,
+        thumbnailUrl: typeof st.thumbnailUrl === 'string' && parseHttpUrl(st.thumbnailUrl) ? st.thumbnailUrl : null,
+        experimentalMatch: typeof st.experimentalMatch === 'string' ? st.experimentalMatch.slice(0, 80) : null,
+        createdAt: Number.isFinite(st.createdAt) ? st.createdAt : Date.now(),
+        group: sanitizeBatch(st.group),
+      },
+    })
+  }
+  return out
+}
+
+ipcMain.handle('library:export', async (e) => {
+  const rows = [...tasks.values()]
+    .filter((t) => TERMINAL.includes(t.state.status) && t.channel)
+    .map((t) => ({ state: { ...t.state }, channel: t.channel, req: t.req }))
+  const stamp = new Date().toISOString().slice(0, 10)
+  const res = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender) ?? undefined, {
+    defaultPath: path.join(app.getPath('documents'), `opnduck-library-${stamp}.json`),
+    filters: [{ name: 'OPNduck library', extensions: ['json'] }],
+  })
+  if (res.canceled || !res.filePath) return { ok: false, count: 0 }
+  fs.writeFileSync(res.filePath, JSON.stringify({ app: 'OPNduck', version: 1, exportedAt: Date.now(), tasks: rows }, null, 2))
+  return { ok: true, count: rows.length, path: res.filePath }
+})
+
+ipcMain.handle('library:import', async (e) => {
+  const res = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender) ?? undefined, {
+    properties: ['openFile'],
+    filters: [{ name: 'OPNduck library', extensions: ['json'] }],
+  })
+  if (res.canceled || res.filePaths.length === 0) return { ok: false, entries: [] }
+  try {
+    const file = res.filePaths[0]
+    if (fs.statSync(file).size > 5 * 1024 * 1024) return { ok: false, entries: [], error: 'That file is too large to be an OPNduck library export.' }
+    const data = JSON.parse(fs.readFileSync(file, 'utf8'))
+    if (data?.app !== 'OPNduck' || data?.version !== 1) return { ok: false, entries: [], error: "That isn't an OPNduck library export." }
+    const entries = sanitizeImported(data.tasks)
+    return entries.length ? { ok: true, entries } : { ok: false, entries: [], error: 'No usable entries were found in that file.' }
+  } catch (err) {
+    return { ok: false, entries: [], error: `Couldn't read that file (${err.message}).` }
+  }
+})
+
+/** Adds imported entries to the history, or (run=true) starts each as a new job. */
+ipcMain.handle('library:importApply', async (_e, entries, run) => {
+  const clean = sanitizeImported(entries) // the renderer is not trusted: validate again
+  let added = 0
+  let started = 0
+  for (const entry of clean) {
+    if (run) {
+      try {
+        await startHandlers.get(entry.channel)(null, entry.req)
+        started++
+      } catch {
+        /* a request that no longer validates is skipped */
+      }
+    } else {
+      tasks.set(entry.state.id, { state: entry.state, child: null, finalPath: null, channel: entry.channel, req: entry.req })
+      added++
+    }
+  }
+  if (added) {
+    scheduleHistorySave()
+    broadcastTasks()
+  }
+  return { added, started }
+})
+
 ipcMain.handle('tasks:list', () => [...tasks.values()].map((t) => t.state))
 ipcMain.handle('tasks:defaultDownloadDir', () => defaultDownloadDir())
 // --- end: downloader/task-orchestration-main-process ---
@@ -1355,7 +1490,7 @@ handleStart('tasks:startConvert', async (_e, req) => {
   const inputBase = path.basename(req.inputPath, path.extname(req.inputPath))
   const outputPath = uniqueOutputPath(destDir, inputBase, ext)
 
-  tasks.set(id, {
+  addTask(id, {
     state: {
       id,
       kind: 'convert',
@@ -1479,7 +1614,7 @@ handleStart('tasks:startUpscale', (_e, req) => {
   const inputBase = path.basename(req.inputPath, path.extname(req.inputPath))
   const outputPath = uniqueOutputPath(destDir, `${inputBase}-${req.scale}x`, ext)
 
-  tasks.set(id, {
+  addTask(id, {
     state: {
       id,
       kind: 'upscale',
@@ -1664,7 +1799,7 @@ handleStart('tasks:startVideoUpscale', async (_e, req) => {
   const inputBase = path.basename(req.inputPath, path.extname(req.inputPath))
   const outputPath = uniqueOutputPath(destDir, `${inputBase}-${req.scale}x`, ext)
 
-  tasks.set(id, {
+  addTask(id, {
     state: {
       id,
       kind: 'upscale',
@@ -1852,7 +1987,7 @@ handleStart('tasks:startInterpolate', async (_e, req) => {
   const inputBase = path.basename(req.inputPath, path.extname(req.inputPath))
   const outputPath = uniqueOutputPath(destDir, `${inputBase}-${req.multiplier}x-frames`, ext)
 
-  tasks.set(id, {
+  addTask(id, {
     state: {
       id,
       kind: 'interpolate',
@@ -2038,7 +2173,7 @@ handleStart('tasks:startSubtitles', (_e, req) => {
   const inputBase = path.basename(req.inputPath, path.extname(req.inputPath))
   const outputPath = uniqueOutputPath(destDir, inputBase, req.format)
 
-  tasks.set(id, {
+  addTask(id, {
     state: {
       id,
       kind: 'subtitles',

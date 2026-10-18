@@ -57,7 +57,17 @@ export interface SubtitleOptions {
   only?: boolean
 }
 
+/** Jobs started together share a batch, which the Library shows as one collapsible group. */
+export interface BatchInfo {
+  id: string
+  label: string
+  /** How many jobs the batch started (groups only form for 2 or more). */
+  size: number
+}
+
 export interface DownloadRequest {
+  /** Set by the card when it starts several jobs at once. */
+  batch?: BatchInfo
   url: string
   format: DownloadFormat
   videoQuality?: VideoQuality
@@ -135,6 +145,8 @@ export type ContainerFormat =
 export type ConvertMode = 'remux' | 'transcode'
 
 export interface ConvertRequest {
+  /** Set by the card when it starts several jobs at once. */
+  batch?: BatchInfo
   inputPath: string
   container: ContainerFormat
   mode: ConvertMode
@@ -148,6 +160,8 @@ export type UpscaleModel = 'realesr-animevideov3' | 'realesrgan-x4plus' | 'reale
 export type UpscaleScale = 2 | 3 | 4
 
 export interface UpscaleRequest {
+  /** Set by the card when it starts several jobs at once. */
+  batch?: BatchInfo
   inputPath: string
   scale: UpscaleScale
   model: UpscaleModel
@@ -159,6 +173,8 @@ export interface UpscaleRequest {
 export type InterpolateMultiplier = 2 | 4
 
 export interface InterpolateRequest {
+  /** Set by the card when it starts several jobs at once. */
+  batch?: BatchInfo
   inputPath: string
   multiplier: InterpolateMultiplier
   /** Overrides the Settings default destination for this one job. */
@@ -170,6 +186,8 @@ export type WhisperModel = 'tiny' | 'base' | 'small' | 'medium'
 export type SubtitleFormat = 'srt' | 'vtt'
 
 export interface SubtitlesRequest {
+  /** Set by the card when it starts several jobs at once. */
+  batch?: BatchInfo
   inputPath: string
   model: WhisperModel
   /** 'auto' to let Whisper detect it, otherwise an ISO 639-1 code like 'en'. */
@@ -208,6 +226,17 @@ export interface TaskState {
   /** Set while a whole-playlist download runs: which video it's on. total is 0
    *  until yt-dlp reports it. Absent for ordinary single-video tasks. */
   playlist?: { index: number; total: number } | null
+  /** When the task was created (ms since epoch). Missing on very old history entries. */
+  createdAt?: number
+  /** Batch this task belongs to, if it was started together with others. */
+  group?: BatchInfo | null
+}
+
+/** One entry from a Library export: the finished task plus the request that produced it. */
+export interface ImportedTask {
+  channel: string
+  req: Record<string, unknown>
+  state: TaskState
 }
 
 export interface HostTasks {
@@ -224,6 +253,8 @@ export interface HostTasks {
   openFolder(taskId: string): Promise<void>
   /** Removes every finished/failed/canceled task from the history. */
   clearFinished(): Promise<void>
+  /** Removes specific finished tasks (running ones are ignored). Resolves to how many went. */
+  remove(ids: string[]): Promise<number>
   list(): TaskState[]
   /** Fires with the full task list on every change. Returns an unsubscribe fn. */
   subscribe(listener: (tasks: TaskState[]) => void): () => void
@@ -278,6 +309,15 @@ export interface Host {
   settings?: {
     get(): Promise<AppSettings>
     set(patch: { proxy?: string; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+  }
+  /** Library export/import (JSON). Desktop shell only. */
+  library?: {
+    /** Saves finished tasks to a file the user picks. */
+    exportHistory(): Promise<{ ok: boolean; count: number; path?: string }>
+    /** Opens a file picker and returns the validated entries it holds (nothing is added yet). */
+    importHistory(): Promise<{ ok: boolean; entries: ImportedTask[]; error?: string }>
+    /** Adds the entries to the history, or (run) starts each one as a new job. */
+    importApply(entries: ImportedTask[], run: boolean): Promise<{ added: number; started: number }>
   }
   /** The built-in sign-in window and cookie test. Desktop shell only. */
   login?: {
@@ -439,6 +479,7 @@ const browserTasks: HostTasks = {
   rerun: async () => null,
   openFolder: async () => {},
   clearFinished: async () => {},
+  remove: async () => 0,
   list: () => browserTaskList,
   subscribe: (listener) => {
     browserListeners.add(listener)

@@ -81,7 +81,9 @@ export default function VideoUpscalerCard({ feature }: { feature: FeatureDefinit
 
   async function upscaleAll() {
     const destination = getDownloadDirOverride() ?? undefined
-    const ids = await startBatch(files, (inputPath) => host.tasks.startVideoUpscale({ inputPath, scale, model, destination }))
+    const ids = await startBatch(files, `Video upscale ${scale}×`, (inputPath, batch) =>
+      host.tasks.startVideoUpscale({ inputPath, scale, model, destination, batch }),
+    )
     setSubmittedIds(ids)
     setFiles([])
   }

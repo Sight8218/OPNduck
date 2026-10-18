@@ -59,7 +59,9 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
   async function convertAll(container: ContainerFormat, mode: ConvertMode) {
     setPickerOpen(false)
     const destination = getDownloadDirOverride() ?? undefined
-    const ids = await startBatch(files, (inputPath) => host.tasks.startConvert({ inputPath, container, mode, destination }))
+    const ids = await startBatch(files, `Convert to ${container}`, (inputPath, batch) =>
+      host.tasks.startConvert({ inputPath, container, mode, destination, batch }),
+    )
     setSubmittedIds(ids)
     setFiles([])
   }

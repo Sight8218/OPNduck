@@ -30,6 +30,12 @@ history; entries are curated for readability.
   Unlocks Watch Later, Liked videos, private playlists and age-restricted media. Includes a Test sign-in
   button.
 
+- **Library management:** search, filter by type and status, and sort (newest, oldest, name, size,
+  status); batches (several files started together, or a download plus its audio tracks) show as one
+  collapsible group with Cancel all and Retry failed; remove single entries; **Export** the history to a
+  JSON file and **Import** it back (add to history, or add and run again) — imports are re-validated,
+  so a hand-edited file can't smuggle in anything the app wouldn't accept. History now keeps 500 entries.
+
 ### Changed
 
 - Command palette default shortcut is now **Ctrl+K** (existing rebinds are untouched).

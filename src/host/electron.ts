@@ -20,6 +20,7 @@
 import type {
   ConvertRequest,
   AppSettings,
+  ImportedTask,
   UpdateCheck,
   DownloadProbe,
   DownloadRequest,
@@ -55,6 +56,11 @@ interface ElectronBridge {
     get(): Promise<AppSettings>
     set(patch: { proxy?: string; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
+  library: {
+    exportHistory(): Promise<{ ok: boolean; count: number; path?: string }>
+    importHistory(): Promise<{ ok: boolean; entries: ImportedTask[]; error?: string }>
+    importApply(entries: ImportedTask[], run: boolean): Promise<{ added: number; started: number }>
+  }
   login: {
     open(url?: string): Promise<{ ok: boolean; cookies: number; error?: string }>
     status(): Promise<{ signedIn: boolean; cookies: number; updatedAt: number | null }>
@@ -80,6 +86,7 @@ interface ElectronBridge {
     rerun(taskId: string): Promise<string | null>
     openFolder(taskId: string): Promise<void>
     clearFinished(): Promise<void>
+    remove(ids: string[]): Promise<number>
     list(): Promise<TaskState[]>
     onUpdate(listener: (tasks: TaskState[]) => void): () => void
     getDefaultDownloadDir(): Promise<string>
@@ -136,6 +143,11 @@ export function detectElectronHost(): Host | null {
       get: () => bridge.settings.get(),
       set: (patch) => bridge.settings.set(patch),
     },
+    library: {
+      exportHistory: () => bridge.library.exportHistory(),
+      importHistory: () => bridge.library.importHistory(),
+      importApply: (entries, run) => bridge.library.importApply(entries, run),
+    },
     login: {
       open: (url) => bridge.login.open(url),
       status: () => bridge.login.status(),
@@ -161,6 +173,7 @@ export function detectElectronHost(): Host | null {
       rerun: (taskId) => bridge.tasks.rerun(taskId),
       openFolder: (taskId) => bridge.tasks.openFolder(taskId),
       clearFinished: () => bridge.tasks.clearFinished(),
+      remove: (ids) => bridge.tasks.remove(ids),
       list: () => cachedTasks,
       subscribe: (listener) => {
         listeners.add(listener)

@@ -42,6 +42,11 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     get: () => ipcRenderer.invoke('settings:get'),
     set: (patch) => ipcRenderer.invoke('settings:set', patch),
   },
+  library: {
+    exportHistory: () => ipcRenderer.invoke('library:export'),
+    importHistory: () => ipcRenderer.invoke('library:import'),
+    importApply: (entries, run) => ipcRenderer.invoke('library:importApply', entries, run),
+  },
   login: {
     open: (url) => ipcRenderer.invoke('login:open', url),
     status: () => ipcRenderer.invoke('login:status'),
@@ -71,6 +76,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     rerun: (taskId) => ipcRenderer.invoke('tasks:rerun', taskId),
     openFolder: (taskId) => ipcRenderer.invoke('tasks:openFolder', taskId),
     clearFinished: () => ipcRenderer.invoke('tasks:clearFinished'),
+    remove: (ids) => ipcRenderer.invoke('tasks:remove', ids),
     list: () => ipcRenderer.invoke('tasks:list'),
     onUpdate: (listener) => {
       const handler = (_e, tasks) => listener(tasks)
