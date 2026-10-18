@@ -26,17 +26,18 @@ Current title/identity: **"OPNduck Desktop Suite"** 🦆, warm gradient branding
 
 | Decision | Choice | Why |
 | -------- | ------ | --- |
-| Desktop shell, NOW | **Electron** (alpha) | Node toolchain already installed; fastest path to a runnable native app. |
+| Desktop shell, NOW | **Electron** | Node toolchain already installed; fastest path to a runnable native app. |
 | Desktop shell, future | **Tauri v2**, **postponed** | Lower RAM, tiny binaries. A full migration was built but is on hold: WebKitGTK on Linux + NVIDIA proprietary driver + Wayland can't do hardware compositing (upstream bug). That work lives on a local `tauri-migration-phase1` branch that is not pushed to GitHub. |
 | Framework | **React 19 + TypeScript + Vite** | Shared across web + desktop + both shells. |
 | Styling | **Tailwind CSS v4** + CSS custom-property theme tokens | Theme switching via a single `data-theme` attribute. |
 | Animation | **Framer Motion** + CSS keyframes | GPU-accelerated, cheap. |
 | Foreground roadmap | Linux-first, **Windows-parallel from day 1**, macOS later | Dev happens on Linux (Arch). Cross-platform paths/scripts baked in. |
-| Version | **v0.3.2-Alpha** | Persistent job progress, drag & drop, history, presets; Tauri migration postponed. |
+| Version | **v0.4.0-Beta** | Downloader power-ups, sign-in, subscriptions, AI Audio (Demucs), library management, subtitles, performance; Tauri migration postponed. |
 | License | **GPL-3.0**, copyright **Aaron Jonsson 2026** | Actual LICENSE in repo + GPL header on every source file. |
 
 **Version rule (user's, explicit):** Pre-Alpha = GUI + settings only. Alpha = at least
-real video downloading works. Respect this.
+real video downloading works. Beta (v0.4.0+) = the main tools are wired in and
+usable, bugs still expected. Respect this.
 
 ---
 
@@ -53,12 +54,14 @@ real video downloading works. Respect this.
 - Community Plugin Ecosystem — modular add-ons (auto-subtitle, metadata scrubbers, …).
 - Hardware Allocation Engine — per-task resource assignment.
 
-**Native stack status (v0.3.2-Alpha):**
+**Native stack status (v0.4.0-Beta):**
 - **Wired** (system binaries on PATH, spawned from `electron/main.cjs`): yt-dlp
   (downloads + YouTube playlists), FFmpeg (video/audio/image conversion),
   LibreOffice (document conversion), Real-ESRGAN NCNN-Vulkan (image + video
   upscaling), RIFE NCNN-Vulkan (frame interpolation), faster-whisper (Subtitles, via
-  the user's own Python 3; see `electron/whisper_subtitles.py`).
+  the user's own Python 3; see `electron/whisper_subtitles.py`), Demucs (AI Audio, Python venv
+  with torch+demucs+soundfile, auto-detected at `~/.opnduck-venv`; see
+  `electron/demucs_separate.py`).
 - **Not wired yet:** librosa (Beat Finder), the
   Python 3 "Master Engine" sidecar (PyInstaller), the plugin loader.
 
@@ -182,7 +185,7 @@ mount (`hideSplash()`).
 ## 11. Current repo state
 
 - GitHub: `Sight8218/OPNduck` (`main`).
-- Version: **`0.3.2-alpha`** (released 2026-10-10; see `CHANGELOG.md`).
+- Version: **`0.4.0-beta`** (released 2026-10-18; see `CHANGELOG.md`).
 - Electron 44, React 19, TypeScript 7, Vite 8, Tailwind 4.
 - `npm run build`, `npm run typecheck`, `npm run lint` are expected to be clean. No
   automated test suite; GitHub workflows: Claude Code, Claude code review, and a Windows smoke test (`.github/workflows/windows-smoke.yml`).

@@ -1,7 +1,7 @@
 # OPNduck Session Save — Complete Context & Continuation Guide
 
 ## Project Overview
-**OPNduck v0.3.2-Alpha** — Local-first media processing suite (Electron desktop application).
+**OPNduck v0.4.0-Beta** — Local-first media processing suite (Electron desktop application).
 
 ### Technology Stack
 - **Frontend**: React 19 + TypeScript 7 + Vite 8
@@ -22,13 +22,15 @@
   `FluidBackground`) remain but render flat (0px blur, transparent fluid colors).
 
 ### Project Status
-- **Version**: 0.3.2-Alpha (released 2026-10-10)
+- **Version**: 0.4.0-Beta (released 2026-10-18)
 - **Working features**: Downloader (yt-dlp, incl. YouTube playlists), Converter (ffmpeg for
   video/audio/image, LibreOffice for documents), AI Image Upscaler + AI Video Upscaler
   (Real-ESRGAN), Frame Interpolation (RIFE). Tools are system binaries on PATH; cards are
   gated when a binary is missing.
 - **Also shipped**: persistent job progress, drag & drop, Library history (Open folder, Run
-  again, Clear finished), per-card presets, command palette (`Ctrl+K`), rebindable keybinds.
+  again, Clear finished), per-card presets, command palette (`Ctrl+K`), rebindable keybinds,
+  Subscriptions, AI Audio (Demucs), Subtitles (faster-whisper), sign-in for private content,
+  Library search/filter/export/import.
 - **Not wired yet**: Beat Finder (librosa), Python sidecar, plugin loader
 - **License**: GPL-3.0
 - **Repository**: https://github.com/Sight8218/OPNduck (public, `main`)
@@ -179,7 +181,7 @@ const win = new BrowserWindow({
   audit hardening. Packaged builds opened blank.
 - **v0.3.1-Alpha**: hotfix for the blank packaged window; batch/cancel fixes; CSP.
 - **v0.3.2-Alpha**: persistent job progress, drag & drop, Library history with re-run, presets.
-- Since then on `main`: keyboard-shortcut fix for Ctrl combos (palette default `Ctrl+K`),
+- **v0.4.0-Beta**: first Beta. Includes: keyboard-shortcut fix for Ctrl combos (palette default `Ctrl+K`),
   Subtitles card wired to faster-whisper, Windows fixes (LibreOffice lookup, yt-dlp UTF-8),
   Windows smoke-test workflow, Flat/Gradient background setting (flat default), notify-only
   update check, dependency refresh.
@@ -273,5 +275,5 @@ methodical, thorough, and test-driven.
 
 ---
 
-**Last Updated**: October 17, 2026 (v0.3.2-Alpha + unreleased changes on `main`)
+**Last Updated**: October 18, 2026 (v0.4.0-Beta released)
 **Next Session Starter**: Read `PROJECT_BRIEF.md` and `CHANGELOG.md`, then continue with the next steps above

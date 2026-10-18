@@ -5,14 +5,16 @@ upscaling, motion frame-interpolation, media downloads, conversions, and transcr
 directly to your local GPU/CPU at zero cost — no subscriptions, no cloud, no spying. All
 your media stays on your machine.
 
-This is **v0.3.2-Alpha**: jobs started from Home keep their progress when you
-navigate away, plus drag & drop, persistent history and per-card presets (v0.3.0 builds
-opened a blank window; use 0.3.1 or newer). It ships real media downloading
-(`yt-dlp`, now including YouTube playlists) and a rebuilt multi-format Converter (video/audio/image via ffmpeg, documents
-via LibreOffice), on top of the frontend shell — GUI, routing, theming,
-settings, and the adaptive card dashboard. Subtitles (faster-whisper) are now wired
-in; Beat Finder is still not. The Tauri migration is **postponed** (see Desktop Shell below);
-OPNduck ships on Electron.
+This is **v0.4.0-Beta**, the first Beta. It ships a much more capable Downloader (8K, subtitles,
+dubbed audio tracks, whole channels and lists, sign-in for private content, Smart mode),
+**Subscriptions** that auto-download new uploads while OPNduck is open, an **AI Audio** card
+(Demucs: remove vocals, extract vocals, isolate a voice, echo and noise cleanup), Subtitles
+(faster-whisper), Library management (search, filters, sorting, batch groups, JSON export/import),
+a noticeably faster UI, and job queues, on top of the multi-format Converter, AI upscalers, frame
+interpolation, theming, settings and the adaptive card dashboard. Beat Finder is still not wired in.
+The Tauri migration is **postponed** (see Desktop Shell below); OPNduck ships on Electron.
+AI Audio needs a Python venv with `torch`, `demucs` and `soundfile`; that install is large
+(about 5.5 GB including the CUDA libraries).
 
 <p align="center">
   <img src="docs/screenshots/home.png" alt="OPNduck home screen — Downloader, Converter and AI upscaler cards in the Blarange theme" width="49%" />
@@ -121,13 +123,13 @@ npm run lint       # oxlint
 
 The frontend runs in any browser today — it is the exact bundle the desktop shell
 hosts. The Electron wrapper, downloader, converter, upscalers and interpolation are
-wired in, as is Subtitles (faster-whisper); Beat Finder lands in a later Alpha update.
+wired in, as is Subtitles (faster-whisper); Beat Finder lands in a later update.
 
 ---
 
 ## 📝 Project Metadata & Licensing
 
-- **Project State**: `v0.3.2-Alpha` (downloader + converter wired in; some engines still stubbed — expect bugs!)
+- **Project State**: `v0.4.0-Beta` (most engines wired in; Beat Finder still stubbed — expect bugs!)
 - **Original Developer**: Aaron
 - **Development Model**: Built with the architectural assistance of AI.
 - **License**: [GPL-3.0](./LICENSE) — free software. Copyright © 2026 Aaron Jonsson.

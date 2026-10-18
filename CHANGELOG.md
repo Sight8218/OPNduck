@@ -4,7 +4,10 @@ All notable changes to OPNduck are documented in this file. Generated with
 [git-cliff](https://github.com/orhun/git-cliff) from Conventional Commit
 history; entries are curated for readability.
 
-## [Unreleased]
+## [0.4.0-Beta] - 2026-10-18
+
+First Beta. The Tauri migration is still **postponed** (WebKitGTK on Linux stutters/crashes with
+NVIDIA + Wayland); OPNduck stays on Electron.
 
 ### Added
 
@@ -39,7 +42,7 @@ history; entries are curated for readability.
 - **Subscriptions** (Library → Subscriptions, or "Subscribe to new uploads" on a channel/playlist link in
   the Downloader): new uploads download automatically. Checked shortly after launch and then hourly
   while OPNduck is open; only future uploads by default (optionally the latest 3/5/10 too); a failed
-  download is retried on the next check; desktop notification when something new starts.
+  download is retried on the next check (up to 3 times per session); desktop notification when something new starts.
 
 - **AI Audio card** (Demucs): remove vocals (instrumental), extract vocals / remove background music,
   isolate a voice (vocals + speech cleanup), and a basic ffmpeg echo & noise reduction mode. Works on
@@ -49,6 +52,13 @@ history; entries are curated for readability.
 
 ### Changed
 
+- Job queues: downloads run 3 at a time, conversions 2, GPU jobs (upscale, interpolation, AI audio) 1;
+  the rest wait in line.
+- Output files never overwrite each other: names are reserved when a job is queued, so batch items
+  with the same file name get a numbered suffix.
+- Many hardening fixes from the pre-beta audits: stricter validation of imports, settings and
+  sign-in windows, safer folder opening, subscription retry limits, and MP4-safe video output for
+  AI Audio.
 - Command palette default shortcut is now **Ctrl+K** (existing rebinds are untouched).
 - Dependency refresh (Electron, framer-motion, oxlint).
 
@@ -67,6 +77,17 @@ history; entries are curated for readability.
 - Keyboard shortcuts with Ctrl no longer miss letters/Space on input methods and non-US
   layouts (shortcuts read the physical key).
 - Windows: LibreOffice is found outside PATH; yt-dlp output is forced to UTF-8.
+
+### Known issues
+
+- Windows installers are built from Linux via wine and are still untested on real Windows.
+- AI Audio: real-music separation quality has only been checked on speech. The Demucs install is
+  large (about 5.5 GB including the CUDA libraries).
+- Signing in inside the built-in window may be refused by Google; use browser cookies instead.
+- A Library with a very large history is not virtualized; task updates still include history;
+  stale temp folders are not swept at startup; the Smart download panel has no "first N" limit
+  for channels.
+- No AUR publication and no artifact signing yet (deferred).
 
 ## [0.3.2-Alpha] - 2026-10-10
 

@@ -4,7 +4,7 @@ import { IconAlertTriangle, IconX } from '@tabler/icons-react'
 const GITHUB_URL = 'https://github.com/Sight8218/OPNduck'
 
 /**
- * Yellow "Alpha" notice. Shows a disclaimer and links to the GitHub repo
+ * Yellow "Beta" notice. Shows a disclaimer and links to the GitHub repo
  * so users can report bugs. Dismissible per session.
  */
 export default function PreAlphaBanner() {
@@ -29,9 +29,9 @@ export default function PreAlphaBanner() {
           <IconAlertTriangle size={18} />
         </span>
         <p className="leading-snug">
-          <strong className="font-bold text-amber-300">Alpha:</strong>{' '}
+          <strong className="font-bold text-amber-300">Beta:</strong>{' '}
           <span className="text-[var(--text-dim)]">
-            Downloading is live; other tools are still stubs. Expect bugs and missing
+            Most tools are live, but some are still rough. Expect bugs and missing
             features. Found one? Report it on{' '}
           </span>
           <a
@@ -47,7 +47,7 @@ export default function PreAlphaBanner() {
         <button
           type="button"
           onClick={() => setVisible(false)}
-          aria-label="Dismiss alpha notice"
+          aria-label="Dismiss beta notice"
           className="shrink-0 rounded-lg px-2 py-1 text-xs font-bold text-[var(--text-dim)] transition-colors hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
         >
           <IconX size={14} aria-hidden="true" />
