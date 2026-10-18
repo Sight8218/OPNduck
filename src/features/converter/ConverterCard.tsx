@@ -94,16 +94,20 @@ export default function ConverterCard({ feature }: { feature: FeatureDefinition 
       </button>
 
       {files.length === 0 && (
-        <div className="flex flex-1 flex-col justify-center gap-2 rounded-xl border border-dashed border-[var(--glass-border)] p-3 text-xs">
+        // Fills whatever height the Home grid gives this card: the heading stays on top and the
+        // category rows spread evenly below it, so extra height reads as spacing, not a hole.
+        <div className="flex flex-1 flex-col gap-2 rounded-xl border border-dashed border-[var(--glass-border)] p-3 text-xs">
           <span className="font-medium text-[var(--text)]">Supports {FORMATS.length} formats</span>
-          {CATEGORIES.map((cat) => (
-            <div key={cat} className="flex flex-wrap items-center gap-1">
-              <span className="w-[5.5rem] shrink-0 text-[var(--text-dim)]">{CATEGORY_LABELS[cat]}</span>
-              {FORMATS.filter((f) => f.category === cat).map((f) => (
-                <Tag key={f.id}>{f.label}</Tag>
-              ))}
-            </div>
-          ))}
+          <div className="flex flex-1 flex-col justify-evenly gap-2">
+            {CATEGORIES.map((cat) => (
+              <div key={cat} className="flex flex-wrap items-center gap-1">
+                <span className="w-[5.5rem] shrink-0 text-[var(--text-dim)]">{CATEGORY_LABELS[cat]}</span>
+                {FORMATS.filter((f) => f.category === cat).map((f) => (
+                  <Tag key={f.id}>{f.label}</Tag>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
