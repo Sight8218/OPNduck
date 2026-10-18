@@ -298,6 +298,21 @@ function pythonCommand() {
   return process.env.OPNDUCK_PYTHON || (process.platform === 'win32' ? 'python' : 'python3')
 }
 
+/**
+ * The Python that runs Demucs. OPNDUCK_PYTHON wins; otherwise the venv the install hint creates
+ * (~/.opnduck-venv) is used automatically if it exists, so there's nothing to configure; otherwise
+ * the system Python. Kept separate from pythonCommand() because the venv holds torch/demucs but
+ * not necessarily faster-whisper, which the Subtitles card looks for in the regular Python.
+ */
+function demucsPython() {
+  if (process.env.OPNDUCK_PYTHON) return process.env.OPNDUCK_PYTHON
+  const venv =
+    process.platform === 'win32'
+      ? path.join(os.homedir(), 'opnduck-venv', 'Scripts', 'python.exe')
+      : path.join(os.homedir(), '.opnduck-venv', 'bin', 'python')
+  return fs.existsSync(venv) ? venv : pythonCommand()
+}
+
 function fasterWhisperInstallHint() {
   if (process.platform === 'win32') return 'python -m pip install faster-whisper'
   if (process.platform === 'darwin') return 'python3 -m pip install faster-whisper'
@@ -305,15 +320,15 @@ function fasterWhisperInstallHint() {
 }
 
 function demucsInstallHint() {
-  if (process.platform === 'win32') return 'python -m venv %USERPROFILE%\\opnduck-venv  &&  %USERPROFILE%\\opnduck-venv\\Scripts\\pip install torch demucs soundfile   (then set OPNDUCK_PYTHON to that python.exe)'
-  return 'python -m venv ~/.opnduck-venv && ~/.opnduck-venv/bin/pip install torch demucs soundfile   (then launch OPNduck with OPNDUCK_PYTHON=~/.opnduck-venv/bin/python)'
+  if (process.platform === 'win32') return 'python -m venv %USERPROFILE%\\opnduck-venv  &&  %USERPROFILE%\\opnduck-venv\\Scripts\\pip install torch demucs soundfile   (OPNduck finds that venv by itself — just restart it)'
+  return 'python -m venv ~/.opnduck-venv && ~/.opnduck-venv/bin/pip install torch demucs soundfile   (OPNduck finds that venv by itself — just restart it)'
 }
 
 ipcMain.handle('system:checkDemucs', () => {
   return new Promise((resolve) => {
     let child
     try {
-      child = spawn(pythonCommand(), ['-c', 'import torch, demucs, soundfile'], { cwd: os.tmpdir() })
+      child = spawn(demucsPython(), ['-c', 'import torch, demucs, soundfile'], { cwd: os.tmpdir() })
     } catch {
       resolve({ available: false, installHint: demucsInstallHint() })
       return
@@ -2487,7 +2502,7 @@ async function audioAiJob(id, req, mode, fmt, keepVideo, outputPath) {
       return fail('Audio script missing', err)
     }
     try {
-      await spawnTracked(pythonCommand(), ['-c', script, inWav, stemsDir], entry, {
+      await spawnTracked(demucsPython(), ['-c', script, inWav, stemsDir], entry, {
         cwd: os.tmpdir(), // `python -c` imports from the cwd; keep it away from user folders
         onStderr: (text) => {
           // Demucs' tqdm bar: "  45%|████▌     | ...". Separation is ~85% of the work.
