@@ -35,6 +35,18 @@ const crypto = require('node:crypto')
 const MAX_SUBSCRIPTIONS = 50
 const ENTRIES_PER_CHECK = 15
 const MAX_BACKFILL = 25
+/** Failed downloads of one entry per session before it's left alone until the next launch. */
+const MAX_ATTEMPTS = 3
+
+/** A safe single folder name from a remote (untrusted) channel title. */
+function folderName(title) {
+  const cleaned = String(title)
+    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_')
+    .replace(/[. ]+$/g, '')
+    .trim()
+  if (!cleaned || /^\.+$/.test(cleaned) || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(cleaned)) return 'Subscription'
+  return cleaned.slice(0, 80)
+}
 
 function createSubscriptionManager(deps) {
   const {
@@ -53,6 +65,14 @@ function createSubscriptionManager(deps) {
   let subs = load()
   const seenCache = new Map()
   const inflight = new Set() // `${subId}:${entryId}` currently downloading
+  const failures = new Map() // `${subId}:${entryId}` → failed downloads this session
+  // One check at a time (scheduled, "Check now", and the backfill after subscribing all go through here).
+  let chain = Promise.resolve()
+  const exclusive = (fn) => {
+    const run = chain.then(fn, fn)
+    chain = run.catch(() => {})
+    return run
+  }
   let timer = null
   let firstTimer = null
   let checking = false
@@ -141,7 +161,7 @@ function createSubscriptionManager(deps) {
     markSeen(sub.id, found.entries.slice(backfill).map((e) => e.id))
     subs.push(sub)
     persist()
-    if (backfill > 0) await checkOne(sub)
+    if (backfill > 0) await exclusive(() => checkOne(sub))
     return { ...sub }
   }
 
@@ -174,14 +194,20 @@ function createSubscriptionManager(deps) {
       return 0
     }
     const set = seen(sub.id)
-    const fresh = found.entries.filter((e) => !set.has(e.id) && !inflight.has(`${sub.id}:${e.id}`))
+    const fresh = found.entries.filter((e) => {
+      const key = `${sub.id}:${e.id}`
+      return !set.has(e.id) && !inflight.has(key) && (failures.get(key) ?? 0) < MAX_ATTEMPTS
+    })
     // Oldest first, so they land in upload order.
     fresh.reverse()
     let started = 0
     const batch = fresh.length > 1 ? { id: crypto.randomUUID(), label: `Subscription: ${sub.title}`, size: fresh.length } : undefined
-    const destination = sub.destination || path.join(defaultDir(), sub.title.replace(/[\\/:*?"<>|]/g, '_').trim() || 'Subscription')
+    const destination = sub.destination || path.join(defaultDir(), folderName(sub.title))
+    let firstAttempts = 0 // entries never tried before: only those justify a "new video" notification
     for (const entry of fresh) {
       const key = `${sub.id}:${entry.id}`
+      if (!failures.has(key)) firstAttempts++
+      inflight.add(key) // before the await: a concurrent check must not start the same entry twice
       try {
         const taskId = await startDownload({
           url: entry.url,
@@ -192,20 +218,27 @@ function createSubscriptionManager(deps) {
           playlist: 'single',
           batch,
         })
-        inflight.add(key)
         started++
         whenTaskDone(taskId, (state) => {
           inflight.delete(key)
-          // A subscription removed mid-download must not get its seen-list file recreated.
-          if (state.status === 'done' && subs.some((s) => s.id === sub.id)) markSeen(sub.id, [entry.id]) // failures stay unseen → retried next check
+          const exists = subs.some((s) => s.id === sub.id) // a removed subscription must not get its seen-list recreated
+          if (state.status === 'done' || state.status === 'canceled') {
+            // Canceled = the user chose not to have it: don't offer it again.
+            if (exists) markSeen(sub.id, [entry.id])
+          } else {
+            // A failure stays unseen so the next check retries — but not forever.
+            failures.set(key, (failures.get(key) ?? 0) + 1)
+          }
         })
       } catch {
-        /* a request that fails validation is retried next check */
+        inflight.delete(key)
+        failures.set(key, (failures.get(key) ?? 0) + 1) // e.g. a request that fails validation
       }
     }
     sub.lastResult = { ok: true, started, error: null }
     persist()
-    if (started > 0) notify(`OPNduck: ${started} new ${started === 1 ? 'video' : 'videos'}`, `Downloading from ${sub.title}`)
+    // Retries of earlier failures are silent — only genuinely new videos announce themselves.
+    if (started > 0 && firstAttempts > 0) notify(`OPNduck: ${firstAttempts} new ${firstAttempts === 1 ? 'video' : 'videos'}`, `Downloading from ${sub.title}`)
     return started
   }
 
@@ -213,13 +246,16 @@ function createSubscriptionManager(deps) {
   async function checkNow(id) {
     if (checking) return { started: 0, busy: true }
     checking = true
-    let started = 0
     try {
-      for (const sub of subs.filter((s) => s.enabled && (!id || s.id === id))) started += await checkOne(sub)
+      const started = await exclusive(async () => {
+        let n = 0
+        for (const sub of subs.filter((s) => s.enabled && (!id || s.id === id))) n += await checkOne(sub)
+        return n
+      })
+      return { started, busy: false }
     } finally {
       checking = false
     }
-    return { started, busy: false }
   }
 
   function start() {

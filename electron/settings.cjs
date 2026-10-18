@@ -69,8 +69,9 @@ function validate(next) {
   const c = next.cookies
   if (!c || !['none', 'browser', 'file', 'login'].includes(c.mode)) throw new Error('Invalid cookie source')
   if (!COOKIE_BROWSERS.includes(c.browser)) throw new Error('Unsupported browser for cookies')
-  // yt-dlp's BROWSER:PROFILE syntax uses ':' as a separator, so a profile can't contain one.
-  if (typeof c.profile !== 'string' || c.profile.includes(':') || /[\0\r\n]/.test(c.profile)) {
+  // yt-dlp's BROWSER:PROFILE::CONTAINER syntax: a single ':' inside the profile is fine (a Windows
+  // drive letter, C:\...), but '::' would start a container, so it's refused.
+  if (typeof c.profile !== 'string' || c.profile.includes('::') || /[\0\r\n]/.test(c.profile)) {
     throw new Error('Invalid browser profile')
   }
   if (c.profile !== '' && !/^[A-Za-z0-9 ._-]+$/.test(c.profile) && !path.isAbsolute(c.profile)) {

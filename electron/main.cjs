@@ -319,6 +319,13 @@ function fasterWhisperInstallHint() {
   return 'yay -S python-faster-whisper   (AUR; or pip install faster-whisper in a venv and set OPNDUCK_PYTHON to its python)'
 }
 
+/** Where Python runs from: `python -c` puts the cwd on sys.path, so never a shared/user folder. */
+function pythonCwd() {
+  const dir = app.getPath('userData')
+  fs.mkdirSync(dir, { recursive: true })
+  return dir
+}
+
 function demucsInstallHint() {
   if (process.platform === 'win32') return 'python -m venv %USERPROFILE%\\opnduck-venv  &&  %USERPROFILE%\\opnduck-venv\\Scripts\\pip install torch demucs soundfile   (OPNduck finds that venv by itself — just restart it)'
   return 'python -m venv ~/.opnduck-venv && ~/.opnduck-venv/bin/pip install torch demucs soundfile   (OPNduck finds that venv by itself — just restart it)'
@@ -328,7 +335,7 @@ ipcMain.handle('system:checkDemucs', () => {
   return new Promise((resolve) => {
     let child
     try {
-      child = spawn(demucsPython(), ['-c', 'import torch, demucs, soundfile'], { cwd: os.tmpdir() })
+      child = spawn(demucsPython(), ['-c', 'import torch, demucs, soundfile'], { cwd: pythonCwd() })
     } catch {
       resolve({ available: false, installHint: demucsInstallHint() })
       return
@@ -344,7 +351,7 @@ ipcMain.handle('system:checkFasterWhisper', () => {
     try {
       // cwd = tmpdir: `python -c` puts the cwd on sys.path, so never run it from a folder
       // that could hold a planted faster_whisper.py.
-      child = spawn(pythonCommand(), ['-c', 'import faster_whisper'], { cwd: os.tmpdir() })
+      child = spawn(pythonCommand(), ['-c', 'import faster_whisper'], { cwd: pythonCwd() })
     } catch {
       resolve({ available: false, installHint: fasterWhisperInstallHint() })
       return
@@ -602,6 +609,14 @@ function updateTask(id, patch) {
   if (TERMINAL.includes(entry.state.status)) scheduleHistorySave()
   // A finished conversion frees its concurrency slot for the next queued one.
   if (entry.releaseSlot && TERMINAL.includes(entry.state.status)) entry.releaseSlot()
+  // A job that never produced output leaves behind the empty placeholder uniqueOutputPath() made.
+  if (entry.state.status !== 'done' && entry.finalPath && TERMINAL.includes(entry.state.status)) {
+    try {
+      if (fs.statSync(entry.finalPath).size === 0) fs.rmSync(entry.finalPath, { force: true })
+    } catch {
+      /* nothing there */
+    }
+  }
   if (entry.onDone && TERMINAL.includes(entry.state.status)) {
     const cb = entry.onDone
     entry.onDone = null
@@ -635,6 +650,8 @@ function makePool(limit) {
 const convertPool = makePool(2)
 const gpuPool = makePool(1)
 const whisperPool = makePool(1)
+// yt-dlp downloads: a big batch, "Retry failed" or several subscriptions must not start 1000 at once.
+const downloadPool = makePool(3)
 
 /** Runs `work` once the pool has a free slot. The slot is released by updateTask() when the
  *  task reaches a terminal state, or immediately if the task was canceled while waiting. */
@@ -854,11 +871,17 @@ async function probeInfo(req) {
       return
     }
     let out = ''
+    // A dead proxy or a stuck cookie-keyring prompt must not leave a yt-dlp running per link edit.
+    const timer = setTimeout(() => child.kill(), 60_000)
     child.stdout.on('data', (c) => {
       out += c
     })
-    child.on('error', () => resolve(fallback))
+    child.on('error', () => {
+      clearTimeout(timer)
+      resolve(fallback)
+    })
     child.on('close', () => {
+      clearTimeout(timer)
       try {
         const info = JSON.parse(out.trim().split('\n')[0])
         resolve({
@@ -989,7 +1012,7 @@ handleStart('tasks:start', async (_e, req) => {
   const destDir = req.destination || defaultDownloadDir()
   fs.mkdirSync(destDir, { recursive: true })
   // A download plus its separate audio-track files reads as one group in the Library.
-  if (req.audioTracks?.length && !req.audioLang && !req.batch) {
+  if (req.audioTracks?.length && !req.audioLang && (!req.batch || String(req.batch.id).startsWith('tracks-'))) {
     req.batch = { id: `tracks-${id}`, label: 'Download + audio tracks', size: 1 + req.audioTracks.length }
   }
 
@@ -1002,9 +1025,9 @@ handleStart('tasks:start', async (_e, req) => {
       label: req.url,
       format: req.format,
       quality: qualityLabel(req),
-      sizeBytes: req.approxSizeBytes ?? null,
+      sizeBytes: Number.isFinite(req.approxSizeBytes) && req.approxSizeBytes >= 0 ? req.approxSizeBytes : null,
       sizeIsEstimate: true,
-      thumbnailUrl: req.thumbnailUrl ?? null,
+      thumbnailUrl: typeof req.thumbnailUrl === 'string' && parseHttpUrl(req.thumbnailUrl) ? req.thumbnailUrl : null,
       experimentalMatch: null,
     },
     child: null,
@@ -1036,7 +1059,8 @@ handleStart('tasks:start', async (_e, req) => {
 
   // Extra dubbed/language audio tracks become their own small audio tasks, so each shows up
   // (and can be re-run) separately in the Library.
-  if (req.audioTracks?.length && !req.audioLang) {
+  // (Not for whole lists: each child would download the entire list again.)
+  if (req.audioTracks?.length && !req.audioLang && !wholePlaylist) {
     const startOne = startHandlers.get('tasks:start')
     for (const lang of req.audioTracks) {
       startOne(null, {
@@ -1103,6 +1127,21 @@ handleStart('tasks:start', async (_e, req) => {
         '--',
         effectiveUrl,
       ]
+
+  // Wait for a free download slot (the task shows as 'queued'); released when it finishes.
+  await downloadPool.acquire()
+  const slotEntry = tasks.get(id)
+  if (!slotEntry || isCanceled(id)) {
+    downloadPool.release()
+    return id
+  }
+  let slotReleased = false
+  slotEntry.releaseSlot = () => {
+    if (!slotReleased) {
+      slotReleased = true
+      downloadPool.release()
+    }
+  }
 
   let child
   try {
@@ -1500,11 +1539,19 @@ const FORMATS = {
 
 /** Never overwrites an existing file — appends " (1)", " (2)", etc. like a browser download. */
 function uniqueOutputPath(destDir, baseName, ext) {
-  let candidate = path.join(destDir, `${baseName}.${ext}`)
-  for (let n = 1; fs.existsSync(candidate); n++) {
-    candidate = path.join(destDir, `${baseName} (${n}).${ext}`)
+  // The path is chosen when a job is *queued*, long before it writes anything, so merely checking
+  // existsSync lets two queued jobs with the same name (CD1/01.flac, CD2/01.flac) pick the same
+  // output and overwrite each other. Reserve it with an empty placeholder instead (exclusive create);
+  // updateTask() removes the placeholder again if the job fails or is canceled.
+  for (let n = 0; ; n++) {
+    const candidate = path.join(destDir, n === 0 ? `${baseName}.${ext}` : `${baseName} (${n}).${ext}`)
+    try {
+      fs.closeSync(fs.openSync(candidate, 'wx'))
+      return candidate
+    } catch (err) {
+      if (err.code !== 'EEXIST') throw err
+    }
   }
-  return candidate
 }
 
 /** Source duration in seconds via ffprobe, or null if it can't be determined —
@@ -2357,7 +2404,7 @@ handleStart('tasks:startSubtitles', (_e, req) => {
       ['-c', script, req.inputPath, outputPath, req.model, req.language, req.format],
       entry,
       {
-        cwd: os.tmpdir(), // `python -c` imports from the cwd; keep it out of user folders
+        cwd: pythonCwd(), // `python -c` imports from the cwd; keep it out of user/shared folders
         onStdout: (text) => {
           lineBuf += text
           const lines = lineBuf.split(/\r?\n/)
@@ -2475,6 +2522,24 @@ handleStart('tasks:startAudioAi', (_e, req) => {
   return id
 })
 
+/** Codec name of the first video stream, or null if there isn't one (audio-only .webm/.ts, cover art aside). */
+function probeVideoCodec(inputPath) {
+  return new Promise((resolve) => {
+    let child
+    try {
+      child = spawn('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', inputPath])
+    } catch {
+      resolve(null)
+      return
+    }
+    let out = ''
+    child.stdout.on('data', (c) => (out += c))
+    child.on('error', () => resolve(null))
+    child.on('close', () => resolve(out.trim().split('\n')[0] || null))
+  })
+}
+const MP4_SAFE_VIDEO = new Set(['h264', 'hevc', 'av1', 'vp9', 'mpeg4', 'mpeg2video', 'mjpeg'])
+
 async function audioAiJob(id, req, mode, fmt, keepVideo, outputPath) {
   const entry = tasks.get(id)
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opnduck-audioai-'))
@@ -2494,6 +2559,23 @@ async function audioAiJob(id, req, mode, fmt, keepVideo, outputPath) {
   }
 
   updateTask(id, { status: 'running', progress: 0.02 })
+
+  // "Keep the video" is decided up front, not after the whole (slow) separation has run: the file
+  // may have no real video stream, or a codec MP4 can't hold (then it's re-encoded instead of copied).
+  let reencodeVideo = false
+  if (keepVideo) {
+    const codec = await probeVideoCodec(req.inputPath)
+    if (!codec) {
+      keepVideo = false
+      const dir = path.dirname(outputPath)
+      fs.rmSync(outputPath, { force: true }) // release the .mp4 name reserved when the job was queued
+      outputPath = uniqueOutputPath(dir, path.basename(outputPath, '.mp4'), fmt.ext)
+      entry.finalPath = outputPath
+      updateTask(id, { format: req.format })
+    } else if (!MP4_SAFE_VIDEO.has(codec)) {
+      reencodeVideo = true
+    }
+  }
   try {
     // Demucs wants stereo 44.1 kHz; ffmpeg normalises whatever the source is (and drops any video).
     await spawnTracked('ffmpeg', ['-y', '-i', req.inputPath, '-map', '0:a:0', '-vn', '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', inWav], entry)
@@ -2513,7 +2595,7 @@ async function audioAiJob(id, req, mode, fmt, keepVideo, outputPath) {
     }
     try {
       await spawnTracked(demucsPython(), ['-c', script, inWav, stemsDir], entry, {
-        cwd: os.tmpdir(), // `python -c` imports from the cwd; keep it away from user folders
+        cwd: pythonCwd(), // `python -c` imports from the cwd; keep it away from user/shared folders
         onStderr: (text) => {
           // Demucs' tqdm bar: "  45%|████▌     | ...". Separation is ~85% of the work.
           const m = [...text.matchAll(/(\d{1,3})%\|/g)].pop()
@@ -2531,7 +2613,7 @@ async function audioAiJob(id, req, mode, fmt, keepVideo, outputPath) {
 
   const filter = mode.filter ? ['-af', mode.filter] : []
   const finalArgs = keepVideo
-    ? ['-y', '-i', req.inputPath, '-i', source, ...filter, '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-shortest', outputPath]
+    ? ['-y', '-i', req.inputPath, '-i', source, ...filter, '-map', '0:v:0', '-map', '1:a:0', ...(reencodeVideo ? ['-c:v', 'libx264', '-crf', '18', '-pix_fmt', 'yuv420p'] : ['-c:v', 'copy']), '-c:a', 'aac', '-b:a', '256k', '-shortest', outputPath]
     : ['-y', '-i', source, ...filter, ...fmt.args, outputPath]
   try {
     await spawnTracked('ffmpeg', finalArgs, entry)
