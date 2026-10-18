@@ -1,0 +1,58 @@
+{
+  "project": "opnduck-desktop",
+  "version": "0.4.0-Beta",
+  "manifest_version_field": "0.4.0-beta",
+  "release_type": "beta (pre-release)",
+  "tag": "v0.4.0-Beta (not created; local tag removed)",
+  "branch": "main",
+  "commit": "44b7cae",
+  "base_tag": "v0.3.2-Alpha",
+  "mode": "automated",
+  "stages": {
+    "discovery": "complete",
+    "version": "complete",
+    "changelog": "complete",
+    "docs": "complete",
+    "build": "complete",
+    "package": "complete",
+    "checksum": "complete",
+    "scan": "complete",
+    "validation": "complete",
+    "publication": "published: https://github.com/Sight8218/OPNduck/releases/tag/v0.4.0-Beta"
+  },
+  "platforms": [
+    "linux",
+    "windows"
+  ],
+  "architectures": [
+    "x64"
+  ],
+  "checksums": {
+    "OPNduck-0.4.0-beta.AppImage": "8777d1a84614df6d5387e465a74950866006d26ff855957e496771f60bc91ac8",
+    "OPNduck.0.4.0-beta.exe": "828361c6230849600f04d96eb036c942c267c4956d771a1d1e86fe0a4e3de08b",
+    "opnduck-desktop-0.4.0-beta.pacman": "a09b47334ee452f38bbb3cc2d672b1ac358ea09a6400c5d9edbcbc6fc62786aa",
+    "OPNduck.Setup.0.4.0-beta.exe": "478701d559872d2ddc351330a4e4f3b2abca02c167f310b112a9807fc7c70974"
+  },
+  "tests": {
+    "lint": "0 errors (warnings only)",
+    "typecheck": "clean",
+    "build": "ok",
+    "smoke_test": "packaged linux-unpacked rendered UI: 15 .glass, file://.../app.asar/dist/index.html, footer v0.4.0-beta, Beta banner",
+    "asar": "electron/{main,preload,settings,subscriptions,login,omarchy}.cjs + demucs_separate.py + whisper_subtitles.py present"
+  },
+  "secret_scan": {
+    "gitleaks": "no leaks (146 commits, and working tree)",
+    "trufflehog": "0 verified/unverified since 30afb37"
+  },
+  "packaging": {
+    "appimage": "built",
+    "pacman": "built",
+    "nsis": "built",
+    "portable": "built",
+    "aur": "not published (deferred)",
+    "signing": "not implemented (deferred)"
+  },
+  "publication": {
+    "github_release": "published: https://github.com/Sight8218/OPNduck/releases/tag/v0.4.0-Beta"
+  }
+}

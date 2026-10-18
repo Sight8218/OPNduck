@@ -1,0 +1,12 @@
+{
+  "note": "DRAFT ONLY - not sent.",
+  "project": "OPNduck",
+  "version": "v0.4.0-Beta",
+  "content": "**OPNduck v0.4.0-Beta** 🦆 - first Beta!\n\n**New**\n• Downloader: 8K/1440p, subtitles, dubbed audio tracks, whole channels/lists, sign-in for private content, Smart mode\n• Subscriptions: auto-download new uploads while OPNduck is open\n• AI Audio (Demucs): remove/extract vocals, isolate voice (big install, ~5.5 GB with CUDA)\n• Library: search, filters, sorting, batch groups, JSON export/import\n• ~2x faster UI\n\nBeta: expect bugs. Windows installers untested on real Windows. Tauri still postponed.",
+  "embeds": [
+    {
+      "title": "OPNduck v0.4.0-Beta",
+      "url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.4.0-Beta"
+    }
+  ]
+}
