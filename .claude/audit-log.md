@@ -70,3 +70,6 @@ generic utility/UI, not feature-specific.
 
 Committed as b2212f0 "OPNduck-V0.2.0-Alpha checkpoint: real yt-dlp
 downloading + UI fixes" (23 files changed, all of the above).
+
+## 2026-10-18 beta audit (7cb3887..fe5d872)
+Auto-fixed: 9556d88 (libraryView quadratic grouping, stale comment). Behavior-changing hardening: 2fa576b (openFolder dir-only, login will-redirect + once-only will-download, subscriptions add race + seen-file recreate, encodeURIComponent list id, group broadcast). Pending: 13 RISKY items in .claude/audit-scratch/20261018-beta-audit.md.
