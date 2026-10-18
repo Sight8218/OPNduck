@@ -24,6 +24,12 @@ history; entries are curated for readability.
   Liked lists with a "first N" choice; a proxy setting (Settings → Downloads); and **Smart mode**, which
   remembers your choices for every new download (card and command palette).
 
+- **Sign-in for private content** (Settings → Downloads): use your browser's login (Firefox, Chromium,
+  Chrome, Edge, Brave, Opera, Vivaldi, with an optional profile), a `cookies.txt` file, or OPNduck's own
+  sign-in window (separate session; only cookies are saved, in a private file, deleted by Sign out).
+  Unlocks Watch Later, Liked videos, private playlists and age-restricted media. Includes a Test sign-in
+  button.
+
 ### Changed
 
 - Command palette default shortcut is now **Ctrl+K** (existing rebinds are untouched).

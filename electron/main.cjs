@@ -25,6 +25,7 @@ const crypto = require('node:crypto')
 const { pathToFileURL } = require('node:url')
 const { readOmarchyTheme, watchOmarchyTheme } = require('./omarchy.cjs')
 const { getSettings, setSettings, ytdlpBaseArgs, hasCookies } = require('./settings.cjs')
+const { openLoginWindow, clearLogin, loginStatus, loginContents } = require('./login.cjs')
 
 const DEV_SERVER_URL = process.env.OPNDUCK_DEV_URL || 'http://localhost:1420'
 
@@ -147,6 +148,28 @@ function ytDlpInstallHint() {
 // Shared yt-dlp args (UTF-8 output, proxy, login cookies) come from ytdlpBaseArgs() in settings.cjs.
 ipcMain.handle('settings:get', () => getSettings())
 ipcMain.handle('settings:set', (_e, patch) => setSettings(patch))
+
+// Built-in sign-in window (see login.cjs): the user logs in themselves, OPNduck keeps only cookies.
+ipcMain.handle('login:open', async (e, url) => {
+  const result = await openLoginWindow(BrowserWindow.fromWebContents(e.sender), url)
+  // Signing in is a clear signal the user wants those cookies used from now on.
+  if (result.ok && result.cookies > 0) setSettings({ cookies: { mode: 'login' } })
+  return result
+})
+ipcMain.handle('login:status', () => loginStatus())
+ipcMain.handle('login:clear', async () => {
+  await clearLogin()
+  if (getSettings().cookies.mode === 'login') setSettings({ cookies: { mode: 'none' } })
+})
+// Reads the signed-in-only Watch Later list through the current cookie source: if that works,
+// private videos, Liked and age-restricted media will too.
+ipcMain.handle('login:test', async () => {
+  const list = await probePlaylist('https://www.youtube.com/playlist?list=WL')
+  if (!list) {
+    return { ok: false, message: "Couldn't read Watch Later — you're not signed in, or the cookies expired." }
+  }
+  return { ok: true, message: `Signed in — Watch Later is readable (${list.count} videos).` }
+})
 
 ipcMain.handle('system:checkYtDlp', () => {
   return new Promise((resolve) => {
@@ -2100,6 +2123,7 @@ app.on('web-contents-created', (_e, contents) => {
   // The window should only ever show the app itself — block any navigation away from it
   // (a stray link, a dropped file) instead of replacing the whole UI.
   contents.on('will-navigate', (event, url) => {
+    if (loginContents.has(contents)) return // the sign-in window has its own rules (login.cjs)
     try {
       const target = new URL(url)
       const current = new URL(contents.getURL())

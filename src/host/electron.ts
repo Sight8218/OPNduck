@@ -55,6 +55,12 @@ interface ElectronBridge {
     get(): Promise<AppSettings>
     set(patch: { proxy?: string; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
+  login: {
+    open(url?: string): Promise<{ ok: boolean; cookies: number; error?: string }>
+    status(): Promise<{ signedIn: boolean; cookies: number; updatedAt: number | null }>
+    clear(): Promise<void>
+    test(): Promise<{ ok: boolean; message: string }>
+  }
   updates: {
     check(): Promise<UpdateCheck>
     openRelease(url: string): Promise<void>
@@ -129,6 +135,12 @@ export function detectElectronHost(): Host | null {
     settings: {
       get: () => bridge.settings.get(),
       set: (patch) => bridge.settings.set(patch),
+    },
+    login: {
+      open: (url) => bridge.login.open(url),
+      status: () => bridge.login.status(),
+      clear: () => bridge.login.clear(),
+      test: () => bridge.login.test(),
     },
     updates: {
       check: () => bridge.updates.check(),

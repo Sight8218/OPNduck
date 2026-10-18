@@ -114,8 +114,10 @@ export interface AppSettings {
   /** '' = no proxy; otherwise an http(s)/socks4/socks5 URL used for every yt-dlp call. */
   proxy: string
   cookies: {
-    mode: 'none' | 'browser' | 'file'
+    mode: 'none' | 'browser' | 'file' | 'login'
     browser: string
+    /** Optional browser profile name or absolute folder. */
+    profile: string
     file: string
   }
 }
@@ -276,6 +278,16 @@ export interface Host {
   settings?: {
     get(): Promise<AppSettings>
     set(patch: { proxy?: string; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+  }
+  /** The built-in sign-in window and cookie test. Desktop shell only. */
+  login?: {
+    /** Opens the sign-in window; resolves when the user closes it, with how many cookies were saved. */
+    open(url?: string): Promise<{ ok: boolean; cookies: number; error?: string }>
+    status(): Promise<{ signedIn: boolean; cookies: number; updatedAt: number | null }>
+    /** Signs out: forgets the window's session and deletes the saved cookie file. */
+    clear(): Promise<void>
+    /** Tries to read the signed-in-only Watch Later list with the current cookie source. */
+    test(): Promise<{ ok: boolean; message: string }>
   }
   omarchy?: {
     /** Current Omarchy theme, or null if Omarchy isn't installed/detected. */

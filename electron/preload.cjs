@@ -42,6 +42,12 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     get: () => ipcRenderer.invoke('settings:get'),
     set: (patch) => ipcRenderer.invoke('settings:set', patch),
   },
+  login: {
+    open: (url) => ipcRenderer.invoke('login:open', url),
+    status: () => ipcRenderer.invoke('login:status'),
+    clear: () => ipcRenderer.invoke('login:clear'),
+    test: () => ipcRenderer.invoke('login:test'),
+  },
   updates: {
     check: () => ipcRenderer.invoke('updates:check'),
     openRelease: (url) => ipcRenderer.invoke('updates:openRelease', url),
