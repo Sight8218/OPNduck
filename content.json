@@ -25,7 +25,11 @@
       "Glass / Monochrome UI modes",
       "Video/audio downloader, incl. YouTube playlists (yt-dlp)",
       "Format converter: video, audio, image, documents",
-      "AI image/video upscaling and frame interpolation (needs Real-ESRGAN / RIFE installed)"
+      "AI image/video upscaling and frame interpolation (needs Real-ESRGAN / RIFE installed)",
+      "Subtitles generator (faster-whisper) and AI Audio: remove vocals, isolate a voice (Demucs)",
+      "Subscriptions: auto-download new uploads from channels and playlists",
+      "Sign-in for private videos, 8K and subtitles, channel/search/Watch Later downloads",
+      "Library: search, filters, groups, export and import"
     ],
     "planned": [
       { "name": "Migrate from Electron to Tauri", "postponed": true, "note": "Postponed: the Linux webview used by Tauri (WebKitGTK) stutters and can crash on NVIDIA + Wayland, so OPNduck stays on Electron until that is fixed upstream." },
@@ -44,11 +48,11 @@
     }
   ],
   "downloads": {
-    "version": "v0.3.2-Alpha",
-    "releaseUrl": "https://github.com/Sight8218/OPNduck/releases/tag/v0.3.2-Alpha",
+    "version": "v0.4.0-Beta",
+    "releaseUrl": "https://github.com/Sight8218/OPNduck/releases/tag/v0.4.0-Beta",
     "links": [
-      { "platform": "Windows", "url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.3.2-Alpha" },
-      { "platform": "Linux", "url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.3.2-Alpha" }
+      { "platform": "Windows", "url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.4.0-Beta" },
+      { "platform": "Linux", "url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.4.0-Beta" }
     ]
   }
 }
