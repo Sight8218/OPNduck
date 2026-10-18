@@ -121,6 +121,9 @@ function createSubscriptionManager(deps) {
     const backfill = Math.min(MAX_BACKFILL, Math.max(0, Number.isInteger(input.backfill) ? input.backfill : 0))
     const found = await listEntries(input.url, Math.max(ENTRIES_PER_CHECK, backfill))
     if (!found || !found.entries.length) throw new Error("Couldn't read that list — check the link (private lists need a sign-in).")
+    // The lookup takes seconds: a second add of the same link (or a flood of them) can have passed the checks above meanwhile.
+    if (subs.length >= MAX_SUBSCRIPTIONS) throw new Error(`You can have at most ${MAX_SUBSCRIPTIONS} subscriptions.`)
+    if (subs.some((s) => s.url === input.url)) throw new Error('You are already subscribed to that.')
     const sub = {
       id: crypto.randomUUID(),
       url: input.url,
@@ -193,7 +196,8 @@ function createSubscriptionManager(deps) {
         started++
         whenTaskDone(taskId, (state) => {
           inflight.delete(key)
-          if (state.status === 'done') markSeen(sub.id, [entry.id]) // failures stay unseen → retried next check
+          // A subscription removed mid-download must not get its seen-list file recreated.
+          if (state.status === 'done' && subs.some((s) => s.id === sub.id)) markSeen(sub.id, [entry.id]) // failures stay unseen → retried next check
         })
       } catch {
         /* a request that fails validation is retried next check */

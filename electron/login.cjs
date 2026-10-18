@@ -80,6 +80,7 @@ async function exportCookies() {
 const loginContents = new WeakSet()
 
 let openWindow = null
+const downloadsBlocked = new WeakSet()
 
 /**
  * Opens the sign-in window and resolves when the user closes it, after exporting the cookies.
@@ -125,7 +126,16 @@ function openLoginWindow(parent, url) {
     if (isAllowedLoginUrl(popup)) win.loadURL(popup)
     return { action: 'deny' }
   })
-  win.webContents.session.on('will-download', (event) => event.preventDefault())
+  // Redirects don't fire 'will-navigate'; without this a site could bounce the window to a
+  // non-web scheme (intent:, custom app protocols) that the check above is meant to stop.
+  win.webContents.on('will-redirect', (event, redirectUrl) => {
+    if (!isAllowedLoginUrl(redirectUrl)) event.preventDefault()
+  })
+  if (!downloadsBlocked.has(ses)) {
+    // Registered once per session, not once per window: the session outlives every window.
+    downloadsBlocked.add(ses)
+    ses.on('will-download', (event) => event.preventDefault())
+  }
 
   win.loadURL(target).catch(() => {
     /* a failed load shows Chromium's error page inside the window; nothing to do */

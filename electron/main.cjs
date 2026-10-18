@@ -584,6 +584,7 @@ function handleStart(channel, fn) {
       // Jobs started together (a batch of files, or a download plus its audio tracks) share a
       // group, which the Library shows as one collapsible block.
       entry.state.group = sanitizeBatch(req?.batch)
+      broadcastTasks() // a task waiting in a queue wouldn't otherwise show its group until it starts
     }
     return id
   }
@@ -1297,7 +1298,7 @@ ipcMain.handle('subs:add', async (_e, input) => {
   if (input.destination) assertAbsolutePath(input.destination, 'destination')
   // A video link that merely carries a list → subscribe to the list itself.
   const link = classifyLink(url)
-  const listLink = link.kind === 'mixed' ? `https://www.youtube.com/playlist?list=${new URL(url).searchParams.get('list')}` : url
+  const listLink = link.kind === 'mixed' ? `https://www.youtube.com/playlist?list=${encodeURIComponent(new URL(url).searchParams.get('list') ?? '')}` : url
   return needSubs().add({
     url: listLink,
     format: probeReq.format,
@@ -1328,8 +1329,17 @@ ipcMain.handle('tasks:rerun', (_e, id) => {
 ipcMain.handle('tasks:openFolder', (_e, id) => {
   const entry = tasks.get(id)
   if (!entry) return
-  if (entry.finalPath && fs.existsSync(entry.finalPath)) shell.showItemInFolder(entry.finalPath)
-  else shell.openPath(entry.req?.destination || defaultDownloadDir())
+  if (entry.finalPath && fs.existsSync(entry.finalPath)) return shell.showItemInFolder(entry.finalPath)
+  // req comes from an imported file for some entries, so it may hold anything: openPath() would
+  // happily launch a file (script, .desktop, ...) with its default app. Only ever open a folder.
+  const dest = entry.req?.destination
+  let dir = defaultDownloadDir()
+  try {
+    if (typeof dest === 'string' && path.isAbsolute(dest) && fs.statSync(dest).isDirectory()) dir = dest
+  } catch {
+    /* missing or unreadable: fall back to the default folder */
+  }
+  shell.openPath(dir)
 })
 // Removes specific finished tasks from the history (running ones are never touched).
 ipcMain.handle('tasks:remove', (_e, ids) => {
