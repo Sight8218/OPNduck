@@ -304,6 +304,25 @@ function fasterWhisperInstallHint() {
   return 'yay -S python-faster-whisper   (AUR; or pip install faster-whisper in a venv and set OPNDUCK_PYTHON to its python)'
 }
 
+function demucsInstallHint() {
+  if (process.platform === 'win32') return 'python -m venv %USERPROFILE%\\opnduck-venv  &&  %USERPROFILE%\\opnduck-venv\\Scripts\\pip install torch demucs soundfile   (then set OPNDUCK_PYTHON to that python.exe)'
+  return 'python -m venv ~/.opnduck-venv && ~/.opnduck-venv/bin/pip install torch demucs soundfile   (then launch OPNduck with OPNDUCK_PYTHON=~/.opnduck-venv/bin/python)'
+}
+
+ipcMain.handle('system:checkDemucs', () => {
+  return new Promise((resolve) => {
+    let child
+    try {
+      child = spawn(pythonCommand(), ['-c', 'import torch, demucs, soundfile'], { cwd: os.tmpdir() })
+    } catch {
+      resolve({ available: false, installHint: demucsInstallHint() })
+      return
+    }
+    child.on('error', () => resolve({ available: false, installHint: demucsInstallHint() }))
+    child.on('close', (code) => resolve({ available: code === 0, installHint: demucsInstallHint() }))
+  })
+})
+
 ipcMain.handle('system:checkFasterWhisper', () => {
   return new Promise((resolve) => {
     let child
@@ -1323,7 +1342,7 @@ ipcMain.handle('tasks:clearFinished', () => {
  * Export writes the finished tasks (with the requests needed to run them again) as JSON. Import
  * reads such a file back: every field is re-validated here — a hand-edited or hostile file must
  * never smuggle in a channel, path or value the app wouldn't accept from its own UI. */
-const TASK_KINDS = ['download', 'convert', 'upscale', 'interpolate', 'subtitles']
+const TASK_KINDS = ['download', 'convert', 'upscale', 'interpolate', 'subtitles', 'audio-ai']
 
 function sanitizeImported(rows) {
   if (!Array.isArray(rows)) return []
@@ -2354,6 +2373,163 @@ handleStart('tasks:startSubtitles', (_e, req) => {
   return id
 })
 // --- end: subtitles/whisper-transcription ---
+
+/**
+ * AI audio tools: Demucs splits a track into vocals / everything else, ffmpeg does the rest.
+ *   no-vocals  → the instrumental (karaoke)         vocals → the isolated voice / acapella
+ *   voice      → vocals + cleanup for clear speech  echo   → basic ffmpeg echo/noise reduction
+ * "Remove background music" from speech is the `vocals` mode. The echo mode is deliberately
+ * ffmpeg-only and basic: real dereverberation needs a different model than Demucs.
+ * Pipeline: ffmpeg → 44.1 kHz stereo WAV → Demucs (python, GPU if available) → ffmpeg → output.
+ */
+// @category: audio-ai/demucs-stem-separation
+const AUDIO_AI_MODES = {
+  'no-vocals': { demucs: true, stem: 'no_vocals', suffix: 'instrumental', label: 'Remove vocals' },
+  vocals: { demucs: true, stem: 'vocals', suffix: 'vocals', label: 'Extract vocals' },
+  voice: {
+    demucs: true,
+    stem: 'vocals',
+    suffix: 'voice',
+    label: 'Isolate voice',
+    filter: 'highpass=f=80,afftdn=nf=-28,loudnorm=I=-16:TP=-1.5:LRA=11',
+  },
+  echo: {
+    demucs: false,
+    suffix: 'cleaned',
+    label: 'Reduce echo & noise',
+    filter: 'highpass=f=100,afftdn=nr=18:nf=-35,agate=threshold=0.015:ratio=2:attack=10:release=300',
+  },
+}
+const AUDIO_AI_FORMATS = {
+  MP3: { ext: 'mp3', args: ['-c:a', 'libmp3lame', '-q:a', '0'] },
+  FLAC: { ext: 'flac', args: ['-c:a', 'flac'] },
+  WAV: { ext: 'wav', args: ['-c:a', 'pcm_s16le'] },
+}
+const VIDEO_INPUT_EXT = new Set(['mp4', 'mkv', 'mov', 'webm', 'avi', 'flv', 'm4v', 'wmv', 'ts', 'mpg', 'mpeg', '3gp'])
+const DEMUCS_SCRIPT = path.join(__dirname, 'demucs_separate.py')
+
+handleStart('tasks:startAudioAi', (_e, req) => {
+  assertAbsolutePath(req.inputPath, 'inputPath')
+  if (req.destination != null) assertAbsolutePath(req.destination, 'destination')
+  if (!Object.hasOwn(AUDIO_AI_MODES, req.mode)) throw new Error(`Invalid mode: ${req.mode}`)
+  if (!Object.hasOwn(AUDIO_AI_FORMATS, req.format)) throw new Error(`Invalid format: ${req.format}`)
+  const mode = AUDIO_AI_MODES[req.mode]
+  const fmt = AUDIO_AI_FORMATS[req.format]
+  const isVideo = VIDEO_INPUT_EXT.has(path.extname(req.inputPath).slice(1).toLowerCase())
+  const keepVideo = !!req.keepVideo && isVideo // put the processed audio back on the original picture
+
+  const id = crypto.randomUUID()
+  const destDir = req.destination || defaultDownloadDir()
+  fs.mkdirSync(destDir, { recursive: true })
+  const inputBase = path.basename(req.inputPath, path.extname(req.inputPath))
+  const outputPath = uniqueOutputPath(destDir, `${inputBase} (${mode.suffix})`, keepVideo ? 'mp4' : fmt.ext)
+
+  addTask(id, {
+    state: {
+      id,
+      kind: 'audio-ai',
+      status: 'queued',
+      progress: 0,
+      label: path.basename(req.inputPath),
+      format: keepVideo ? 'MP4' : req.format,
+      quality: mode.label,
+      sizeBytes: null,
+      sizeIsEstimate: false,
+      thumbnailUrl: null,
+      experimentalMatch: null,
+    },
+    child: null,
+    finalPath: outputPath,
+  })
+  broadcastTasks()
+
+  // Demucs competes for the GPU with the upscalers; the ffmpeg-only mode is light.
+  runInPool(mode.demucs ? gpuPool : convertPool, id, () => audioAiJob(id, req, mode, fmt, keepVideo, outputPath)).catch((err) =>
+    updateTask(id, { status: 'error', error: `Audio job failed to start: ${err.message}` }),
+  )
+  return id
+})
+
+async function audioAiJob(id, req, mode, fmt, keepVideo, outputPath) {
+  const entry = tasks.get(id)
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opnduck-audioai-'))
+  const stemsDir = path.join(tempDir, 'stems')
+  fs.mkdirSync(stemsDir)
+  const inWav = path.join(tempDir, 'in.wav')
+  const cleanup = () => {
+    try {
+      fs.rmSync(tempDir, { recursive: true, force: true })
+    } catch {
+      /* best-effort — a leftover temp dir isn't worth failing the task over */
+    }
+  }
+  const fail = (label, err) => {
+    if (!isCanceled(id)) updateTask(id, { status: 'error', error: `${label}: ${err.message}` })
+    cleanup()
+  }
+
+  updateTask(id, { status: 'running', progress: 0.02 })
+  try {
+    // Demucs wants stereo 44.1 kHz; ffmpeg normalises whatever the source is (and drops any video).
+    await spawnTracked('ffmpeg', ['-y', '-i', req.inputPath, '-map', '0:a:0', '-vn', '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', inWav], entry)
+  } catch (err) {
+    return fail('Reading the audio failed', err)
+  }
+  if (isCanceled(id)) return cleanup()
+  updateTask(id, { progress: 0.08 })
+
+  let source = inWav
+  if (mode.demucs) {
+    let script
+    try {
+      script = fs.readFileSync(DEMUCS_SCRIPT, 'utf8') // read here: an external Python can't open a file inside app.asar
+    } catch (err) {
+      return fail('Audio script missing', err)
+    }
+    try {
+      await spawnTracked(pythonCommand(), ['-c', script, inWav, stemsDir], entry, {
+        cwd: os.tmpdir(), // `python -c` imports from the cwd; keep it away from user folders
+        onStderr: (text) => {
+          // Demucs' tqdm bar: "  45%|████▌     | ...". Separation is ~85% of the work.
+          const m = [...text.matchAll(/(\d{1,3})%\|/g)].pop()
+          if (m) updateTask(id, { progress: Math.min(0.92, 0.08 + 0.84 * (Number(m[1]) / 100)) })
+        },
+      })
+    } catch (err) {
+      return fail('Separation failed', err)
+    }
+    if (isCanceled(id)) return cleanup()
+    source = path.join(stemsDir, `${mode.stem}.wav`)
+    if (!fs.existsSync(source)) return fail('Separation failed', new Error('Demucs produced no output'))
+  }
+  updateTask(id, { progress: 0.94 })
+
+  const filter = mode.filter ? ['-af', mode.filter] : []
+  const finalArgs = keepVideo
+    ? ['-y', '-i', req.inputPath, '-i', source, ...filter, '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-shortest', outputPath]
+    : ['-y', '-i', source, ...filter, ...fmt.args, outputPath]
+  try {
+    await spawnTracked('ffmpeg', finalArgs, entry)
+  } catch (err) {
+    return fail('Writing the result failed', err)
+  }
+  cleanup()
+  if (isCanceled(id)) return
+
+  let realSize = null
+  try {
+    realSize = fs.statSync(outputPath).size
+  } catch {
+    /* keep null if the output can't be read */
+  }
+  updateTask(id, {
+    status: 'done',
+    progress: 1,
+    label: path.basename(outputPath),
+    ...(realSize != null ? { sizeBytes: realSize } : {}),
+  })
+}
+// --- end: audio-ai/demucs-stem-separation ---
 
 /* --- External links open in the OS browser, not inside the app window --- */
 app.on('web-contents-created', (_e, contents) => {

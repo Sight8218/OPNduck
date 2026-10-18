@@ -43,6 +43,7 @@ const RUNNING_LABEL: Record<TaskState['kind'], string> = {
   upscale: 'Upscaling',
   interpolate: 'Interpolating',
   subtitles: 'Transcribing',
+  'audio-ai': 'Processing audio',
 }
 
 function statusLabel(task: TaskState): string {
@@ -151,6 +152,7 @@ const KIND_OPTIONS: { value: KindFilter; label: string }[] = [
   { value: 'upscale', label: 'Upscales' },
   { value: 'interpolate', label: 'Interpolation' },
   { value: 'subtitles', label: 'Subtitles' },
+  { value: 'audio-ai', label: 'AI audio' },
 ]
 const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'Any status' },
@@ -313,7 +315,7 @@ export default function Library() {
             Track and manage your downloads and conversions. History is kept between launches.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className={`flex flex-wrap items-center gap-2 ${tab === 'subscriptions' ? 'hidden' : ''}`}>
           {host.library && (
             <>
               <button type="button" className="glass-btn shrink-0 px-3 py-1.5 text-xs" onClick={exportLibrary} disabled={!hasFinished}>

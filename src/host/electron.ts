@@ -20,6 +20,7 @@
 import type {
   ConvertRequest,
   AppSettings,
+  AudioAiRequest,
   ImportedTask,
   Subscription,
   SubscriptionInput,
@@ -54,6 +55,7 @@ interface ElectronBridge {
   checkRealesrgan(): Promise<ToolStatus>
   checkRife(): Promise<ToolStatus>
   checkFasterWhisper(): Promise<ToolStatus>
+  checkDemucs(): Promise<ToolStatus>
   settings: {
     get(): Promise<AppSettings>
     set(patch: { proxy?: string; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
@@ -92,6 +94,7 @@ interface ElectronBridge {
     startVideoUpscale(req: UpscaleRequest): Promise<string>
     startInterpolate(req: InterpolateRequest): Promise<string>
     startSubtitles(req: SubtitlesRequest): Promise<string>
+    startAudioAi(req: AudioAiRequest): Promise<string>
     cancel(taskId: string): void
     rerun(taskId: string): Promise<string | null>
     openFolder(taskId: string): Promise<void>
@@ -149,6 +152,7 @@ export function detectElectronHost(): Host | null {
     checkRealesrgan: () => bridge.checkRealesrgan(),
     checkRife: () => bridge.checkRife(),
     checkFasterWhisper: () => bridge.checkFasterWhisper(),
+    checkDemucs: () => bridge.checkDemucs(),
     settings: {
       get: () => bridge.settings.get(),
       set: (patch) => bridge.settings.set(patch),
@@ -187,6 +191,7 @@ export function detectElectronHost(): Host | null {
       startVideoUpscale: (req) => bridge.tasks.startVideoUpscale(req),
       startInterpolate: (req) => bridge.tasks.startInterpolate(req),
       startSubtitles: (req) => bridge.tasks.startSubtitles(req),
+      startAudioAi: (req) => bridge.tasks.startAudioAi(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
       rerun: (taskId) => bridge.tasks.rerun(taskId),
       openFolder: (taskId) => bridge.tasks.openFolder(taskId),

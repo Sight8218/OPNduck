@@ -1,5 +1,6 @@
 import {
   IconCloudDownload,
+  IconMicrophone2,
   IconMovie,
   IconPhotoUp,
   IconPlayerTrackNext,
@@ -16,6 +17,7 @@ const FEATURE_ICONS: Record<string, Icon> = {
   'video-upscale': IconMovie,
   interpolate: IconPlayerTrackNext,
   subtitles: IconTextCaption,
+  'audio-ai': IconMicrophone2,
 }
 
 export function FeatureIcon({ name, size = 22 }: { name: string; size?: number }) {

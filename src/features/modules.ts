@@ -21,6 +21,7 @@ import { registerFeatures } from './registry'
 import ConverterCard from './converter/ConverterCard'
 import DownloaderCard from './downloader/DownloaderCard'
 import InterpolationCard from './interpolate/InterpolationCard'
+import AudioAiCard from './audio-ai/AudioAiCard'
 import SubtitlesCard from './subtitles/SubtitlesCard'
 import ImageUpscalerCard from './upscaler/ImageUpscalerCard'
 import VideoUpscalerCard from './upscaler/VideoUpscalerCard'
@@ -96,6 +97,18 @@ export function registerCoreFeatures(): void {
       icon: 'subtitles',
       enabled: true,
       render: SubtitlesCard,
+      source: 'core',
+    },
+    {
+      id: 'audio-ai',
+      title: 'AI Audio',
+      tagline: 'Demucs · stem separation',
+      description:
+        'Remove vocals, pull out a voice, strip background music or reduce echo and noise from audio and video files — on your own GPU.',
+      scope: 'desktop-exclusive',
+      icon: 'audio-ai',
+      enabled: true,
+      render: AudioAiCard,
       source: 'core',
     },
   ])

@@ -185,6 +185,24 @@ export interface InterpolateRequest {
 export type WhisperModel = 'tiny' | 'base' | 'small' | 'medium'
 export type SubtitleFormat = 'srt' | 'vtt'
 
+/** no-vocals = instrumental; vocals = isolated voice / background music removed; voice = vocals
+ *  plus speech cleanup; echo = basic ffmpeg echo & noise reduction (no AI model). */
+export type AudioAiMode = 'no-vocals' | 'vocals' | 'voice' | 'echo'
+export type AudioAiFormat = 'MP3' | 'FLAC' | 'WAV'
+
+export interface AudioAiRequest {
+  /** Set by the card when it starts several jobs at once. */
+  batch?: BatchInfo
+  inputPath: string
+  mode: AudioAiMode
+  /** Output audio format (ignored when keepVideo produces an MP4). */
+  format: AudioAiFormat
+  /** For video inputs: put the processed audio back onto the original picture (MP4). */
+  keepVideo?: boolean
+  /** Overrides the Settings default destination for this one job. */
+  destination?: string
+}
+
 export interface SubtitlesRequest {
   /** Set by the card when it starts several jobs at once. */
   batch?: BatchInfo
@@ -197,7 +215,7 @@ export interface SubtitlesRequest {
   destination?: string
 }
 
-export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles'
+export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai'
 export type TaskStatus = 'queued' | 'running' | 'done' | 'error' | 'canceled'
 
 export interface TaskState {
@@ -272,6 +290,7 @@ export interface HostTasks {
   startVideoUpscale(req: UpscaleRequest): Promise<string>
   startInterpolate(req: InterpolateRequest): Promise<string>
   startSubtitles(req: SubtitlesRequest): Promise<string>
+  startAudioAi(req: AudioAiRequest): Promise<string>
   cancel(taskId: string): void
   /** Replays a finished task's original request as a new task. Resolves to the new id (null if it can't be replayed). */
   rerun(taskId: string): Promise<string | null>
@@ -322,6 +341,8 @@ export interface Host {
   checkRife(): Promise<ToolStatus>
   /** faster-whisper is a Python library — checks the user's Python can import it, for Subtitles. */
   checkFasterWhisper(): Promise<ToolStatus>
+  /** Python with torch + demucs + soundfile, for the AI Audio card. */
+  checkDemucs(): Promise<ToolStatus>
   tasks: HostTasks
   /** Update check against GitHub releases. Desktop shell only (notify-only: opens the release page). */
   updates?: {
@@ -491,6 +512,27 @@ const browserTasks: HostTasks = {
     browserListeners.forEach((l) => l(browserTaskList))
     return id
   },
+  startAudioAi: async (req) => {
+    const id = crypto.randomUUID()
+    browserTaskList = [
+      {
+        id,
+        kind: 'audio-ai',
+        status: 'error',
+        progress: 0,
+        label: 'AI audio tools require the desktop app',
+        error: 'Desktop app required',
+        format: req.format,
+        quality: req.mode,
+        sizeBytes: null,
+        sizeIsEstimate: false,
+        thumbnailUrl: null,
+        experimentalMatch: null,
+      },
+    ]
+    browserListeners.forEach((l) => l(browserTaskList))
+    return id
+  },
   startSubtitles: async (req) => {
     const id = crypto.randomUUID()
     browserTaskList = [
@@ -547,6 +589,7 @@ const browserHost: Host = {
   checkRealesrgan: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkRife: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkFasterWhisper: async () => ({ available: false, installHint: 'Desktop app required' }),
+  checkDemucs: async () => ({ available: false, installHint: 'Desktop app required' }),
   tasks: browserTasks,
 }
 

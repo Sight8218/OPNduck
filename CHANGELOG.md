@@ -41,6 +41,12 @@ history; entries are curated for readability.
   while OPNduck is open; only future uploads by default (optionally the latest 3/5/10 too); a failed
   download is retried on the next check; desktop notification when something new starts.
 
+- **AI Audio card** (Demucs): remove vocals (instrumental), extract vocals / remove background music,
+  isolate a voice (vocals + speech cleanup), and a basic ffmpeg echo & noise reduction mode. Works on
+  audio or video files (optionally putting the processed audio back on the video), outputs MP3/FLAC/WAV.
+  Needs Python with `torch`, `demucs` and `soundfile` (set `OPNDUCK_PYTHON` to a venv's python); the card
+  shows the install command when it's missing.
+
 ### Changed
 
 - Command palette default shortcut is now **Ctrl+K** (existing rebinds are untouched).
