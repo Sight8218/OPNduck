@@ -74,6 +74,7 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
   const [playlistMode, setPlaylistMode] = useState<'single' | 'all'>('single')
   const [previewing, setPreviewing] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
+  const [subNotice, setSubNotice] = useState<{ ok: boolean; text: string } | null>(null)
   const [ytDlp, setYtDlp] = useState<{ available: boolean; installHint: string } | null>(null)
 
   useEffect(() => {
@@ -168,6 +169,23 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
   useEffect(() => {
     setAudioTracks((prev) => prev.filter((l) => audioChoices.some((c) => c.value === l)))
   }, [audioChoices])
+
+  async function subscribe() {
+    setSubNotice(null)
+    try {
+      const sub = await host.subscriptions!.add({
+        url: url.trim(),
+        format,
+        videoQuality: isVideo ? videoQuality : undefined,
+        audioQuality: format === 'MP3' ? audioQuality : undefined,
+        destination: getDownloadDirOverride() ?? undefined,
+        backfill: 0,
+      })
+      setSubNotice({ ok: true, text: `Subscribed to “${sub.title}” — new uploads will download automatically (see Library → Subscriptions).` })
+    } catch (err) {
+      setSubNotice({ ok: false, text: (err instanceof Error ? err.message : String(err)).replace(/^Error invoking remote method '[^']+': (Error: )?/, '') })
+    }
+  }
 
   async function run() {
     setStartError(null)
@@ -323,6 +341,15 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
             value={effectiveLimit}
             onChange={setLimit}
           />
+        </div>
+      )}
+
+      {host.subscriptions && wholePlaylist && !running && !previewing && (playlist?.type === 'channel' || playlist?.type === 'playlist') && (
+        <div className="flex flex-col gap-1">
+          <button type="button" className="glass-btn self-start px-3 py-1.5 text-xs" onClick={subscribe}>
+            Subscribe to new uploads
+          </button>
+          {subNotice && <span className={`text-xs ${subNotice.ok ? 'text-[var(--text-dim)]' : 'text-red-400'}`}>{subNotice.text}</span>}
         </div>
       )}
 

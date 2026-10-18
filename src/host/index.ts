@@ -232,6 +232,32 @@ export interface TaskState {
   group?: BatchInfo | null
 }
 
+export interface SubscriptionInput {
+  /** Channel or playlist link. */
+  url: string
+  format: DownloadFormat
+  videoQuality?: VideoQuality
+  audioQuality?: AudioQuality
+  /** Folder to save into; empty = a folder named after the subscription inside the default download folder. */
+  destination?: string
+  /** Also download this many of the newest videos right now (0 = only future uploads). */
+  backfill?: number
+}
+
+export interface Subscription {
+  id: string
+  url: string
+  title: string
+  format: DownloadFormat
+  videoQuality?: VideoQuality
+  audioQuality?: AudioQuality
+  destination: string
+  enabled: boolean
+  createdAt: number
+  lastCheckedAt: number | null
+  lastResult: { ok: boolean; started: number; error: string | null } | null
+}
+
 /** One entry from a Library export: the finished task plus the request that produced it. */
 export interface ImportedTask {
   channel: string
@@ -309,6 +335,17 @@ export interface Host {
   settings?: {
     get(): Promise<AppSettings>
     set(patch: { proxy?: string; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+  }
+  /** Auto-download new uploads from a channel/playlist (checked while the app is open). Desktop shell only. */
+  subscriptions?: {
+    list(): Promise<Subscription[]>
+    add(input: SubscriptionInput): Promise<Subscription>
+    remove(id: string): Promise<void>
+    setEnabled(id: string, enabled: boolean): Promise<void>
+    /** Checks one subscription (or all) now. Resolves to how many downloads it started. */
+    checkNow(id?: string): Promise<{ started: number; busy: boolean }>
+    /** Fires whenever the list changes (a check ran, one was added/removed). */
+    subscribe(listener: (list: Subscription[]) => void): () => void
   }
   /** Library export/import (JSON). Desktop shell only. */
   library?: {

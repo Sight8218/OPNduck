@@ -42,6 +42,18 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     get: () => ipcRenderer.invoke('settings:get'),
     set: (patch) => ipcRenderer.invoke('settings:set', patch),
   },
+  subscriptions: {
+    list: () => ipcRenderer.invoke('subs:list'),
+    add: (input) => ipcRenderer.invoke('subs:add', input),
+    remove: (id) => ipcRenderer.invoke('subs:remove', id),
+    setEnabled: (id, enabled) => ipcRenderer.invoke('subs:setEnabled', id, enabled),
+    checkNow: (id) => ipcRenderer.invoke('subs:checkNow', id),
+    onChange: (listener) => {
+      const handler = (_e, list) => listener(list)
+      ipcRenderer.on('subs:changed', handler)
+      return () => ipcRenderer.removeListener('subs:changed', handler)
+    },
+  },
   library: {
     exportHistory: () => ipcRenderer.invoke('library:export'),
     importHistory: () => ipcRenderer.invoke('library:import'),

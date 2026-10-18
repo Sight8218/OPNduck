@@ -16,7 +16,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, Notification } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const os = require('node:os')
@@ -26,6 +26,7 @@ const { pathToFileURL } = require('node:url')
 const { readOmarchyTheme, watchOmarchyTheme } = require('./omarchy.cjs')
 const { getSettings, setSettings, ytdlpBaseArgs, hasCookies } = require('./settings.cjs')
 const { openLoginWindow, clearLogin, loginStatus, loginContents } = require('./login.cjs')
+const { createSubscriptionManager } = require('./subscriptions.cjs')
 
 const DEV_SERVER_URL = process.env.OPNDUCK_DEV_URL || 'http://localhost:1420'
 
@@ -566,6 +567,11 @@ function updateTask(id, patch) {
   if (TERMINAL.includes(entry.state.status)) scheduleHistorySave()
   // A finished conversion frees its concurrency slot for the next queued one.
   if (entry.releaseSlot && TERMINAL.includes(entry.state.status)) entry.releaseSlot()
+  if (entry.onDone && TERMINAL.includes(entry.state.status)) {
+    const cb = entry.onDone
+    entry.onDone = null
+    cb(entry.state)
+  }
   broadcastTasks()
 }
 
@@ -1174,6 +1180,102 @@ handleStart('tasks:start', async (_e, req) => {
 
   return id
 })
+
+/** Newest entries of a list (flat, nothing downloaded): title + `{ id, url }` per video. */
+function probeEntries(rawUrl, limit) {
+  const link = classifyLink(rawUrl)
+  const url = link.kind === 'only' ? listUrl(link, limit) : rawUrl
+  return new Promise((resolve) => {
+    let child
+    try {
+      child = spawn('yt-dlp', [...ytdlpBaseArgs(), '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', String(limit), '--', url])
+    } catch {
+      resolve(null)
+      return
+    }
+    let out = ''
+    const timer = setTimeout(() => child.kill(), 60_000)
+    child.stdout.on('data', (c) => {
+      out += c
+    })
+    child.on('error', () => {
+      clearTimeout(timer)
+      resolve(null)
+    })
+    child.on('close', () => {
+      clearTimeout(timer)
+      try {
+        const info = JSON.parse(out)
+        // A single video is not a list you can subscribe to.
+        if (info._type !== 'playlist' || !Array.isArray(info.entries)) return resolve(null)
+        const entries = info.entries
+          .filter((e) => e && typeof e.id === 'string')
+          .map((e) => ({
+            id: e.id,
+            url: parseHttpUrl(e.url) ? e.url : parseHttpUrl(e.webpage_url) ? e.webpage_url : `https://www.youtube.com/watch?v=${e.id}`,
+          }))
+        resolve({ title: info.title ?? 'Subscription', entries })
+      } catch {
+        resolve(null)
+      }
+    })
+  })
+}
+
+// Subscriptions (auto-download new uploads) — see subscriptions.cjs. Created once the app is ready
+// because it needs userData; IPC before that point is rejected.
+let subscriptions = null
+function startSubscriptions() {
+  subscriptions = createSubscriptionManager({
+    file: path.join(app.getPath('userData'), 'subscriptions.json'),
+    seenDir: path.join(app.getPath('userData'), 'subscriptions'),
+    listEntries: probeEntries,
+    startDownload: (req) => startHandlers.get('tasks:start')(null, req),
+    whenTaskDone: (taskId, cb) => {
+      const entry = tasks.get(taskId)
+      if (!entry) return cb({ status: 'error' })
+      if (TERMINAL.includes(entry.state.status)) return cb(entry.state)
+      entry.onDone = cb
+    },
+    notify: (title, body) => {
+      if (Notification.isSupported()) new Notification({ title, body }).show()
+    },
+    onChange: (list) => {
+      for (const win of BrowserWindow.getAllWindows()) win.webContents.send('subs:changed', list)
+    },
+    defaultDir: defaultDownloadDir,
+  })
+  subscriptions.start()
+}
+const needSubs = () => {
+  if (!subscriptions) throw new Error('Subscriptions are still starting up — try again in a moment.')
+  return subscriptions
+}
+ipcMain.handle('subs:list', () => (subscriptions ? subscriptions.list() : []))
+ipcMain.handle('subs:add', async (_e, input) => {
+  if (!input || typeof input !== 'object') throw new Error('Invalid subscription')
+  const url = String(input.url ?? '').trim()
+  if (!parseHttpUrl(url)) throw new Error('Subscriptions need an http(s) link to a channel or playlist.')
+  // Validate format/quality exactly like a download request would be.
+  const probeReq = { url, format: input.format, videoQuality: input.videoQuality, audioQuality: input.audioQuality }
+  validateDownloadRequest(probeReq)
+  if (input.audioQuality != null && !/^(best|\d{1,3}k?)$/i.test(String(input.audioQuality))) throw new Error('Invalid audio quality')
+  if (input.destination) assertAbsolutePath(input.destination, 'destination')
+  // A video link that merely carries a list → subscribe to the list itself.
+  const link = classifyLink(url)
+  const listLink = link.kind === 'mixed' ? `https://www.youtube.com/playlist?list=${new URL(url).searchParams.get('list')}` : url
+  return needSubs().add({
+    url: listLink,
+    format: probeReq.format,
+    videoQuality: probeReq.videoQuality,
+    audioQuality: probeReq.audioQuality,
+    destination: input.destination || '',
+    backfill: input.backfill,
+  })
+})
+ipcMain.handle('subs:remove', (_e, id) => needSubs().remove(String(id)))
+ipcMain.handle('subs:setEnabled', (_e, id, enabled) => needSubs().setEnabled(String(id), !!enabled))
+ipcMain.handle('subs:checkNow', (_e, id) => needSubs().checkNow(id ? String(id) : undefined))
 
 ipcMain.on('tasks:cancel', (_e, id) => {
   const entry = tasks.get(id)
@@ -2276,11 +2378,14 @@ app.on('web-contents-created', (_e, contents) => {
 
 app.whenReady().then(() => {
   loadHistory()
+  startSubscriptions()
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
+
+app.on('before-quit', () => subscriptions?.stop())
 
 // Don't orphan ffmpeg/soffice/python on exit, and don't lose a result that finished inside
 // the 400ms history-save debounce.

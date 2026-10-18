@@ -21,6 +21,8 @@ import type {
   ConvertRequest,
   AppSettings,
   ImportedTask,
+  Subscription,
+  SubscriptionInput,
   UpdateCheck,
   DownloadProbe,
   DownloadRequest,
@@ -55,6 +57,14 @@ interface ElectronBridge {
   settings: {
     get(): Promise<AppSettings>
     set(patch: { proxy?: string; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+  }
+  subscriptions: {
+    list(): Promise<Subscription[]>
+    add(input: SubscriptionInput): Promise<Subscription>
+    remove(id: string): Promise<void>
+    setEnabled(id: string, enabled: boolean): Promise<void>
+    checkNow(id?: string): Promise<{ started: number; busy: boolean }>
+    onChange(listener: (list: Subscription[]) => void): () => void
   }
   library: {
     exportHistory(): Promise<{ ok: boolean; count: number; path?: string }>
@@ -142,6 +152,14 @@ export function detectElectronHost(): Host | null {
     settings: {
       get: () => bridge.settings.get(),
       set: (patch) => bridge.settings.set(patch),
+    },
+    subscriptions: {
+      list: () => bridge.subscriptions.list(),
+      add: (input) => bridge.subscriptions.add(input),
+      remove: (id) => bridge.subscriptions.remove(id),
+      setEnabled: (id, enabled) => bridge.subscriptions.setEnabled(id, enabled),
+      checkNow: (id) => bridge.subscriptions.checkNow(id),
+      subscribe: (listener) => bridge.subscriptions.onChange(listener),
     },
     library: {
       exportHistory: () => bridge.library.exportHistory(),

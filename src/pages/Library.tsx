@@ -20,6 +20,8 @@ import { memo, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { IconChevronDown, IconX } from '@tabler/icons-react'
 import GlassSelect from '../components/GlassSelect'
+import SlidingSelector from '../components/SlidingSelector'
+import SubscriptionsPanel from '../components/SubscriptionsPanel'
 import Tag from '../components/Tag'
 import Thumbnail from '../components/Thumbnail'
 import { host, type ImportedTask, type TaskState } from '../host'
@@ -255,6 +257,7 @@ export default function Library() {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
   const [pendingImport, setPendingImport] = useState<ImportedTask[] | null>(null)
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null)
+  const [tab, setTab] = useState<'history' | 'subscriptions'>('history')
   const hasFinished = tasks.some((t) => t.status === 'done' || t.status === 'error' || t.status === 'canceled')
 
   useEffect(() => {
@@ -329,6 +332,23 @@ export default function Library() {
         </div>
       </div>
 
+      {host.subscriptions && (
+        <SlidingSelector<'history' | 'subscriptions'>
+          id="library-tab"
+          options={[
+            { value: 'history', label: 'History' },
+            { value: 'subscriptions', label: 'Subscriptions' },
+          ]}
+          value={tab}
+          onChange={setTab}
+          className="mb-4 w-full grid-cols-2 sm:w-80"
+        />
+      )}
+
+      {tab === 'subscriptions' && host.subscriptions ? (
+        <SubscriptionsPanel />
+      ) : (
+        <>
       {pendingImport && (
         <div className="glass mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl p-3 text-sm">
           <span>
@@ -408,6 +428,8 @@ export default function Library() {
             )}
           </AnimatePresence>
         </div>
+      )}
+        </>
       )}
     </div>
   )

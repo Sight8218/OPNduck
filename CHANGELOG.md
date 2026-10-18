@@ -36,6 +36,11 @@ history; entries are curated for readability.
   JSON file and **Import** it back (add to history, or add and run again) — imports are re-validated,
   so a hand-edited file can't smuggle in anything the app wouldn't accept. History now keeps 500 entries.
 
+- **Subscriptions** (Library → Subscriptions, or "Subscribe to new uploads" on a channel/playlist link in
+  the Downloader): new uploads download automatically. Checked shortly after launch and then hourly
+  while OPNduck is open; only future uploads by default (optionally the latest 3/5/10 too); a failed
+  download is retried on the next check; desktop notification when something new starts.
+
 ### Changed
 
 - Command palette default shortcut is now **Ctrl+K** (existing rebinds are untouched).
