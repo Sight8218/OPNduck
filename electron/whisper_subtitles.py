@@ -61,12 +61,12 @@ def decode_audio(input_path):
     return input_path
 
 
-def transcribe(model_name, device, compute_type, input_path, language):
+def transcribe(model_name, device, compute_type, input_path, language, vad=True):
     from faster_whisper import WhisperModel
 
     emit("STAGE loading-model")
     model = WhisperModel(model_name, device=device, compute_type=compute_type)
-    segments, info = model.transcribe(decode_audio(input_path), language=language, vad_filter=True)
+    segments, info = model.transcribe(decode_audio(input_path), language=language, vad_filter=vad)
     emit(f"LANG {info.language}")
     emit("STAGE transcribing")
     return segments, info.duration or 0
@@ -89,19 +89,28 @@ def main():
     for i, (device, compute_type) in enumerate(attempts):
         stage = "load the model or read the audio (the model is downloaded from Hugging Face on first use)"
         try:
-            segments, duration = transcribe(model_name, device, compute_type, input_path, language)
-            stage = "transcribe"
-            for seg in segments:
-                text = seg.text.strip()
-                if text:
-                    cues.append((seg.start, seg.end, text))
-                if duration > 0:
-                    emit(f"PROGRESS {min(1.0, seg.end / duration):.4f}")
+            # The speech filter drops singing over music entirely, so if it leaves nothing, try
+            # once more without it before concluding there is no speech.
+            for vad in (True, False):
+                segments, duration = transcribe(model_name, device, compute_type, input_path, language, vad)
+                stage = "transcribe"
+                for seg in segments:
+                    text = seg.text.strip()
+                    if text:
+                        cues.append((seg.start, seg.end, text))
+                    if duration > 0:
+                        emit(f"PROGRESS {min(1.0, seg.end / duration):.4f}")
+                if cues:
+                    break
             break
         except Exception as err:  # noqa: BLE001 — any backend failure is worth one CPU retry
             if cues or i == len(attempts) - 1:
                 sys.stderr.write(f"Couldn't {stage}: {err}\n")
                 sys.exit(1)
+
+    if not cues:
+        sys.stderr.write("No speech was found in this file.\n")
+        sys.exit(1)
 
     with open(output_path, "w", encoding="utf-8") as out:
         if fmt == "vtt":
