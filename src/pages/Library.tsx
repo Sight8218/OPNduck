@@ -17,6 +17,7 @@
  */
 
 import { memo, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { IconChevronDown, IconX } from '@tabler/icons-react'
 import GlassSelect from '../components/GlassSelect'
@@ -51,8 +52,47 @@ function statusLabel(task: TaskState): string {
   return { queued: 'Queued', done: 'Done', error: 'Error', canceled: 'Canceled' }[task.status]
 }
 
+/** Shown before retrying a failed Spotify→YouTube match with a different video. */
+function AnotherMatchDialog({ onConfirm, onClose }: { onConfirm: () => void; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+  // Portaled: .glass rows would trap a fixed overlay in their own stacking context.
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Find another video"
+        className="glass flex w-full max-w-sm flex-col gap-3 rounded-2xl p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-base font-semibold">Try a different video?</h2>
+        <p className="text-sm text-[var(--text-dim)]">
+          That video didn't work, so OPNduck will search YouTube again and skip it. This match is experimental: it can be
+          less accurate and may pick the wrong video (a cover, a remix, a live version).
+        </p>
+        <div className="flex justify-end gap-2">
+          <button type="button" className="glass-btn px-3 py-1.5 text-sm" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className="glass-btn px-3 py-1.5 text-sm" onClick={onConfirm}>
+            Find another video
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
 function TaskRowImpl({ task }: { task: TaskState }) {
   const running = task.status === 'queued' || task.status === 'running'
+  const [askMatch, setAskMatch] = useState(false)
+  // A failed Spotify match: "Run again" offers a different video instead of repeating the same search.
+  const retryOtherMatch = task.status === 'error' && !!task.experimentalMatch
   const size = formatBytes(task.sizeBytes)
   return (
     <motion.div
@@ -76,7 +116,7 @@ function TaskRowImpl({ task }: { task: TaskState }) {
             </button>
           )}
           {!running && (
-            <button type="button" className="glass-btn px-2 py-1 text-xs" onClick={() => void host.tasks.rerun(task.id).catch(() => {})}>
+            <button type="button" className="glass-btn px-2 py-1 text-xs" onClick={() => (retryOtherMatch ? setAskMatch(true) : void host.tasks.rerun(task.id).catch(() => {}))}>
               Run again
             </button>
           )}
@@ -122,6 +162,15 @@ function TaskRowImpl({ task }: { task: TaskState }) {
         />
       </div>
       {task.error && <span className="text-xs text-red-400">{task.error}</span>}
+      {askMatch && (
+        <AnotherMatchDialog
+          onClose={() => setAskMatch(false)}
+          onConfirm={() => {
+            setAskMatch(false)
+            void host.tasks.rerun(task.id, { anotherMatch: true }).catch(() => {})
+          }}
+        />
+      )}
     </motion.div>
   )
 }

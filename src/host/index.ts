@@ -89,6 +89,9 @@ export interface DownloadRequest {
   audioTracks?: string[]
   /** Internal: this job is one language track of a parent download. */
   audioLang?: string
+  /** Spotify matches only (internal): YouTube ids already tried and rejected, and the one picked. */
+  matchExclude?: string[]
+  matchedId?: string
 }
 
 export interface PlaylistInfo {
@@ -293,7 +296,7 @@ export interface HostTasks {
   startAudioAi(req: AudioAiRequest): Promise<string>
   cancel(taskId: string): void
   /** Replays a finished task's original request as a new task. Resolves to the new id (null if it can't be replayed). */
-  rerun(taskId: string): Promise<string | null>
+  rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
   /** Reveals a finished task's output (or its destination folder) in the file manager. */
   openFolder(taskId: string): Promise<void>
   /** Removes every finished/failed/canceled task from the history. */

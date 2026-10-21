@@ -87,7 +87,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     startAudioAi: (req) => ipcRenderer.invoke('tasks:startAudioAi', req),
     startSubtitles: (req) => ipcRenderer.invoke('tasks:startSubtitles', req),
     cancel: (taskId) => ipcRenderer.send('tasks:cancel', taskId),
-    rerun: (taskId) => ipcRenderer.invoke('tasks:rerun', taskId),
+    rerun: (taskId, opts) => ipcRenderer.invoke('tasks:rerun', taskId, opts),
     openFolder: (taskId) => ipcRenderer.invoke('tasks:openFolder', taskId),
     clearFinished: () => ipcRenderer.invoke('tasks:clearFinished'),
     remove: (ids) => ipcRenderer.invoke('tasks:remove', ids),

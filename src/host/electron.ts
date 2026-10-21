@@ -96,7 +96,7 @@ interface ElectronBridge {
     startSubtitles(req: SubtitlesRequest): Promise<string>
     startAudioAi(req: AudioAiRequest): Promise<string>
     cancel(taskId: string): void
-    rerun(taskId: string): Promise<string | null>
+    rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
     openFolder(taskId: string): Promise<void>
     clearFinished(): Promise<void>
     remove(ids: string[]): Promise<number>
@@ -193,7 +193,7 @@ export function detectElectronHost(): Host | null {
       startSubtitles: (req) => bridge.tasks.startSubtitles(req),
       startAudioAi: (req) => bridge.tasks.startAudioAi(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
-      rerun: (taskId) => bridge.tasks.rerun(taskId),
+      rerun: (taskId, opts) => bridge.tasks.rerun(taskId, opts),
       openFolder: (taskId) => bridge.tasks.openFolder(taskId),
       clearFinished: () => bridge.tasks.clearFinished(),
       remove: (ids) => bridge.tasks.remove(ids),

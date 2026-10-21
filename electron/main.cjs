@@ -496,7 +496,7 @@ async function resolveSpotifyTrack(url) {
     return { error: "Couldn't read this track's info from Spotify — the page format may have changed." }
   }
 
-  return { query: `ytsearch1:${artist} - ${title}`, label: `${artist} - ${title}` }
+  return { query: `ytsearch1:${artist} - ${title}`, search: `${artist} - ${title}`, label: `${artist} - ${title}` }
 }
 // --- end: downloader/spotify-youtube-match ---
 
@@ -953,6 +953,12 @@ function validateDownloadRequest(req) {
     }
   }
   if (req.audioLang != null && !LANG_RE.test(String(req.audioLang))) throw new Error('Invalid audio language')
+  // Spotify matches: YouTube ids already tried (and rejected) for this track.
+  const VIDEO_ID_RE = /^[\w-]{6,20}$/
+  if (req.matchExclude != null && (!Array.isArray(req.matchExclude) || req.matchExclude.length > 20 || !req.matchExclude.every((x) => typeof x === 'string' && VIDEO_ID_RE.test(x)))) {
+    throw new Error('Invalid match exclusion list')
+  }
+  if (req.matchedId != null && !VIDEO_ID_RE.test(String(req.matchedId))) throw new Error('Invalid matched video id')
 }
 
 ipcMain.handle('tasks:probe', (_e, req) => {
@@ -1045,6 +1051,21 @@ handleStart('tasks:start', async (_e, req) => {
     return id
   }
   if (isCanceled(id)) return id // canceled while the Spotify lookup was running
+  if (spotify) {
+    // Pick one concrete video (not just "search result #1") so "Run again" can skip it next time.
+    const exclude = req.matchExclude ?? []
+    const want = exclude.length + 5
+    const found = await probeEntries(`ytsearch${want}:${spotify.search}`, want)
+    if (isCanceled(id)) return id
+    const pick = found?.entries.find((e) => !e.upcoming && !exclude.includes(e.id)) // premieres can't be downloaded yet
+    if (pick) {
+      spotify.query = pick.url
+      req.matchedId = pick.id
+    } else if (exclude.length) {
+      updateTask(id, { status: 'error', error: 'No other YouTube match found for this track.' })
+      return id
+    }
+  }
   // Whole-list mode: list pages (playlist, channel, search, Watch Later/Liked) always, a
   // "video inside a playlist" link only when the user explicitly chose the whole list.
   const link = spotify ? classifyLink('') : classifyLink(req.url)
@@ -1286,6 +1307,7 @@ function probeEntries(rawUrl, limit) {
           .filter((e) => e && typeof e.id === 'string')
           .map((e) => ({
             id: e.id,
+            upcoming: e.live_status === 'is_upcoming',
             url: parseHttpUrl(e.url) ? e.url : parseHttpUrl(e.webpage_url) ? e.webpage_url : `https://www.youtube.com/watch?v=${e.id}`,
           }))
         resolve({ title: info.title ?? 'Subscription', entries })
@@ -1360,10 +1382,17 @@ ipcMain.on('tasks:cancel', (_e, id) => {
   updateTask(id, { status: 'canceled' })
 })
 
-ipcMain.handle('tasks:rerun', (_e, id) => {
+ipcMain.handle('tasks:rerun', (_e, id, opts) => {
   const entry = tasks.get(id)
   const start = entry && startHandlers.get(entry.channel)
-  return start ? start(null, entry.req) : null
+  if (!start) return null
+  let req = entry.req
+  // Spotify matches: "find another video" retries the search without the video that was picked before.
+  if (opts?.anotherMatch === true && req?.matchedId) {
+    const { matchedId, ...rest } = req
+    req = { ...rest, matchExclude: [...(req.matchExclude ?? []), matchedId].slice(-20) }
+  }
+  return start(null, req)
 })
 ipcMain.handle('tasks:openFolder', (_e, id) => {
   const entry = tasks.get(id)
