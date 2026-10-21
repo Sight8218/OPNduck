@@ -40,12 +40,33 @@ def emit(line):
     print(line, flush=True)
 
 
+def decode_audio(input_path):
+    """16 kHz mono float32 samples via ffmpeg. faster-whisper's own decoder goes through PyAV, and a
+    PyAV that doesn't match it (a distro package a version off) fails every file; ffmpeg is already
+    required by OPNduck. Falls back to the path (faster-whisper's decoder) if ffmpeg can't be run."""
+    try:
+        import subprocess
+
+        import numpy as np
+
+        out = subprocess.run(
+            ["ffmpeg", "-v", "error", "-nostdin", "-i", input_path, "-vn", "-ac", "1", "-ar", "16000", "-f", "f32le", "-"],
+            capture_output=True,
+            check=True,
+        ).stdout
+        if out:
+            return np.frombuffer(out, dtype=np.float32)
+    except Exception:  # noqa: BLE001 — any failure just means "use the built-in decoder"
+        pass
+    return input_path
+
+
 def transcribe(model_name, device, compute_type, input_path, language):
     from faster_whisper import WhisperModel
 
     emit("STAGE loading-model")
     model = WhisperModel(model_name, device=device, compute_type=compute_type)
-    segments, info = model.transcribe(input_path, language=language, vad_filter=True)
+    segments, info = model.transcribe(decode_audio(input_path), language=language, vad_filter=True)
     emit(f"LANG {info.language}")
     emit("STAGE transcribing")
     return segments, info.duration or 0
@@ -66,7 +87,7 @@ def main():
     attempts = [("auto", "default"), ("cpu", "int8")]
     cues = []
     for i, (device, compute_type) in enumerate(attempts):
-        stage = "load the model (its first use downloads it from Hugging Face)"
+        stage = "load the model or read the audio (the model is downloaded from Hugging Face on first use)"
         try:
             segments, duration = transcribe(model_name, device, compute_type, input_path, language)
             stage = "transcribe"
