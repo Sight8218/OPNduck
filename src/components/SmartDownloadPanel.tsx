@@ -24,6 +24,7 @@ import {
   FORMAT_OPTIONS,
   VIDEO_FORMATS,
   VIDEO_QUALITY_OPTIONS,
+  isSpotifyTrack,
 } from '../features/downloader/options'
 import { initialPrefs } from '../lib/smartMode'
 import { getDownloadDirOverride } from '../lib/downloadPrefs'
@@ -34,7 +35,7 @@ import { IconDownload } from '@tabler/icons-react'
 // @category: palette/smart-detection
 export default function SmartDownloadPanel({ url, onDone }: { url: string; onDone: () => void }) {
   const [start] = useState(initialPrefs) // Smart Mode: begin with the last-used setup
-  const [format, setFormat] = useState<DownloadFormat>(start.format)
+  const [format, setFormat] = useState<DownloadFormat>(isSpotifyTrack(url) && VIDEO_FORMATS.includes(start.format) ? 'MP3' : start.format)
   const [videoQuality, setVideoQuality] = useState<VideoQuality>(start.videoQuality)
   const [audioQuality, setAudioQuality] = useState<AudioQuality>(start.audioQuality)
   const isVideo = VIDEO_FORMATS.includes(format)

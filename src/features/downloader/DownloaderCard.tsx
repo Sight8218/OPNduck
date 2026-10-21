@@ -31,6 +31,7 @@ import {
   SUB_MODE_OPTIONS,
   VIDEO_FORMATS,
   VIDEO_QUALITY_OPTIONS,
+  isSpotifyTrack,
   languageLabel,
   normalizePrefs,
   type DownloaderPrefs,
@@ -271,6 +272,7 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
         value={url}
         onChange={(e) => {
           setUrl(e.target.value)
+          if (isSpotifyTrack(e.target.value)) setFormat((f) => (VIDEO_FORMATS.includes(f) ? 'MP3' : f)) // Spotify is audio-only
           setPreview(null) // a stale thumbnail/size must not be attached to the new link
           setPlaylistMode('single')
         }}

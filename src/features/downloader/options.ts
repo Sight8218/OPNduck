@@ -26,6 +26,9 @@ export const AUDIO_QUALITY_OPTIONS: { value: AudioQuality; label: string }[] = [
 
 export const VIDEO_FORMATS: DownloadFormat[] = ['MP4', 'MKV', 'MOV']
 
+/** A Spotify track link: those are matched to a YouTube song, so a video format makes no sense. */
+export const isSpotifyTrack = (url: string): boolean => /open\.spotify\.com\/(?:intl-\w+\/)?track\//.test(url)
+
 export const SUB_MODE_OPTIONS: { value: SubtitleOptions['mode']; label: string }[] = [
   { value: 'off', label: 'Off' },
   { value: 'manual', label: 'Uploaded' },
