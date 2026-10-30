@@ -224,6 +224,8 @@ export interface SubtitlesRequest {
   model: WhisperModel
   /** 'auto' to let Whisper detect it, otherwise an ISO 639-1 code like 'en'. */
   language: string
+  /** Write the subtitles translated to English instead of in the spoken language (Whisper only translates into English). */
+  translate?: boolean
   format: SubtitleFormat
   /** Overrides the Settings default destination for this one job. */
   destination?: string

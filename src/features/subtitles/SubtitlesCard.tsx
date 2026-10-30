@@ -64,6 +64,7 @@ export default function SubtitlesCard({ feature }: { feature: FeatureDefinition 
   const presets = usePresets<SubtitleSettings>('subtitles')
   const [model, setModel] = useState<WhisperModel>('tiny')
   const [language, setLanguage] = useState('auto')
+  const [translate, setTranslate] = useState(false)
   const [format, setFormat] = useState<SubtitleFormat>('srt')
   const [submittedIds, setSubmittedIds] = useSubmittedIds('subtitles')
   const [whisper, setWhisper] = useState<ToolStatus | null>(null)
@@ -93,7 +94,7 @@ export default function SubtitlesCard({ feature }: { feature: FeatureDefinition 
   async function transcribeAll() {
     const destination = getDownloadDirOverride() ?? undefined
     const ids = await startBatch(files, `Subtitles (${model})`, (inputPath, batch) =>
-      host.tasks.startSubtitles({ inputPath, model, language, format, destination, batch }),
+      host.tasks.startSubtitles({ inputPath, model, language, format, destination, batch, translate }),
     )
     setSubmittedIds(ids)
     setFiles([])
@@ -190,6 +191,10 @@ export default function SubtitlesCard({ feature }: { feature: FeatureDefinition 
       <div>
         <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Spoken language</span>
         <GlassSelect id="subtitles-language" options={LANGUAGE_OPTIONS} value={language} onChange={setLanguage} />
+        <label className="mt-2 flex cursor-pointer items-center gap-1.5 text-xs text-[var(--text-dim)]">
+          <input type="checkbox" className="accent-[var(--accent)]" checked={translate} onChange={(e) => setTranslate(e.target.checked)} />
+          Translate to English (works best with the small model or larger)
+        </label>
       </div>
 
       <div>

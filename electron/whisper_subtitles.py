@@ -75,7 +75,7 @@ def decode_audio(input_path):
     return input_path
 
 
-def transcribe(model_name, device, compute_type, input_path, language, vad=True):
+def transcribe(model_name, device, compute_type, input_path, language, vad=True, translate=False):
     from faster_whisper import WhisperModel
 
     emit("STAGE loading-model")
@@ -85,13 +85,13 @@ def transcribe(model_name, device, compute_type, input_path, language, vad=True)
         gc.collect()
         _MODELS[key] = WhisperModel(model_name, device=device, compute_type=compute_type)
     model = _MODELS[key]
-    segments, info = model.transcribe(decode_audio(input_path), language=language, vad_filter=vad)
+    segments, info = model.transcribe(decode_audio(input_path), language=language, vad_filter=vad, task="translate" if translate else "transcribe")
     emit(f"LANG {info.language}")
     emit("STAGE transcribing")
     return segments, info.duration or 0
 
 
-def run_job(input_path, output_path, model_name, language, fmt):
+def run_job(input_path, output_path, model_name, language, fmt, translate=False):
     """Transcribes one file; raises JobError with the message to show the user."""
     language = None if language == "auto" else language
 
@@ -112,7 +112,7 @@ def run_job(input_path, output_path, model_name, language, fmt):
             # The speech filter drops singing over music entirely, so if it leaves nothing, try
             # once more without it before concluding there is no speech.
             for vad in (True, False):
-                segments, duration = transcribe(model_name, device, compute_type, input_path, language, vad)
+                segments, duration = transcribe(model_name, device, compute_type, input_path, language, vad, translate)
                 stage = "transcribe"
                 for seg in segments:
                     text = seg.text.strip()
@@ -150,7 +150,7 @@ def serve():
             continue
         try:
             r = json.loads(line)
-            run_job(r["input"], r["output"], r["model"], r["language"], r["format"])
+            run_job(r["input"], r["output"], r["model"], r["language"], r["format"], bool(r.get("translate")))
             emit("@@DONE")
         except JobError as err:
             emit(f"@@FAIL {err}")

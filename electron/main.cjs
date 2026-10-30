@@ -2934,12 +2934,14 @@ handleStart('tasks:startSubtitles', (_e, req) => {
   assertOneOf(req.model, WHISPER_MODELS, 'model')
   assertOneOf(req.format, SUBTITLE_FORMATS, 'format')
   if (req.language !== 'auto' && !/^[a-z]{2,3}$/.test(req.language)) throw new Error(`Invalid language: ${req.language}`)
+  if (req.translate != null && typeof req.translate !== 'boolean') throw new Error('Invalid translate option')
   const id = crypto.randomUUID()
   const destDir = req.destination || defaultDownloadDir()
   fs.mkdirSync(destDir, { recursive: true })
 
   const inputBase = path.basename(req.inputPath, path.extname(req.inputPath))
-  const outputPath = uniqueOutputPath(destDir, inputBase, req.format)
+  // Translated subtitles get the usual language tag (movie.en.srt) so players pick them up as English.
+  const outputPath = uniqueOutputPath(destDir, req.translate ? `${inputBase}.en` : inputBase, req.format)
 
   addTask(id, {
     state: {
@@ -2949,7 +2951,7 @@ handleStart('tasks:startSubtitles', (_e, req) => {
       progress: 0,
       label: path.basename(req.inputPath),
       format: req.format.toUpperCase(),
-      quality: `Whisper ${req.model}`,
+      quality: req.translate ? `Whisper ${req.model} → English` : `Whisper ${req.model}`,
       sizeBytes: null,
       sizeIsEstimate: false,
       thumbnailUrl: null,
@@ -2968,7 +2970,7 @@ handleStart('tasks:startSubtitles', (_e, req) => {
     let lineBuf = ''
     // The worker keeps the loaded Whisper model between files (see createModelWorker).
     whisperWorker.run(
-      { input: req.inputPath, output: outputPath, model: req.model, language: req.language, format: req.format },
+      { input: req.inputPath, output: outputPath, model: req.model, language: req.language, format: req.format, translate: !!req.translate },
       entry,
       {
         onStdout: (text) => {
@@ -2979,7 +2981,7 @@ handleStart('tasks:startSubtitles', (_e, req) => {
             const progress = line.match(/^PROGRESS ([\d.]+)/)
             if (progress) updateTask(id, { progress: Math.min(1, Number(progress[1])) })
             const lang = line.match(/^LANG (\S+)/)
-            if (lang) updateTask(id, { quality: `Whisper ${req.model} · ${lang[1]}` })
+            if (lang) updateTask(id, { quality: `Whisper ${req.model} · ${lang[1]}${req.translate ? ' → English' : ''}` })
           }
         },
       },
