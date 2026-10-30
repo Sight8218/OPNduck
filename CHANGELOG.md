@@ -30,6 +30,9 @@ history; entries are curated for readability.
 
 ### Performance
 
+- **Smaller install:** the app archive no longer carries 105 MB of UI libraries that were already bundled
+  into the page (50 MB → 1.4 MB), and only the English Chromium locale ships. Unpacked app 332 → 276 MB,
+  AppImage 136 → 124 MB. Library, Settings and Plugins load when first opened (main script 549 → 492 KB).
 - **Faster AI video jobs:** the upscaler and frame interpolator now load, process and save frames in
   parallel (measured on an RTX 3080: video upscale ~27% and interpolation ~20% faster end to end on a
   small clip; up to 2× on the GPU step alone). Settings → GPU job speed has a *Low memory* mode for older

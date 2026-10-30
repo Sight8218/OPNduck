@@ -16,6 +16,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+// OPNDUCK_TRACE=1 prints a startup timeline (ms since process start); scripts/perf-check uses it.
+const trace = process.env.OPNDUCK_TRACE ? (label) => console.log(`[trace] ${label} ${Math.round(process.uptime() * 1000)}ms`) : () => {}
 const { app, BrowserWindow, ipcMain, dialog, shell, Notification } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
@@ -84,6 +86,7 @@ function createWindow() {
     console.log(`[renderer:${levels[event.level] ?? event.level}]`, event.message)
   })
 
+  win.webContents.once('did-finish-load', () => trace('renderer did-finish-load'))
   const target = rendererTarget()
   if (target.file) win.loadFile(target.file)
   else win.loadURL(target.url)
@@ -2883,11 +2886,17 @@ function sweepStaleTempDirs() {
   }
 }
 
+trace('main.cjs loaded')
 app.whenReady().then(() => {
+  trace('app ready')
   sweepStaleTempDirs()
+  trace('temp sweep done')
   loadHistory()
+  trace('history loaded')
   startSubscriptions()
+  trace('subscriptions started')
   createWindow()
+  trace('window created')
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })

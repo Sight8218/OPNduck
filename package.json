@@ -54,17 +54,14 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    }
-  },
-  "dependencies": {
-    "@fontsource/jetbrains-mono": "^5.3.0",
-    "@tabler/icons-react": "^3.49.0",
-    "framer-motion": "^14.1.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "react-router-dom": "^7.18.4"
+    },
+    "electronLanguages": [
+      "en-US"
+    ]
   },
   "devDependencies": {
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@tabler/icons-react": "^3.49.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
@@ -73,7 +70,11 @@
     "concurrently": "^10.0.6",
     "electron": "^44.7.0",
     "electron-builder": "^26.15.3",
+    "framer-motion": "^14.1.0",
     "oxlint": "^1.87.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.4",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
