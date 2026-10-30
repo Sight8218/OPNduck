@@ -2132,6 +2132,97 @@ function spawnTracked(cmd, args, entry, { onStdout, onStderr, cwd } = {}) {
   })
 }
 
+/**
+ * A long-lived Python worker that keeps an AI model loaded between jobs (loading Demucs costs ~10 s,
+ * a large Whisper model several). The script's `--serve` mode reads one JSON request per stdin line and
+ * answers `@@DONE` or `@@FAIL <message>` on stdout; every other stdout line and all stderr belong to the
+ * running request. Jobs reach it one at a time (the GPU/Whisper pools). It exits after `idleMs` without
+ * work so an idle app doesn't hold GPU memory, and cancelling a job (which kills `entry.child`) just
+ * kills the worker — the next job starts a fresh one.
+ */
+function createModelWorker({ python, scriptPath, idleMs = 60_000 }) {
+  let child = null
+  let idleTimer = null
+
+  // Each worker process carries its own `job` (the request it is serving). A process that was killed
+  // by a cancel can take a moment to exit (CUDA teardown); its late events then settle *its* job, and
+  // can never be mistaken for the next job, which runs on a new process.
+  function start() {
+    const script = fs.readFileSync(scriptPath, 'utf8') // read here: an external Python can't open a file inside app.asar
+    const proc = spawn(python(), ['-c', script, '--serve'], {
+      cwd: pythonCwd(), // `python -c` imports from the cwd; keep it away from user/shared folders
+      env: { ...process.env, PYTHONUNBUFFERED: '1' },
+    })
+    child = proc
+    proc.job = null
+    let buf = ''
+    let stderrTail = ''
+    proc.stdout.on('data', (chunk) => {
+      buf += chunk.toString()
+      const lines = buf.split(/\r?\n/)
+      buf = lines.pop()
+      for (const line of lines) {
+        const job = proc.job
+        if (!job) continue
+        if (line.startsWith('@@DONE')) job.resolve()
+        else if (line.startsWith('@@FAIL')) job.reject(new Error(line.slice(6).trim() || 'The job failed.'))
+        else job.onStdout?.(line + '\n')
+      }
+    })
+    proc.stderr.on('data', (chunk) => {
+      const text = chunk.toString()
+      stderrTail = (stderrTail + text).slice(-2000)
+      proc.job?.onStderr?.(text)
+    })
+    proc.stdin.on('error', () => {
+      /* the worker died; 'close' reports it */
+    })
+    proc.on('error', (err) => {
+      if (child === proc) child = null
+      proc.job?.reject(err)
+    })
+    proc.on('close', (code) => {
+      if (child === proc) child = null
+      proc.job?.reject(new Error(stderrTail.trim().split('\n').pop() || `The worker exited (code ${code}).`))
+    })
+    return proc
+  }
+
+  return {
+    run(request, entry, { onStdout, onStderr } = {}) {
+      clearTimeout(idleTimer)
+      let proc
+      return new Promise((resolve, reject) => {
+        try {
+          proc = child && !child.killed ? child : start() // a cancel kills the worker; never hand work to one that is dying
+        } catch (err) {
+          reject(err)
+          return
+        }
+        entry.child = proc // tasks:cancel kills this
+        proc.job = { resolve, reject, onStdout, onStderr }
+        proc.stdin.write(JSON.stringify(request) + '\n')
+      }).finally(() => {
+        if (!proc) return
+        proc.job = null
+        // Idle-exit only the worker that just went idle, and only if it is still the live one and
+        // has no job: a canceled job's late cleanup must never time out the next job's worker.
+        if (child === proc) {
+          clearTimeout(idleTimer)
+          idleTimer = setTimeout(() => {
+            if (child === proc && !proc.job) proc.kill()
+          }, idleMs)
+          idleTimer.unref?.()
+        }
+      })
+    },
+    stop() {
+      clearTimeout(idleTimer)
+      child?.kill()
+    },
+  }
+}
+
 /** fps + frame count for the source video, or null if either can't be read. */
 function probeVideoMeta(inputPath) {
   return new Promise((resolve) => {
@@ -2504,6 +2595,7 @@ const runInterpolate = (id, req, outputPath) => runInPool(gpuPool, id, () => int
 const WHISPER_MODELS = ['tiny', 'base', 'small', 'medium']
 const SUBTITLE_FORMATS = ['srt', 'vtt']
 const WHISPER_SCRIPT = path.join(__dirname, 'whisper_subtitles.py')
+const whisperWorker = createModelWorker({ python: () => whisperPython(), scriptPath: WHISPER_SCRIPT })
 
 handleStart('tasks:startSubtitles', (_e, req) => {
   assertAbsolutePath(req.inputPath, 'inputPath')
@@ -2540,23 +2632,14 @@ handleStart('tasks:startSubtitles', (_e, req) => {
   runInPool(whisperPool, id, () => {
     // Read here rather than passed as a path: inside a packaged app.asar, Node can
     // read the script but an external Python can't open it.
-    let script
-    try {
-      script = fs.readFileSync(WHISPER_SCRIPT, 'utf8')
-    } catch (err) {
-      updateTask(id, { status: 'error', error: `Subtitle script missing: ${err.message}` })
-      return
-    }
-
     const entry = tasks.get(id)
     updateTask(id, { status: 'running' })
     let lineBuf = ''
-    spawnTracked(
-      whisperPython(),
-      ['-c', script, req.inputPath, outputPath, req.model, req.language, req.format],
+    // The worker keeps the loaded Whisper model between files (see createModelWorker).
+    whisperWorker.run(
+      { input: req.inputPath, output: outputPath, model: req.model, language: req.language, format: req.format },
       entry,
       {
-        cwd: pythonCwd(), // `python -c` imports from the cwd; keep it out of user/shared folders
         onStdout: (text) => {
           lineBuf += text
           const lines = lineBuf.split(/\r?\n/)
@@ -2631,6 +2714,7 @@ const AUDIO_AI_FORMATS = {
 }
 const VIDEO_INPUT_EXT = new Set(['mp4', 'mkv', 'mov', 'webm', 'avi', 'flv', 'm4v', 'wmv', 'ts', 'mpg', 'mpeg', '3gp'])
 const DEMUCS_SCRIPT = path.join(__dirname, 'demucs_separate.py')
+const demucsWorker = createModelWorker({ python: () => demucsPython(), scriptPath: DEMUCS_SCRIPT })
 
 handleStart('tasks:startAudioAi', (_e, req) => {
   assertAbsolutePath(req.inputPath, 'inputPath')
@@ -2739,15 +2823,9 @@ async function audioAiJob(id, req, mode, fmt, keepVideo, outputPath) {
 
   let source = inWav
   if (mode.demucs) {
-    let script
     try {
-      script = fs.readFileSync(DEMUCS_SCRIPT, 'utf8') // read here: an external Python can't open a file inside app.asar
-    } catch (err) {
-      return fail('Audio script missing', err)
-    }
-    try {
-      await spawnTracked(demucsPython(), ['-c', script, inWav, stemsDir], entry, {
-        cwd: pythonCwd(), // `python -c` imports from the cwd; keep it away from user/shared folders
+      // The worker keeps htdemucs loaded between files (see createModelWorker).
+      await demucsWorker.run({ src: inWav, out: stemsDir }, entry, {
         onStderr: (text) => {
           // Demucs' tqdm bar: "  45%|████▌     | ...". Separation is ~85% of the work.
           const m = [...text.matchAll(/(\d{1,3})%\|/g)].pop()
@@ -2851,6 +2929,8 @@ app.on('before-quit', () => subscriptions?.stop())
 // Don't orphan ffmpeg/soffice/python on exit, and don't lose a result that finished inside
 // the 400ms history-save debounce.
 app.on('before-quit', () => {
+  whisperWorker.stop()
+  demucsWorker.stop()
   clearTimeout(saveTimer)
   for (const entry of tasks.values()) {
     if (entry.state.status === 'queued' || entry.state.status === 'running') killTask(entry)

@@ -7,6 +7,7 @@
 #
 # Writes <out dir>/vocals.wav and <out dir>/no_vocals.wav. Progress is the tqdm percentage Demucs
 # prints on stderr; the model (~80 MB) downloads once into the user's torch cache.
+import json
 import sys
 
 import numpy as np
@@ -15,13 +16,23 @@ import torch
 from demucs.apply import apply_model
 from demucs.pretrained import get_model
 
+_MODEL = None
 
-def main(src: str, out_dir: str) -> None:
+
+def load_model():
+    """htdemucs, loaded once per process: in --serve mode every file after the first reuses it."""
+    global _MODEL
+    if _MODEL is None:
+        _MODEL = get_model("htdemucs")
+        _MODEL.eval()
+    return _MODEL
+
+
+def separate(src: str, out_dir: str) -> None:
     wav, sr = sf.read(src, dtype="float32", always_2d=True)  # (samples, channels)
-    model = get_model("htdemucs")
-    model.eval()
+    model = load_model()
     if sr != model.samplerate or wav.shape[1] != model.audio_channels:
-        raise SystemExit(f"expected {model.samplerate} Hz x{model.audio_channels}, got {sr} Hz x{wav.shape[1]}")
+        raise RuntimeError(f"expected {model.samplerate} Hz x{model.audio_channels}, got {sr} Hz x{wav.shape[1]}")
 
     mix = torch.from_numpy(np.ascontiguousarray(wav.T))  # (channels, samples)
     ref = mix.mean(0)
@@ -46,4 +57,21 @@ def main(src: str, out_dir: str) -> None:
     sf.write(f"{out_dir}/no_vocals.wav", rest.T.cpu().numpy(), sr, subtype="PCM_24")
 
 
-main(sys.argv[1], sys.argv[2])
+def serve() -> None:
+    """Worker mode: one JSON request per stdin line ({"src","out"}); answers "@@DONE" or "@@FAIL msg"."""
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            req = json.loads(line)
+            separate(req["src"], req["out"])
+            print("@@DONE", flush=True)
+        except Exception as err:  # noqa: BLE001 — report the failure, keep the worker (and its model) alive
+            print(f"@@FAIL {err}", flush=True)
+
+
+if len(sys.argv) > 1 and sys.argv[1] == "--serve":
+    serve()
+else:
+    separate(sys.argv[1], sys.argv[2])

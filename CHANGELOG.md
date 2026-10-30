@@ -30,6 +30,10 @@ history; entries are curated for readability.
 
 ### Performance
 
+- **AI models stay loaded between files:** AI Audio (Demucs) and Subtitles (Whisper) now run in a background
+  worker that keeps the model in memory, so a batch only pays the load cost once (second Demucs job: 4.3 s →
+  0.9 s on a 20-second clip). The worker exits after 60 s idle so it doesn't hold GPU memory, and cancelling a
+  job simply restarts it.
 - **Long videos no longer need huge temp space:** video upscaling and frame interpolation now work in
   chunks (the video is split without re-encoding, each chunk is processed and encoded on its own, then the
   chunks are joined with the original audio). Temp disk use is bounded by one chunk (about 2.5 GB) instead of
