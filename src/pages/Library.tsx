@@ -38,6 +38,7 @@ import {
   type StatusFilter,
   type ViewOptions,
 } from '../lib/libraryView'
+import { useQueuePaused } from '../lib/useQueuePaused'
 import { useTasks } from '../lib/useTasks'
 
 const RUNNING_LABEL: Record<TaskState['kind'], string> = {
@@ -115,6 +116,16 @@ function TaskRowImpl({ task }: { task: TaskState }) {
           {task.status === 'done' && (
             <button type="button" className="glass-btn px-2 py-1 text-xs" onClick={() => host.tasks.openFolder(task.id)}>
               Open folder
+            </button>
+          )}
+          {task.status === 'queued' && (
+            <button
+              type="button"
+              className="glass-btn px-2 py-1 text-xs"
+              title="Start this one before the other waiting jobs"
+              onClick={() => void host.tasks.runNext(task.id)}
+            >
+              Run next
             </button>
           )}
           {!running && (
@@ -300,6 +311,7 @@ export default function Library() {
   const [view, setView] = useState<ViewOptions>(readView)
   // A long history is rendered in pages: 500 animated rows at once is what made this page heavy.
   const [shownCount, setShownCount] = useState(PAGE_SIZE)
+  const queuePaused = useQueuePaused()
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
   const [pendingImport, setPendingImport] = useState<ImportedTask[] | null>(null)
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null)
@@ -369,6 +381,16 @@ export default function Library() {
                 Import…
               </button>
             </>
+          )}
+          {host.queue && (
+            <button
+              type="button"
+              className="glass-btn shrink-0 px-3 py-1.5 text-xs"
+              title={queuePaused ? 'Let waiting jobs start again' : 'Stop waiting jobs from starting (running ones finish)'}
+              onClick={() => void host.queue?.setPaused(!queuePaused)}
+            >
+              {queuePaused ? 'Resume queue' : 'Pause queue'}
+            </button>
           )}
           {hasFinished && (
             <button type="button" className="glass-btn shrink-0 px-3 py-1.5 text-xs" onClick={() => host.tasks.clearFinished()}>

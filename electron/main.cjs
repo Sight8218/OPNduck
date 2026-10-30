@@ -163,6 +163,7 @@ ipcMain.handle('settings:get', () => getSettings())
 ipcMain.handle('settings:set', (_e, patch) => {
   const next = setSettings(patch)
   if (patch && 'runInTray' in patch) applyTray()
+  applyQueueLimits()
   return next
 })
 
@@ -877,24 +878,46 @@ function updateTask(id, patch) {
 }
 
 /** A counting semaphore: queued jobs wait here for a slot instead of all starting at once. */
+const allPools = []
+let queuePaused = false
 function makePool(limit) {
   let active = 0
-  const waiters = []
-  return {
-    acquire() {
-      if (active < limit) {
+  const waiters = [] // { id, resolve }
+  const pool = {
+    acquire(id) {
+      if (!queuePaused && active < limit) {
         active++
         return Promise.resolve()
       }
-      return new Promise((resolve) => waiters.push(resolve))
+      return new Promise((resolve) => waiters.push({ id, resolve }))
     },
     release() {
-      const next = waiters.shift()
-      if (next) next() // hand the slot straight over
-      else active--
+      active--
+      pool.drain()
+    },
+    /** Hands free slots to waiting jobs, unless the queue is paused. */
+    drain() {
+      while (!queuePaused && active < limit && waiters.length) {
+        active++
+        waiters.shift().resolve()
+      }
+    },
+    setLimit(n) {
+      limit = n
+      pool.drain()
+    },
+    /** Moves a waiting job to the front of this pool's line. */
+    prioritize(id) {
+      const i = waiters.findIndex((w) => w.id === id)
+      if (i <= 0) return i === 0
+      waiters.unshift(...waiters.splice(i, 1))
+      return true
     },
   }
+  allPools.push(pool)
+  return pool
 }
+const broadcastQueueState = () => BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('queue:state', { paused: queuePaused }))
 // Batches would otherwise spawn one process per file at once: ffmpeg/soffice conversions are
 // light (2 at a time); upscalers/interpolation fight over one GPU and Whisper loads a whole
 // model per process (1 at a time each).
@@ -904,10 +927,26 @@ const whisperPool = makePool(1)
 // yt-dlp downloads: a big batch, "Retry failed" or several subscriptions must not start 1000 at once.
 const downloadPool = makePool(3)
 
+/** Applies the user's parallel-job limits (Settings → Job queue). */
+function applyQueueLimits() {
+  const s = getSettings()
+  downloadPool.setLimit(s.maxDownloads)
+  convertPool.setLimit(s.maxConversions)
+}
+
+ipcMain.handle('queue:state', () => ({ paused: queuePaused }))
+ipcMain.handle('queue:setPaused', (_e, paused) => {
+  queuePaused = !!paused
+  if (!queuePaused) allPools.forEach((p) => p.drain())
+  broadcastQueueState()
+})
+// "Run next": a queued job jumps the line within its own queue.
+ipcMain.handle('tasks:runNext', (_e, id) => (typeof id === 'string' ? allPools.some((p) => p.prioritize(id)) : false))
+
 /** Runs `work` once the pool has a free slot. The slot is released by updateTask() when the
  *  task reaches a terminal state, or immediately if the task was canceled while waiting. */
 async function runInPool(pool, id, work) {
-  await pool.acquire()
+  await pool.acquire(id)
   const entry = tasks.get(id)
   if (!entry || isCanceled(id)) return pool.release()
   let released = false
@@ -3321,6 +3360,7 @@ function notifyFinished(state, req) {
 trace('main.cjs loaded')
 app.whenReady().then(() => {
   trace('app ready')
+  applyQueueLimits()
   sweepStaleTempDirs()
   trace('temp sweep done')
   loadHistory()

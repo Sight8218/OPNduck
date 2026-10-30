@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { IconAdjustmentsHorizontal, IconCpu, IconDownload, IconInfoCircle, IconKeyboard } from '@tabler/icons-react'
 import GpuPerformanceCard from '../components/GpuPerformanceCard'
 import NotificationsCard from '../components/NotificationsCard'
+import QueueCard from '../components/QueueCard'
 import HardwareAllocation from '../components/HardwareAllocation'
 import InfoCard from '../components/InfoCard'
 import KeybindsCard from '../components/KeybindsCard'
@@ -154,6 +155,7 @@ export default function Settings() {
             <HardwareAllocation />
             {host.settings && <GpuPerformanceCard />}
             {host.settings && <NotificationsCard />}
+            {host.settings && <QueueCard />}
             <StorageCard />
             <UpdatesCard />
           </section>

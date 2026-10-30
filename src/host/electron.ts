@@ -58,13 +58,18 @@ interface ElectronBridge {
   checkRife(): Promise<ToolStatus>
   checkFasterWhisper(): Promise<ToolStatus>
   checkDemucs(): Promise<ToolStatus>
+  queue: {
+    state(): Promise<{ paused: boolean }>
+    setPaused(paused: boolean): Promise<void>
+    onState(listener: (s: { paused: boolean }) => void): () => void
+  }
   checkTorchEngine(): Promise<{ available: boolean; nvidia: boolean }>
   installTool(tool: PythonTool): Promise<{ ok: boolean; error?: string }>
   cancelInstall(): Promise<void>
   onInstallProgress(listener: (p: { tool: PythonTool; line: string }) => void): () => void
   settings: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; maxDownloads?: number; maxConversions?: number; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   subscriptions: {
     list(): Promise<Subscription[]>
@@ -107,6 +112,7 @@ interface ElectronBridge {
     clearFinished(): Promise<void>
     remove(ids: string[]): Promise<number>
     list(): Promise<TaskState[]>
+    runNext(taskId: string): Promise<boolean>
     logs(taskId: string): Promise<string[]>
     watchLog(taskId: string, on: boolean): Promise<void>
     onLog(listener: (p: { id: string; lines: string[]; replaceLast: boolean }) => void): () => void
@@ -180,6 +186,11 @@ export function detectElectronHost(): Host | null {
       return bridge.installTool(tool).finally(off)
     },
     cancelInstall: () => bridge.cancelInstall(),
+    queue: {
+      state: () => bridge.queue.state(),
+      setPaused: (paused) => bridge.queue.setPaused(paused),
+      subscribe: (listener) => bridge.queue.onState(listener),
+    },
     settings: {
       get: () => bridge.settings.get(),
       set: (patch) => bridge.settings.set(patch),
@@ -220,6 +231,7 @@ export function detectElectronHost(): Host | null {
       startSubtitles: (req) => bridge.tasks.startSubtitles(req),
       startAudioAi: (req) => bridge.tasks.startAudioAi(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
+      runNext: (taskId) => bridge.tasks.runNext(taskId),
       logs: (taskId) => bridge.tasks.logs(taskId),
       watchLog: (taskId, listener) => {
         const off = bridge.tasks.onLog((p) => p.id === taskId && listener({ lines: p.lines, replaceLast: p.replaceLast }))

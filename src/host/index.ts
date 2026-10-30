@@ -139,6 +139,9 @@ export interface AppSettings {
   videoEncoder: 'auto' | 'cpu'
   /** Desktop notification when jobs finish while the window isn't focused. */
   notifyOnFinish: boolean
+  /** Parallel downloads (1-6) and conversions (1-4). */
+  maxDownloads: number
+  maxConversions: number
   /** Closing the window keeps OPNduck running in the system tray. */
   runInTray: boolean
   cookies: {
@@ -315,6 +318,8 @@ export interface HostTasks {
   /** Replays a finished task's original request as a new task. Resolves to the new id (null if it can't be replayed). */
   rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
   /** The tail of what a job's tools printed (kept in memory only, so history from earlier launches has none). */
+  /** Moves a waiting job to the front of its queue. Resolves to false if it isn't waiting. */
+  runNext(taskId: string): Promise<boolean>
   logs(taskId: string): Promise<string[]>
   /** Streams new log lines for a task while subscribed; `replaceLast` means the last shown line was updated in place. */
   watchLog(taskId: string, listener: (p: { lines: string[]; replaceLast: boolean }) => void): () => void
@@ -389,10 +394,16 @@ export interface Host {
   /** Present only on hosts that can see the OS-level Omarchy theme (Electron
    *  on Linux); undefined everywhere else, including a non-Omarchy Linux
    *  desktop that just happens to run Electron. */
+  /** The job queue as a whole: pause starting new jobs (running ones finish). Desktop shell only. */
+  queue?: {
+    state(): Promise<{ paused: boolean }>
+    setPaused(paused: boolean): Promise<void>
+    subscribe(listener: (s: { paused: boolean }) => void): () => void
+  }
   /** Main-process settings (proxy, login cookies). Desktop shell only. */
   settings?: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; maxDownloads?: number; maxConversions?: number; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   /** Auto-download new uploads from a channel/playlist (checked while the app is open). Desktop shell only. */
   subscriptions?: {
@@ -593,6 +604,7 @@ const browserTasks: HostTasks = {
   },
   cancel: () => {},
   rerun: async () => null,
+  runNext: async () => false,
   logs: async () => [],
   watchLog: () => () => {},
   openFolder: async () => {},

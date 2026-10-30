@@ -40,6 +40,15 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   checkRealesrgan: () => ipcRenderer.invoke('system:checkRealesrgan'),
   checkRife: () => ipcRenderer.invoke('system:checkRife'),
   checkFasterWhisper: () => ipcRenderer.invoke('system:checkFasterWhisper'),
+  queue: {
+    state: () => ipcRenderer.invoke('queue:state'),
+    setPaused: (paused) => ipcRenderer.invoke('queue:setPaused', paused),
+    onState: (listener) => {
+      const handler = (_e, s) => listener(s)
+      ipcRenderer.on('queue:state', handler)
+      return () => ipcRenderer.removeListener('queue:state', handler)
+    },
+  },
   checkTorchEngine: () => ipcRenderer.invoke('system:checkTorchEngine'),
   installTool: (tool) => ipcRenderer.invoke('system:installTool', tool),
   cancelInstall: () => ipcRenderer.invoke('system:installCancel'),
@@ -101,6 +110,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     clearFinished: () => ipcRenderer.invoke('tasks:clearFinished'),
     remove: (ids) => ipcRenderer.invoke('tasks:remove', ids),
     list: () => ipcRenderer.invoke('tasks:list'),
+    runNext: (taskId) => ipcRenderer.invoke('tasks:runNext', taskId),
     logs: (taskId) => ipcRenderer.invoke('tasks:logs', taskId),
     watchLog: (taskId, on) => ipcRenderer.invoke('tasks:logWatch', taskId, on),
     onLog: (listener) => {

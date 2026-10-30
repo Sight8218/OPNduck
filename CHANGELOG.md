@@ -33,6 +33,9 @@ history; entries are curated for readability.
 
 ### Performance
 
+- **Queue controls:** *Pause queue* in the Library stops waiting jobs from starting (running ones finish), *Run next*
+  moves a queued job to the front of its line, and Settings → Job queue sets how many downloads (1–6) and
+  conversions (1–4) run at once.
 - **Notifications and tray:** Settings → Notifications & tray. A desktop notification when jobs finish while OPNduck
   isn't the focused window (a batch becomes one notification), and an option to keep running in the system tray
   when you close the window so jobs and subscription checks continue.
