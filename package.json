@@ -21,6 +21,7 @@
     "desktop:start": "electron .",
     "dist:linux": "npm run build && electron-builder --linux AppImage pacman",
     "dist:win": "npm run build && electron-builder --win nsis portable",
+    "perf": "node scripts/perf-check.mjs",
     "dist": "npm run build && electron-builder --linux AppImage pacman --win nsis portable"
   },
   "build": {
