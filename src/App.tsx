@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { HashRouter, Navigate, Route } from 'react-router-dom'
 import CommandPalette from './components/CommandPalette'
 import FluidBackground from './components/FluidBackground'
@@ -13,9 +13,6 @@ import { DevModeProvider } from './lib/devMode'
 import { NavProvider } from './lib/navContext'
 import { ReduceMotionProvider } from './lib/motionPrefs'
 import Home from './pages/Home'
-import Library from './pages/Library'
-import Plugins from './pages/Plugins'
-import Settings from './pages/Settings'
 import { readStoredTheme, applyTheme } from './themes/theme'
 import { useOmarchyThemeSync } from './themes/useTheme'
 import { useBackgroundSync } from './lib/backgroundPref'
@@ -32,6 +29,12 @@ function hideSplash() {
     setTimeout(() => splash.remove(), 500)
   }
 }
+
+// Everything but the landing page loads on first visit, so launch parses less JavaScript.
+const Library = lazy(() => import('./pages/Library'))
+const Plugins = lazy(() => import('./pages/Plugins'))
+const Settings = lazy(() => import('./pages/Settings'))
+const later = (page: React.ReactNode) => <Suspense fallback={null}>{page}</Suspense>
 
 export default function App() {
   // Apply persisted theme before first paint so there's no flash of the wrong one.
@@ -76,9 +79,9 @@ export default function App() {
               <main className="flex-1 overflow-x-hidden overflow-y-visible">
                 <PageTransition>
                   <Route path="/" element={<Home />} />
-                  <Route path="/library" element={<Library />} />
-                  <Route path="/plugins" element={<Plugins />} />
-                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/library" element={later(<Library />)} />
+                  <Route path="/plugins" element={later(<Plugins />)} />
+                  <Route path="/settings" element={later(<Settings />)} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </PageTransition>
               </main>
