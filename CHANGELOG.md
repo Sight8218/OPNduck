@@ -4,6 +4,33 @@ All notable changes to OPNduck are documented in this file. Generated with
 [git-cliff](https://github.com/orhun/git-cliff) from Conventional Commit
 history; entries are curated for readability.
 
+## [Unreleased]
+
+### Added
+
+- **One-click installs:** missing Python tools can be installed from the card itself. AI Audio sets up
+  Demucs and Subtitles sets up faster-whisper inside OPNduck's own Python environment (progress shown,
+  cancelable). The manual command stays visible.
+- **yt-dlp** can be downloaded and updated from inside OPNduck (checksum-verified, no admin rights);
+  Settings → Downloads shows the version and an Update button.
+- **Spotify tracks:** pasting a link switches the format to MP3, and "Run again" on a failed match
+  asks, then picks a different YouTube video (premieres are skipped).
+- New app icon (the website duck).
+- `packaging/aur/PKGBUILD` for an Arch package that runs on the system `electron`.
+- A "How many" limit for channel and search links in the command-palette download panel, and a notice
+  when some files of a batch couldn't be started.
+
+### Fixed
+
+- Subtitles failed with "unexpected keyword argument 'metadata_errors'" when the system PyAV didn't
+  match faster-whisper; audio is now decoded with ffmpeg. Songs no longer come out empty (the speech
+  filter is retried off), and a file with no speech reports that instead of saving an empty .srt.
+
+### Performance
+
+- The Library no longer re-sends and re-renders hundreds of finished rows on every progress tick, and
+  long histories load 60 at a time. Stale temp folders from interrupted jobs are cleaned at startup.
+
 ## [0.4.0-Beta] - 2026-10-18
 
 First Beta. The Tauri migration is still **postponed** (WebKitGTK on Linux stutters/crashes with

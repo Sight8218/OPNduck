@@ -1,0 +1,51 @@
+# Maintainer: Sight8218 (OPNduck)
+# Builds OPNduck from the tagged source and runs it on Arch's own `electron` package, so the
+# package is a few MB instead of bundling a second copy of Chromium.
+pkgname=opnduck
+# Needs a release that includes the OPNDUCK_PROD switch (v0.4.1 or later): bump _tag/pkgver then.
+_tag=v0.4.0-Beta
+pkgver=0.4.0beta
+pkgrel=1
+pkgdesc='Local-first, open-source media suite: downloader, converter, upscalers, subtitles, AI audio'
+arch=('x86_64')
+url='https://github.com/Sight8218/OPNduck'
+license=('GPL-3.0-or-later')
+depends=('electron' 'yt-dlp' 'ffmpeg')
+makedepends=('npm')
+optdepends=(
+  'libreoffice-fresh: document conversions'
+  'python: AI audio and subtitles (OPNduck can install its own Python packages)'
+  'realesrgan-ncnn-vulkan: image and video upscaling'
+  'rife-ncnn-vulkan: frame interpolation'
+)
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/$_tag.tar.gz")
+sha256sums=('SKIP') # fill in with `updpkgsums` before submitting to the AUR
+
+build() {
+  cd "OPNduck-${_tag#v}"
+  npm ci --no-audit --no-fund
+  npm run build
+}
+
+package() {
+  cd "OPNduck-${_tag#v}"
+  install -d "$pkgdir/usr/lib/$pkgname"
+  cp -r dist electron package.json "$pkgdir/usr/lib/$pkgname/"
+
+  install -Dm755 /dev/stdin "$pkgdir/usr/bin/$pkgname" <<'LAUNCHER'
+#!/bin/sh
+exec env OPNDUCK_PROD=1 electron /usr/lib/opnduck "$@"
+LAUNCHER
+
+  install -Dm644 build/icon.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/$pkgname.png"
+  install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/$pkgname.desktop" <<'DESKTOP'
+[Desktop Entry]
+Type=Application
+Name=OPNduck
+Comment=Local-first media suite
+Exec=opnduck
+Icon=opnduck
+Categories=AudioVideo;
+DESKTOP
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

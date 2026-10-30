@@ -31,7 +31,9 @@ const { createSubscriptionManager } = require('./subscriptions.cjs')
 const DEV_SERVER_URL = process.env.OPNDUCK_DEV_URL || 'http://localhost:1420'
 
 function isDev() {
-  return !app.isPackaged
+  // A distro package (the AUR one) runs the app with the system `electron`, which is never
+  // "packaged"; its launcher sets OPNDUCK_PROD=1 so it loads the built files, not the dev server.
+  return !app.isPackaged && process.env.OPNDUCK_PROD !== '1'
 }
 
 /** Where the frontend lives: Vite dev server in dev, built files in prod. Returns
