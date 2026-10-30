@@ -172,18 +172,67 @@ ipcMain.handle('login:test', async () => {
   return { ok: true, message: `Signed in — Watch Later is readable (${list.count} videos).` }
 })
 
+/* --- yt-dlp: the system one, or a copy OPNduck downloads itself (and can update in place) ---
+ * Sites change often and yt-dlp has to keep up, so the managed copy lives in userData where no root
+ * is needed. It wins over PATH once it exists. */
+const YTDLP_ASSET = process.platform === 'win32' ? 'yt-dlp.exe' : process.platform === 'darwin' ? 'yt-dlp_macos' : 'yt-dlp_linux'
+const YTDLP_RELEASE = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/'
+function managedYtDlpPath() {
+  return path.join(app.getPath('userData'), 'bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp')
+}
+function ytdlpCommand() {
+  const managed = managedYtDlpPath()
+  return fs.existsSync(managed) ? managed : 'yt-dlp'
+}
+
 ipcMain.handle('system:checkYtDlp', () => {
   return new Promise((resolve) => {
+    const managed = ytdlpCommand() !== 'yt-dlp'
+    const done = (available, version) => resolve({ available, installHint: ytDlpInstallHint(), version, managed })
     let child
     try {
-      child = spawn('yt-dlp', ['--version'])
+      child = spawn(ytdlpCommand(), ['--version'])
     } catch {
-      resolve({ available: false, installHint: ytDlpInstallHint() })
+      done(false)
       return
     }
-    child.on('error', () => resolve({ available: false, installHint: ytDlpInstallHint() }))
-    child.on('close', (code) => resolve({ available: code === 0, installHint: ytDlpInstallHint() }))
+    let out = ''
+    child.stdout.on('data', (c) => (out += c))
+    child.on('error', () => done(false))
+    child.on('close', (code) => done(code === 0, code === 0 ? out.trim() : undefined))
   })
+})
+
+let ytdlpInstalling = false
+/** Downloads the newest yt-dlp from its GitHub release, verifies the published SHA-256, and swaps it in. */
+ipcMain.handle('system:installYtDlp', async () => {
+  if (ytdlpInstalling) return { ok: false, error: 'An update is already running.' }
+  ytdlpInstalling = true
+  const dest = managedYtDlpPath()
+  const tmp = `${dest}.download`
+  try {
+    const get = async (url) => {
+      const res = await fetch(url, { signal: AbortSignal.timeout(120_000) })
+      if (!res.ok) throw new Error(`Download failed (${res.status}).`)
+      // Redirects land on GitHub's own release CDN; refuse anything that isn't https.
+      if (new URL(res.url).protocol !== 'https:') throw new Error('Unexpected download location.')
+      return Buffer.from(await res.arrayBuffer())
+    }
+    const sums = (await get(YTDLP_RELEASE + 'SHA2-256SUMS')).toString('utf8')
+    const want = sums.split('\n').map((l) => l.trim().split(/\s+/)).find((p) => p[1] === YTDLP_ASSET)?.[0]
+    if (!want) throw new Error("Couldn't find the checksum for this platform.")
+    const bin = await get(YTDLP_RELEASE + YTDLP_ASSET)
+    if (crypto.createHash('sha256').update(bin).digest('hex') !== want) throw new Error('The download failed its checksum, so it was discarded.')
+    fs.mkdirSync(path.dirname(dest), { recursive: true })
+    fs.writeFileSync(tmp, bin, { mode: 0o755 })
+    fs.renameSync(tmp, dest)
+    return { ok: true }
+  } catch (err) {
+    fs.rmSync(tmp, { force: true })
+    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+  } finally {
+    ytdlpInstalling = false
+  }
 })
 
 /** LibreOffice (soffice) does the document conversions — same detect-and-guide idea. */
@@ -881,7 +930,7 @@ function probePlaylist(url) {
   return new Promise((resolve) => {
     let child
     try {
-      child = spawn('yt-dlp', [...ytdlpBaseArgs(), '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', '5000', '--', url])
+      child = spawn(ytdlpCommand(), [...ytdlpBaseArgs(), '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', '5000', '--', url])
     } catch {
       resolve(null)
       return
@@ -955,7 +1004,7 @@ async function probeInfo(req) {
     const fallback = { title: req.url, approxSizeBytes: null, thumbnailUrl: null }
     let child
     try {
-      child = spawn('yt-dlp', [...ytdlpBaseArgs(), '--dump-json', '--no-warnings', '--no-playlist', '--', effectiveUrl])
+      child = spawn(ytdlpCommand(), [...ytdlpBaseArgs(), '--dump-json', '--no-warnings', '--no-playlist', '--', effectiveUrl])
     } catch {
       resolve(fallback)
       return
@@ -1256,7 +1305,7 @@ handleStart('tasks:start', async (_e, req) => {
 
   let child
   try {
-    child = spawn('yt-dlp', args)
+    child = spawn(ytdlpCommand(), args)
   } catch (err) {
     updateTask(id, { status: 'error', error: `Failed to start yt-dlp: ${err.message}` })
     return id
@@ -1373,7 +1422,7 @@ function probeEntries(rawUrl, limit) {
   return new Promise((resolve) => {
     let child
     try {
-      child = spawn('yt-dlp', [...ytdlpBaseArgs(), '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', String(limit), '--', url])
+      child = spawn(ytdlpCommand(), [...ytdlpBaseArgs(), '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', String(limit), '--', url])
     } catch {
       resolve(null)
       return

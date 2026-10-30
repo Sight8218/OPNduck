@@ -1,3 +1,4 @@
+import YtDlpUpdater from './YtDlpUpdater'
 import { useEffect, useState } from 'react'
 import { host, type AppSettings } from '../host'
 import GlassSelect from './GlassSelect'
@@ -254,6 +255,9 @@ export default function DownloadsCard() {
           Heads up: using your account with a downloader can occasionally get that account rate-limited or flagged by the
           site. Consider a secondary account for heavy use.
         </span>
+        <div className="mt-2 border-t border-[var(--glass-border)] pt-3">
+          <YtDlpUpdater />
+        </div>
       </div>
     </div>
   )

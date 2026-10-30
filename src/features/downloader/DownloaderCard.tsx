@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { IconChevronDown } from '@tabler/icons-react'
 import ChipSelect from '../../components/ChipSelect'
+import YtDlpUpdater from '../../components/YtDlpUpdater'
 import FeatureCard from '../../components/FeatureCard'
 import GlassSelect from '../../components/GlassSelect'
 import PresetBar from '../../components/PresetBar'
@@ -234,8 +235,9 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
         <div className="flex flex-col gap-1 rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-xs">
           <span className="font-medium text-[var(--text)]">yt-dlp isn't installed</span>
           <span className="text-[var(--text-dim)]">
-            OPNduck uses your system's yt-dlp — install it, then reopen this page:
+            OPNduck can download its own copy, or use one you install yourself:
           </span>
+          <YtDlpUpdater compact onChanged={setYtDlp} />
           <code className="select-all rounded-md bg-[var(--bg-solid)] px-2 py-1 font-mono text-[var(--text)]">
             {ytDlp.installHint}
           </code>

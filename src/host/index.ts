@@ -319,6 +319,9 @@ export interface ToolStatus {
   available: boolean
   /** A copy-pasteable install command for the current OS. */
   installHint: string
+  /** yt-dlp only: its version, and whether it's OPNduck's own downloaded copy (vs. the system one). */
+  version?: string
+  managed?: boolean
 }
 
 export interface Host {
@@ -336,6 +339,8 @@ export interface Host {
   pathForFile(file: File): string
   /** yt-dlp isn't bundled — checks whether it's on PATH, with an install hint if not. */
   checkYtDlp(): Promise<ToolStatus>
+  /** Downloads (or updates) OPNduck's own yt-dlp copy, checksum-verified. */
+  installYtDlp(): Promise<{ ok: boolean; error?: string }>
   /** ffmpeg isn't bundled either — same check, for the Converter. */
   checkFfmpeg(): Promise<ToolStatus>
   /** LibreOffice (soffice) powers the Converter's document formats. */
@@ -593,6 +598,7 @@ const browserHost: Host = {
   pathForFile: () => '',
   pickFolder: async () => null,
   checkYtDlp: async () => ({ available: false, installHint: 'Desktop app required' }),
+  installYtDlp: async () => ({ ok: false, error: 'Desktop app required' }),
   checkFfmpeg: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkLibreOffice: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkRealesrgan: async () => ({ available: false, installHint: 'Desktop app required' }),

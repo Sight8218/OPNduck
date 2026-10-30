@@ -51,6 +51,7 @@ interface ElectronBridge {
   pathForFile(file: File): string
   pickFolder(): Promise<string | null>
   checkYtDlp(): Promise<ToolStatus>
+  installYtDlp(): Promise<{ ok: boolean; error?: string }>
   checkFfmpeg(): Promise<ToolStatus>
   checkLibreOffice(): Promise<ToolStatus>
   checkRealesrgan(): Promise<ToolStatus>
@@ -162,6 +163,7 @@ export function detectElectronHost(): Host | null {
     pathForFile: (file) => bridge.pathForFile(file),
     pickFolder: () => bridge.pickFolder(),
     checkYtDlp: () => bridge.checkYtDlp(),
+    installYtDlp: () => bridge.installYtDlp(),
     checkFfmpeg: () => bridge.checkFfmpeg(),
     checkLibreOffice: () => bridge.checkLibreOffice(),
     checkRealesrgan: () => bridge.checkRealesrgan(),

@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   // Dropped File objects carry no path in a sandboxed renderer; this resolves one.
   pathForFile: (file) => webUtils.getPathForFile(file),
   checkYtDlp: () => ipcRenderer.invoke('system:checkYtDlp'),
+  installYtDlp: () => ipcRenderer.invoke('system:installYtDlp'),
   checkFfmpeg: () => ipcRenderer.invoke('system:checkFfmpeg'),
   checkDemucs: () => ipcRenderer.invoke('system:checkDemucs'),
   checkLibreOffice: () => ipcRenderer.invoke('system:checkLibreOffice'),
