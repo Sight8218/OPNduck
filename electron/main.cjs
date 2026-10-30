@@ -1461,7 +1461,12 @@ function sanitizeImported(rows) {
   for (const r of rows.slice(0, 1000)) {
     const st = r?.state
     if (!st || typeof st !== 'object' || !startHandlers.has(r.channel)) continue
-    if (!r.req || typeof r.req !== 'object' || Array.isArray(r.req) || JSON.stringify(r.req).length > 20_000) continue
+    if (!r.req || typeof r.req !== 'object' || Array.isArray(r.req)) continue
+    try {
+      if (JSON.stringify(r.req).length > 20_000) continue
+    } catch {
+      continue // a BigInt or a cycle: not something our own export could have written
+    }
     out.push({
       channel: r.channel,
       req: r.req,
@@ -1538,6 +1543,9 @@ ipcMain.handle('library:importApply', async (_e, entries, run) => {
     }
   }
   if (added) {
+    // Only MAX_HISTORY finished rows survive on disk anyway; don't let repeated imports grow memory past it.
+    const finished = [...tasks.entries()].filter(([, t]) => TERMINAL.includes(t.state.status))
+    for (const [id] of finished.slice(0, Math.max(0, finished.length - MAX_HISTORY))) tasks.delete(id)
     scheduleHistorySave()
     broadcastTasks()
   }
