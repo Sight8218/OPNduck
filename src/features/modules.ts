@@ -25,6 +25,7 @@ import AudioAiCard from './audio-ai/AudioAiCard'
 import SubtitlesCard from './subtitles/SubtitlesCard'
 import ImageUpscalerCard from './upscaler/ImageUpscalerCard'
 import VideoUpscalerCard from './upscaler/VideoUpscalerCard'
+import TrimCard from './trim/TrimCard'
 
 /**
  * Registers the core tool cards into the adaptive registry.
@@ -109,6 +110,17 @@ export function registerCoreFeatures(): void {
       icon: 'audio-ai',
       enabled: true,
       render: AudioAiCard,
+      source: 'core',
+    },
+    {
+      id: 'trim',
+      title: 'Trim',
+      tagline: 'Cut a section · no re-encode',
+      description: 'Cut a section out of a video or audio file instantly, or frame-exact with a re-encode.',
+      scope: 'desktop-exclusive',
+      icon: 'trim',
+      enabled: true,
+      render: TrimCard,
       source: 'core',
     },
   ])

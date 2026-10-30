@@ -33,6 +33,8 @@ history; entries are curated for readability.
 
 ### Performance
 
+- **Trim card:** cut a section out of a video or audio file. *Fast cut* copies the streams (instant, snaps to the
+  nearest keyframe); *Precise* re-encodes for an exact frame.
 - **Queue controls:** *Pause queue* in the Library stops waiting jobs from starting (running ones finish), *Run next*
   moves a queued job to the front of its line, and Settings → Job queue sets how many downloads (1–6) and
   conversions (1–4) run at once.
