@@ -51,6 +51,8 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   },
   checkTorchEngine: () => ipcRenderer.invoke('system:checkTorchEngine'),
   probeMedia: (p) => ipcRenderer.invoke('media:probe', p),
+  mediaFrame: (p, t, width) => ipcRenderer.invoke('media:frame', p, t, width),
+  mediaThumbs: (p, duration, count) => ipcRenderer.invoke('media:thumbs', p, duration, count),
   installTool: (tool) => ipcRenderer.invoke('system:installTool', tool),
   cancelInstall: () => ipcRenderer.invoke('system:installCancel'),
   onInstallProgress: (listener) => {

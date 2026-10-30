@@ -28,27 +28,14 @@ import { formatBytes } from '../../lib/formatBytes'
 import { useSubmittedIds } from '../../lib/submittedTasks'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
+import TrimModal from './TrimModal'
+import { formatTime, parseTime } from './time'
 
 const EXTENSIONS = ['mp4', 'mkv', 'mov', 'webm', 'avi', 'm4v', 'mp3', 'wav', 'flac', 'm4a', 'ogg', 'opus']
 const MODES = [
   { value: 'fast' as TrimMode, label: 'Fast cut' },
   { value: 'precise' as TrimMode, label: 'Precise' },
 ]
-
-/** "1:23", "1:02:03", "83" or "83.5" → seconds (null if it isn't a time). */
-function parseTime(text: string): number | null {
-  const parts = text.trim().split(':')
-  if (!text.trim() || parts.length > 3 || parts.some((p) => !/^\d+(\.\d+)?$/.test(p))) return null
-  return parts.reduce((acc, p) => acc * 60 + Number(p), 0)
-}
-
-function formatTime(sec: number): string {
-  const t = Math.max(0, sec)
-  const h = Math.floor(t / 3600)
-  const m = Math.floor((t % 3600) / 60)
-  const s = (t % 60).toFixed(t % 1 ? 1 : 0)
-  return h ? `${h}:${String(m).padStart(2, '0')}:${s.padStart(2, '0')}` : `${m}:${s.padStart(2, '0')}`
-}
 
 const basename = (p: string) => p.split(/[/\\]/).pop() ?? p
 
@@ -61,6 +48,7 @@ export default function TrimCard({ feature }: { feature: FeatureDefinition }) {
   const [end, setEnd] = useState('')
   const [mode, setMode] = useState<TrimMode>('fast')
   const [error, setError] = useState<string | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
   const [submittedIds, setSubmittedIds] = useSubmittedIds('trim')
 
   const tasks = useTasks()
@@ -86,16 +74,16 @@ export default function TrimCard({ feature }: { feature: FeatureDefinition }) {
     if (p) setFile(p)
   }
 
-  async function run() {
+  async function run(override?: { start: number; end: number; mode: TrimMode }) {
     if (!file || !info) return
-    const s = parseTime(start)
-    const e = end.trim() ? parseTime(end) : null
+    const s = override ? override.start : parseTime(start)
+    const e = override ? override.end : end.trim() ? parseTime(end) : null
     if (s == null || (end.trim() && e == null)) return setError('Use times like 1:23 or 1:02:03.')
     if (s >= info.duration) return setError('The start is past the end of the file.')
     if (e != null && e <= s) return setError('The end must be after the start.')
     setError(null)
     try {
-      const id = await host.tasks.startTrim({ inputPath: file, start: s, end: e, mode, destination: getDownloadDirOverride() ?? undefined })
+      const id = await host.tasks.startTrim({ inputPath: file, start: s, end: e, mode: override?.mode ?? mode, destination: getDownloadDirOverride() ?? undefined })
       setSubmittedIds([id])
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -112,6 +100,11 @@ export default function TrimCard({ feature }: { feature: FeatureDefinition }) {
           {basename(file)}
           {info ? ` — ${formatTime(info.duration)}${info.width ? `, ${info.width}×${info.height}` : ''}` : ''}
         </span>
+      )}
+      {file && info && (
+        <button type="button" className="glass-btn" onClick={() => setModalOpen(true)} disabled={running}>
+          Open visual trimmer…
+        </button>
       )}
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -145,9 +138,25 @@ export default function TrimCard({ feature }: { feature: FeatureDefinition }) {
           </div>
         </div>
       ))}
-      <button type="button" className="glass-btn" onClick={run} disabled={!file || !info || running}>
+      <button type="button" className="glass-btn" onClick={() => void run()} disabled={!file || !info || running}>
         Trim
       </button>
+      {file && info && (
+        <TrimModal
+          open={modalOpen}
+          file={file}
+          info={info}
+          initial={{ start: parseTime(start) ?? 0, end: parseTime(end) ?? info.duration, mode }}
+          onClose={() => setModalOpen(false)}
+          onConfirm={(s, e, m) => {
+            setModalOpen(false)
+            setStart(formatTime(s))
+            setEnd(formatTime(e))
+            setMode(m)
+            void run({ start: s, end: e, mode: m })
+          }}
+        />
+      )}
     </FeatureCard>
   )
 }

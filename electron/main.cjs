@@ -3094,6 +3094,50 @@ function probeMedia(inputPath) {
 }
 ipcMain.handle('media:probe', (_e, inputPath) => (typeof inputPath === 'string' && path.isAbsolute(inputPath) ? probeMedia(inputPath) : null))
 
+/** One JPEG frame of a file at time `t` seconds, as a data URL (null on failure). Used by the trimmer preview. */
+function mediaFrame(inputPath, t, width) {
+  return new Promise((resolve) => {
+    let child
+    try {
+      child = spawn('ffmpeg', ['-v', 'error', '-nostdin', '-ss', String(Math.max(0, t)), '-i', inputPath, '-frames:v', '1', '-vf', `scale=${width}:-2`, '-f', 'image2pipe', '-c:v', 'mjpeg', '-q:v', '5', '-'])
+    } catch {
+      resolve(null)
+      return
+    }
+    const chunks = []
+    const timer = setTimeout(() => child.kill(), 15_000)
+    child.stdout.on('data', (c) => chunks.push(c))
+    child.on('error', () => {
+      clearTimeout(timer)
+      resolve(null)
+    })
+    child.on('close', () => {
+      clearTimeout(timer)
+      const buf = Buffer.concat(chunks)
+      resolve(buf.length ? `data:image/jpeg;base64,${buf.toString('base64')}` : null)
+    })
+  })
+}
+ipcMain.handle('media:frame', (_e, p, t, width) =>
+  typeof p === 'string' && path.isAbsolute(p) && Number.isFinite(t) ? mediaFrame(p, t, Math.min(1280, Math.max(64, Number(width) || 640))) : null,
+)
+/** A strip of evenly spaced thumbnails (4 at a time) for the trimmer timeline. */
+ipcMain.handle('media:thumbs', async (_e, p, duration, count) => {
+  if (typeof p !== 'string' || !path.isAbsolute(p) || !Number.isFinite(duration) || duration <= 0) return []
+  const n = Math.min(24, Math.max(2, Number(count) || 14))
+  const out = new Array(n).fill(null)
+  let next = 0
+  await Promise.all(
+    Array.from({ length: 4 }, async () => {
+      while (next < n) {
+        const i = next++
+        out[i] = await mediaFrame(p, ((i + 0.5) / n) * duration, 160)
+      }
+    }),
+  )
+  return out
+})
+
 const fmtClock = (sec) => {
   const t = Math.max(0, Math.round(sec))
   const h = Math.floor(t / 3600)

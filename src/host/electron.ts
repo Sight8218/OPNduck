@@ -67,6 +67,8 @@ interface ElectronBridge {
   }
   checkTorchEngine(): Promise<{ available: boolean; nvidia: boolean }>
   probeMedia(path: string): Promise<MediaInfo | null>
+  mediaFrame(path: string, time: number, width?: number): Promise<string | null>
+  mediaThumbs(path: string, duration: number, count?: number): Promise<(string | null)[]>
   installTool(tool: PythonTool): Promise<{ ok: boolean; error?: string }>
   cancelInstall(): Promise<void>
   onInstallProgress(listener: (p: { tool: PythonTool; line: string }) => void): () => void
@@ -186,6 +188,8 @@ export function detectElectronHost(): Host | null {
     checkDemucs: () => bridge.checkDemucs(),
     checkTorchEngine: () => bridge.checkTorchEngine(),
     probeMedia: (p) => bridge.probeMedia(p),
+    mediaFrame: (p, t, w) => bridge.mediaFrame(p, t, w),
+    mediaThumbs: (p, d, c) => bridge.mediaThumbs(p, d, c),
     installTool: (tool, onProgress) => {
       const off = bridge.onInstallProgress((p) => p.tool === tool && onProgress?.(p.line))
       return bridge.installTool(tool).finally(off)

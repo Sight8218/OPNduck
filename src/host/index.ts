@@ -408,6 +408,10 @@ export interface Host {
   checkDemucs(): Promise<ToolStatus>
   /** Duration and size of a media file (ffprobe). Null if it can't be read. */
   probeMedia(path: string): Promise<MediaInfo | null>
+  /** One frame of a video at `time` seconds as an image data URL (null if it can't be read). */
+  mediaFrame(path: string, time: number, width?: number): Promise<string | null>
+  /** Evenly spaced small frames across a video, for a timeline strip (entries can be null). */
+  mediaThumbs(path: string, duration: number, count?: number): Promise<(string | null)[]>
   /** The faster PyTorch video upscaling engine: whether it can run, and whether an NVIDIA GPU is present. */
   checkTorchEngine(): Promise<{ available: boolean; nvidia: boolean }>
   /** One-click install of a Python tool into OPNduck's own environment; `onProgress` gets pip's output lines. */
@@ -694,6 +698,8 @@ const browserHost: Host = {
   checkDemucs: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkTorchEngine: async () => ({ available: false, nvidia: false }),
   probeMedia: async () => null,
+  mediaFrame: async () => null,
+  mediaThumbs: async () => [],
   installTool: async () => ({ ok: false, error: 'Desktop app required' }),
   cancelInstall: async () => {},
   tasks: browserTasks,
