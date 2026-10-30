@@ -58,12 +58,13 @@ interface ElectronBridge {
   checkRife(): Promise<ToolStatus>
   checkFasterWhisper(): Promise<ToolStatus>
   checkDemucs(): Promise<ToolStatus>
+  checkTorchEngine(): Promise<{ available: boolean; nvidia: boolean }>
   installTool(tool: PythonTool): Promise<{ ok: boolean; error?: string }>
   cancelInstall(): Promise<void>
   onInstallProgress(listener: (p: { tool: PythonTool; line: string }) => void): () => void
   settings: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   subscriptions: {
     list(): Promise<Subscription[]>
@@ -173,6 +174,7 @@ export function detectElectronHost(): Host | null {
     checkRife: () => bridge.checkRife(),
     checkFasterWhisper: () => bridge.checkFasterWhisper(),
     checkDemucs: () => bridge.checkDemucs(),
+    checkTorchEngine: () => bridge.checkTorchEngine(),
     installTool: (tool, onProgress) => {
       const off = bridge.onInstallProgress((p) => p.tool === tool && onProgress?.(p.line))
       return bridge.installTool(tool).finally(off)

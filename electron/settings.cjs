@@ -35,6 +35,10 @@ const DEFAULTS = {
   /** GPU job threading for the upscaler/interpolator: 'auto' overlaps loading, processing and saving
    *  frames (faster); 'low' uses the tools' conservative defaults for GPUs with little memory. */
   gpuThreads: 'auto',
+  /** Video upscaling engine: 'auto' = PyTorch when it can run (faster, streams frames), else ncnn; 'ncnn' = always ncnn. */
+  upscaleEngine: 'auto',
+  /** Encoder for AI video jobs: 'auto' = GPU (NVENC) when it works, 'cpu' = x264. */
+  videoEncoder: 'auto',
   cookies: {
     /** 'none' | 'browser' (read from an installed browser) | 'file' (Netscape cookies.txt) |
      *  'login' (cookies saved from OPNduck's own sign-in window, see login.cjs). */
@@ -70,6 +74,8 @@ function validate(next) {
     }
   }
   if (!['auto', 'low'].includes(next.gpuThreads)) throw new Error('Invalid GPU performance mode')
+  if (!['auto', 'ncnn'].includes(next.upscaleEngine)) throw new Error('Invalid upscale engine')
+  if (!['auto', 'cpu'].includes(next.videoEncoder)) throw new Error('Invalid video encoder')
   const c = next.cookies
   if (!c || !['none', 'browser', 'file', 'login'].includes(c.mode)) throw new Error('Invalid cookie source')
   if (!COOKIE_BROWSERS.includes(c.browser)) throw new Error('Unsupported browser for cookies')
@@ -119,6 +125,8 @@ function setSettings(patch) {
   const next = {
     proxy: patch.proxy !== undefined ? String(patch.proxy).trim() : current.proxy,
     gpuThreads: patch.gpuThreads !== undefined ? patch.gpuThreads : current.gpuThreads,
+    upscaleEngine: patch.upscaleEngine !== undefined ? patch.upscaleEngine : current.upscaleEngine,
+    videoEncoder: patch.videoEncoder !== undefined ? patch.videoEncoder : current.videoEncoder,
     cookies: { ...current.cookies, ...(patch.cookies && typeof patch.cookies === 'object' ? patch.cookies : {}) },
   }
   validate(next)

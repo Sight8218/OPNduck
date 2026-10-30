@@ -33,6 +33,14 @@ history; entries are curated for readability.
 
 ### Performance
 
+- **Faster video upscaling engine (PyTorch, NVIDIA):** frames now stream ffmpeg → GPU → ffmpeg through pipes with
+  no temporary image files at all. End to end on an RTX 3080 it was about 1.4–1.8× faster than the classic engine
+  at 2× and 2.3–3.6× faster at 4× (output quality matches: SSIM 0.993). Settings → GPU jobs picks Auto or Classic
+  (ncnn); the Video Upscaler card offers a one-click install (about 5 GB) when it isn't set up. Model weights are
+  official Real-ESRGAN releases downloaded once, checksum-pinned. Any failure falls back to the classic engine
+  automatically, and cancelling removes the partial file.
+- **GPU video encoding (NVENC):** AI video jobs encode on the GPU when it works (H.264 up to 4096 px wide, HEVC
+  above), falling back to x264 on any failure. Settings → GPU jobs can force the CPU.
 - **Show live logs:** every task card (and each Library row) has a "Show live logs" toggle that tails what the
   job's tools are printing right now (yt-dlp, ffmpeg, the upscalers, Whisper, Demucs) plus the pipeline's own
   steps (e.g. "Chunk 2 of 5: upscaling"). Logs live in memory only.

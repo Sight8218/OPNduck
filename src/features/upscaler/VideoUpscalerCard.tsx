@@ -1,3 +1,4 @@
+import InstallToolPanel from '../../components/InstallToolPanel'
 import ProgressBar from '../../components/ProgressBar'
 import TaskLogs from '../../components/TaskLogs'
 import { useEffect, useState } from 'react'
@@ -50,18 +51,22 @@ export default function VideoUpscalerCard({ feature }: { feature: FeatureDefinit
   const [submittedIds, setSubmittedIds] = useSubmittedIds('video-upscale')
   const [realesrgan, setRealesrgan] = useState<{ available: boolean; installHint: string } | null>(null)
   const [ffmpeg, setFfmpeg] = useState<{ available: boolean; installHint: string } | null>(null)
+  const [torch, setTorch] = useState<{ available: boolean; nvidia: boolean } | null>(null)
 
   useEffect(() => {
     if (!host.isDesktop) return
     host.checkRealesrgan().then(setRealesrgan)
     host.checkFfmpeg().then(setFfmpeg)
+    host.checkTorchEngine().then(setTorch)
   }, [])
 
   const tasks = useTasks()
   const submittedTasks = tasks.filter((t) => submittedIds.includes(t.id))
   const anyRunning = submittedTasks.some((t) => t.status === 'queued' || t.status === 'running')
-  const missingTool = !realesrgan?.available ? realesrgan : !ffmpeg?.available ? ffmpeg : null
-  const missingName = !realesrgan?.available ? 'realesrgan-ncnn-vulkan' : 'ffmpeg'
+  // The PyTorch engine doesn't need the ncnn tool; it still needs ffmpeg.
+  const ncnnNeeded = !torch?.available
+  const missingTool = ncnnNeeded && !realesrgan?.available ? realesrgan : !ffmpeg?.available ? ffmpeg : null
+  const missingName = ncnnNeeded && !realesrgan?.available ? 'realesrgan-ncnn-vulkan' : 'ffmpeg'
   const scaleLocked = X4_ONLY_MODELS.includes(model)
 
   function changeModel(next: UpscaleModel) {
@@ -96,6 +101,16 @@ export default function VideoUpscalerCard({ feature }: { feature: FeatureDefinit
       onDropFiles={anyRunning ? undefined : addDropped}
       dropExtensions={VIDEO_EXTENSIONS}
     >
+      {torch && !torch.available && torch.nvidia && !missingTool && (
+        <div className="flex flex-col gap-1 rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-xs">
+          <span className="font-medium text-[var(--text)]">Faster upscaling engine available</span>
+          <span className="text-[var(--text-dim)]">
+            The PyTorch engine streams frames straight through your GPU: about 1.5 to 3.5× faster in testing, with no temporary
+            files. Your current engine keeps working if you skip it.
+          </span>
+          <InstallToolPanel tool="torch" label="Install fast engine" sizeNote="about 5 GB" onInstalled={() => host.checkTorchEngine().then(setTorch)} />
+        </div>
+      )}
       {missingTool && realesrgan && ffmpeg && (
         <div className="flex flex-col gap-1 rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-xs">
           <span className="font-medium text-[var(--text)]">{missingName} isn't installed</span>

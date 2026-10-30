@@ -66,7 +66,7 @@ export interface BatchInfo {
 }
 
 /** Python tools OPNduck can install for you into its own environment. */
-export type PythonTool = 'demucs' | 'whisper' | 'whisper-gpu'
+export type PythonTool = 'demucs' | 'whisper' | 'whisper-gpu' | 'torch'
 
 export interface DownloadRequest {
   /** Set by the card when it starts several jobs at once. */
@@ -131,6 +131,10 @@ export interface AppSettings {
   proxy: string
   /** 'auto' = faster multi-threaded GPU jobs; 'low' = conservative, for GPUs with little memory. */
   gpuThreads: 'auto' | 'low'
+  /** Video upscaling engine: 'auto' uses PyTorch when it can run (faster), 'ncnn' always uses the classic one. */
+  upscaleEngine: 'auto' | 'ncnn'
+  /** AI video encoder: 'auto' = GPU (NVENC) when it works, 'cpu' = x264. */
+  videoEncoder: 'auto' | 'cpu'
   cookies: {
     mode: 'none' | 'browser' | 'file' | 'login'
     browser: string
@@ -363,6 +367,8 @@ export interface Host {
   checkFasterWhisper(): Promise<ToolStatus>
   /** Python with torch + demucs + soundfile, for the AI Audio card. */
   checkDemucs(): Promise<ToolStatus>
+  /** The faster PyTorch video upscaling engine: whether it can run, and whether an NVIDIA GPU is present. */
+  checkTorchEngine(): Promise<{ available: boolean; nvidia: boolean }>
   /** One-click install of a Python tool into OPNduck's own environment; `onProgress` gets pip's output lines. */
   installTool(tool: PythonTool, onProgress?: (line: string) => void): Promise<{ ok: boolean; error?: string }>
   cancelInstall(): Promise<void>
@@ -378,7 +384,7 @@ export interface Host {
   /** Main-process settings (proxy, login cookies). Desktop shell only. */
   settings?: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   /** Auto-download new uploads from a channel/playlist (checked while the app is open). Desktop shell only. */
   subscriptions?: {
@@ -616,6 +622,7 @@ const browserHost: Host = {
   checkRife: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkFasterWhisper: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkDemucs: async () => ({ available: false, installHint: 'Desktop app required' }),
+  checkTorchEngine: async () => ({ available: false, nvidia: false }),
   installTool: async () => ({ ok: false, error: 'Desktop app required' }),
   cancelInstall: async () => {},
   tasks: browserTasks,

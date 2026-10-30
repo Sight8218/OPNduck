@@ -40,6 +40,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   checkRealesrgan: () => ipcRenderer.invoke('system:checkRealesrgan'),
   checkRife: () => ipcRenderer.invoke('system:checkRife'),
   checkFasterWhisper: () => ipcRenderer.invoke('system:checkFasterWhisper'),
+  checkTorchEngine: () => ipcRenderer.invoke('system:checkTorchEngine'),
   installTool: (tool) => ipcRenderer.invoke('system:installTool', tool),
   cancelInstall: () => ipcRenderer.invoke('system:installCancel'),
   onInstallProgress: (listener) => {
