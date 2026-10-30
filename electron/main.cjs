@@ -1971,6 +1971,23 @@ async function convertJob(id, req, fmt, outputPath) {
  *  the user pick an invalid scale/model pair in the first place. No -m flag:
  *  the binary finds its own bundled/packaged models without help, verified
  *  against both a manual build layout and this system's AUR package. */
+/** -j load:proc:save threads for the ncnn tools. Their default (1:2:2) leaves the GPU idle while frames
+ *  load and save; measured on an RTX 3080: ~1.4x (realesrgan, 360p) and ~1.1-2x (rife) faster. */
+const GPU_THREADS = { upscale: '2:4:4', interpolate: '4:4:4', low: '1:2:2' }
+const gpuThreadArg = (kind) => (getSettings().gpuThreads === 'low' ? GPU_THREADS.low : GPU_THREADS[kind])
+
+/** Runs an ncnn GPU tool with the faster thread setting; if it fails before finishing a single frame
+ *  (typically not enough GPU memory for that setting), retries once with the conservative one. */
+async function spawnGpuTool(id, cmd, args, kind, entry, opts, framesDone) {
+  const threads = gpuThreadArg(kind)
+  try {
+    return await spawnTracked(cmd, [...args, '-j', threads], entry, opts)
+  } catch (err) {
+    if (isCanceled(id) || threads === GPU_THREADS.low || framesDone() > 0) throw err
+    return spawnTracked(cmd, [...args, '-j', GPU_THREADS.low], entry, opts)
+  }
+}
+
 function upscaleArgs(req, outputPath) {
   return ['-i', req.inputPath, '-o', outputPath, '-s', String(req.scale), '-n', req.model, '-v']
 }
@@ -2257,9 +2274,11 @@ async function videoUpscaleJob(id, req, outputPath) {
 
   try {
     let doneCount = 0
-    await spawnTracked(
+    await spawnGpuTool(
+      id,
       'realesrgan-ncnn-vulkan',
       ['-i', framesDir, '-o', upscaledDir, '-s', String(req.scale), '-n', req.model, '-v'],
+      'upscale',
       entry,
       {
         onStderr: (text) => {
@@ -2273,6 +2292,7 @@ async function videoUpscaleJob(id, req, outputPath) {
           }
         },
       },
+      () => doneCount,
     )
   } catch (err) {
     if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Upscaling failed: ${err.message}` })
@@ -2446,9 +2466,12 @@ async function interpolateJob(id, req, outputPath) {
 
   try {
     let doneCount = 0
-    await spawnTracked(
+    await spawnGpuTool(
+      id,
       'rife-ncnn-vulkan',
-      ['-i', framesDir, '-o', interpolatedDir, '-n', String(targetFrameCount), '-v'],
+      // rife-v4.6: the tool's default model (rife-HD) can't make a custom frame count (-n), v4 models can.
+      ['-i', framesDir, '-o', interpolatedDir, '-n', String(targetFrameCount), '-m', 'rife-v4.6', '-v'],
+      'interpolate',
       entry,
       {
         onStderr: (text) => {
@@ -2459,6 +2482,7 @@ async function interpolateJob(id, req, outputPath) {
           }
         },
       },
+      () => doneCount,
     )
   } catch (err) {
     if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Interpolation failed: ${err.message}` })

@@ -22,12 +22,18 @@ history; entries are curated for readability.
 
 ### Fixed
 
+- **Frame Interpolation** failed with "only rife-v4 model support custom numframe" on installs whose RIFE
+  defaults to an older model; it now uses `rife-v4.6`.
 - Subtitles failed with "unexpected keyword argument 'metadata_errors'" when the system PyAV didn't
   match faster-whisper; audio is now decoded with ffmpeg. Songs no longer come out empty (the speech
   filter is retried off), and a file with no speech reports that instead of saving an empty .srt.
 
 ### Performance
 
+- **Faster AI video jobs:** the upscaler and frame interpolator now load, process and save frames in
+  parallel (measured on an RTX 3080: video upscale ~27% and interpolation ~20% faster end to end on a
+  small clip; up to 2× on the GPU step alone). Settings → GPU job speed has a *Low memory* mode for older
+  GPUs, and a job that fails right away on the fast setting retries once on the conservative one.
 - The Library no longer re-sends and re-renders hundreds of finished rows on every progress tick, and
   long histories load 60 at a time. Stale temp folders from interrupted jobs are cleaned at startup.
 

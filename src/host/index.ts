@@ -129,6 +129,8 @@ export interface DownloadProbe {
 export interface AppSettings {
   /** '' = no proxy; otherwise an http(s)/socks4/socks5 URL used for every yt-dlp call. */
   proxy: string
+  /** 'auto' = faster multi-threaded GPU jobs; 'low' = conservative, for GPUs with little memory. */
+  gpuThreads: 'auto' | 'low'
   cookies: {
     mode: 'none' | 'browser' | 'file' | 'login'
     browser: string
@@ -369,7 +371,7 @@ export interface Host {
   /** Main-process settings (proxy, login cookies). Desktop shell only. */
   settings?: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   /** Auto-download new uploads from a channel/playlist (checked while the app is open). Desktop shell only. */
   subscriptions?: {

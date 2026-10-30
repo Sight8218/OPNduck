@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { IconAdjustmentsHorizontal, IconCpu, IconDownload, IconInfoCircle, IconKeyboard } from '@tabler/icons-react'
+import GpuPerformanceCard from '../components/GpuPerformanceCard'
 import HardwareAllocation from '../components/HardwareAllocation'
 import InfoCard from '../components/InfoCard'
 import KeybindsCard from '../components/KeybindsCard'
@@ -150,6 +151,7 @@ export default function Settings() {
           >
             <CategoryLabel label="System" />
             <HardwareAllocation />
+            {host.settings && <GpuPerformanceCard />}
             <StorageCard />
             <UpdatesCard />
           </section>

@@ -32,6 +32,9 @@ const COOKIE_BROWSERS = ['firefox', 'chromium', 'chrome', 'edge', 'brave', 'oper
 const DEFAULTS = {
   /** '' = no proxy. Otherwise http(s)/socks4/socks5 URL handed to yt-dlp --proxy. */
   proxy: '',
+  /** GPU job threading for the upscaler/interpolator: 'auto' overlaps loading, processing and saving
+   *  frames (faster); 'low' uses the tools' conservative defaults for GPUs with little memory. */
+  gpuThreads: 'auto',
   cookies: {
     /** 'none' | 'browser' (read from an installed browser) | 'file' (Netscape cookies.txt) |
      *  'login' (cookies saved from OPNduck's own sign-in window, see login.cjs). */
@@ -66,6 +69,7 @@ function validate(next) {
       throw new Error('Proxy must start with http://, https://, socks4:// or socks5://')
     }
   }
+  if (!['auto', 'low'].includes(next.gpuThreads)) throw new Error('Invalid GPU performance mode')
   const c = next.cookies
   if (!c || !['none', 'browser', 'file', 'login'].includes(c.mode)) throw new Error('Invalid cookie source')
   if (!COOKIE_BROWSERS.includes(c.browser)) throw new Error('Unsupported browser for cookies')
@@ -114,6 +118,7 @@ function setSettings(patch) {
   const current = read()
   const next = {
     proxy: patch.proxy !== undefined ? String(patch.proxy).trim() : current.proxy,
+    gpuThreads: patch.gpuThreads !== undefined ? patch.gpuThreads : current.gpuThreads,
     cookies: { ...current.cookies, ...(patch.cookies && typeof patch.cookies === 'object' ? patch.cookies : {}) },
   }
   validate(next)

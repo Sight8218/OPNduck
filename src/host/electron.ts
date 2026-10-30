@@ -63,7 +63,7 @@ interface ElectronBridge {
   onInstallProgress(listener: (p: { tool: PythonTool; line: string }) => void): () => void
   settings: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   subscriptions: {
     list(): Promise<Subscription[]>
