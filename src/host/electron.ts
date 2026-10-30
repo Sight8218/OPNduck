@@ -106,6 +106,9 @@ interface ElectronBridge {
     clearFinished(): Promise<void>
     remove(ids: string[]): Promise<number>
     list(): Promise<TaskState[]>
+    logs(taskId: string): Promise<string[]>
+    watchLog(taskId: string, on: boolean): Promise<void>
+    onLog(listener: (p: { id: string; lines: string[]; replaceLast: boolean }) => void): () => void
     onUpdate(listener: (update: { full: boolean; tasks: TaskState[] }) => void): () => void
     getDefaultDownloadDir(): Promise<string>
     probe(req: DownloadRequest): Promise<DownloadProbe>
@@ -215,6 +218,15 @@ export function detectElectronHost(): Host | null {
       startSubtitles: (req) => bridge.tasks.startSubtitles(req),
       startAudioAi: (req) => bridge.tasks.startAudioAi(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
+      logs: (taskId) => bridge.tasks.logs(taskId),
+      watchLog: (taskId, listener) => {
+        const off = bridge.tasks.onLog((p) => p.id === taskId && listener({ lines: p.lines, replaceLast: p.replaceLast }))
+        void bridge.tasks.watchLog(taskId, true)
+        return () => {
+          off()
+          void bridge.tasks.watchLog(taskId, false)
+        }
+      },
       rerun: (taskId, opts) => bridge.tasks.rerun(taskId, opts),
       openFolder: (taskId) => bridge.tasks.openFolder(taskId),
       clearFinished: () => bridge.tasks.clearFinished(),

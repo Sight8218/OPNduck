@@ -302,6 +302,10 @@ export interface HostTasks {
   cancel(taskId: string): void
   /** Replays a finished task's original request as a new task. Resolves to the new id (null if it can't be replayed). */
   rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
+  /** The tail of what a job's tools printed (kept in memory only, so history from earlier launches has none). */
+  logs(taskId: string): Promise<string[]>
+  /** Streams new log lines for a task while subscribed; `replaceLast` means the last shown line was updated in place. */
+  watchLog(taskId: string, listener: (p: { lines: string[]; replaceLast: boolean }) => void): () => void
   /** Reveals a finished task's output (or its destination folder) in the file manager. */
   openFolder(taskId: string): Promise<void>
   /** Removes every finished/failed/canceled task from the history. */
@@ -575,6 +579,8 @@ const browserTasks: HostTasks = {
   },
   cancel: () => {},
   rerun: async () => null,
+  logs: async () => [],
+  watchLog: () => () => {},
   openFolder: async () => {},
   clearFinished: async () => {},
   remove: async () => 0,

@@ -100,6 +100,13 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     clearFinished: () => ipcRenderer.invoke('tasks:clearFinished'),
     remove: (ids) => ipcRenderer.invoke('tasks:remove', ids),
     list: () => ipcRenderer.invoke('tasks:list'),
+    logs: (taskId) => ipcRenderer.invoke('tasks:logs', taskId),
+    watchLog: (taskId, on) => ipcRenderer.invoke('tasks:logWatch', taskId, on),
+    onLog: (listener) => {
+      const handler = (_e, payload) => listener(payload)
+      ipcRenderer.on('tasks:log', handler)
+      return () => ipcRenderer.removeListener('tasks:log', handler)
+    },
     onUpdate: (listener) => {
       const handler = (_e, update) => listener(update)
       ipcRenderer.on('tasks:update', handler)

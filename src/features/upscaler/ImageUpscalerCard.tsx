@@ -1,3 +1,5 @@
+import ProgressBar from '../../components/ProgressBar'
+import TaskLogs from '../../components/TaskLogs'
 import { useEffect, useState } from 'react'
 import FeatureCard from '../../components/FeatureCard'
 import GlassSelect from '../../components/GlassSelect'
@@ -158,14 +160,8 @@ export default function ImageUpscalerCard({ feature }: { feature: FeatureDefinit
         <div className="flex flex-col gap-2">
           {submittedTasks.map((t) => (
             <div key={t.id} className="flex flex-col gap-1">
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--input-bg)]">
-                <div
-                  className={`h-full rounded-full transition-[width] duration-300 ${
-                    t.status === 'error' ? 'bg-red-500' : 'bg-[var(--accent)]'
-                  } ${t.status === 'running' ? 'progress-shimmer' : ''}`}
-                  style={{ width: `${Math.round(t.progress * 100)}%` }}
-                />
-              </div>
+              <ProgressBar value={t.progress} status={t.status} />
+              <TaskLogs taskId={t.id} />
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="truncate text-xs text-[var(--text-dim)]">
                   {t.status === 'error' ? t.error : t.label}

@@ -673,6 +673,58 @@ function addTask(id, entry) {
   historyChanged = true
 }
 
+/* --- Live logs: a short in-memory tail of what each job's tools print, shown on demand in the UI ---
+ * Not persisted (history keeps only the outcome). The renderer asks for the buffer and, while a log
+ * panel is open for a task, receives new lines as they arrive. */
+const LOG_MAX_LINES = 400
+const LOG_NOISE = /^ffmpeg version |^\s+(built with|configuration:|lib\w+\s+\d)|^(frame|fps|stream_\d+_\d+_q|bitrate|total_size|out_time_us|out_time_ms|out_time|dup_frames|drop_frames|speed|progress)=|^\s*\d+(\.\d+)?%\s*$/
+const logWatched = new Set() // task ids with an open log panel
+const logPending = new Map() // id -> { lines, replaceLast }
+let logTimer = null
+
+/** Appends tool output (partial lines are held until complete) to a task's log. */
+function appendLog(id, chunk, stream = 'o') {
+  const entry = tasks.get(id)
+  if (!entry) return
+  entry.log ??= { lines: [], partial: { o: '', e: '' } }
+  const log = entry.log
+  const parts = (log.partial[stream] + String(chunk)).split(/\r?\n|\r/)
+  log.partial[stream] = parts.pop() ?? ''
+  for (const raw of parts) {
+    const line = raw.replace(/\s+$/, '').slice(0, 300)
+    if (!line || LOG_NOISE.test(line)) continue
+    // yt-dlp's percent line updates in place: keep only the latest instead of hundreds of near-copies.
+    const isPct = /^\[download\]\s+\d/.test(line)
+    const replace = isPct && /^\[download\]\s+\d/.test(log.lines[log.lines.length - 1] ?? '')
+    if (replace) log.lines[log.lines.length - 1] = line
+    else log.lines.push(line)
+    if (log.lines.length > LOG_MAX_LINES) log.lines.splice(0, log.lines.length - LOG_MAX_LINES)
+    if (logWatched.has(id)) {
+      const pend = logPending.get(id) ?? { lines: [], replaceLast: false }
+      if (replace && !pend.lines.length) pend.replaceLast = true
+      else if (replace) pend.lines[pend.lines.length - 1] = line
+      if (!replace) pend.lines.push(line)
+      logPending.set(id, pend)
+    }
+  }
+  if (logWatched.has(id) && logPending.size && !logTimer) {
+    logTimer = setTimeout(() => {
+      logTimer = null
+      for (const [tid, pend] of logPending) {
+        for (const win of BrowserWindow.getAllWindows()) win.webContents.send('tasks:log', { id: tid, ...pend })
+      }
+      logPending.clear()
+    }, 120)
+  }
+}
+/** A human-readable step marker the job itself wants in the log ("Chunk 2 of 5: upscaling"). */
+const jobLog = (id, text) => appendLog(id, text + '\n')
+/** Mirrors a child process's stdout/stderr into the task log. */
+function attachLog(child, id) {
+  child.stdout?.on('data', (c) => appendLog(id, c, 'o'))
+  child.stderr?.on('data', (c) => appendLog(id, c, 'e'))
+}
+
 function defaultDownloadDir() {
   return path.join(app.getPath('downloads'), 'OPNduck')
 }
@@ -779,6 +831,11 @@ function updateTask(id, patch) {
   // A finished task never changes outcome: a cancel that races a normal exit (or a late
   // 'error'/'close' event after a kill) must not flip 'canceled' to 'done' or vice versa.
   if (patch.status && TERMINAL.includes(entry.state.status)) return
+  // Progress only ever moves forward while a job runs: multi-stage tools (yt-dlp's separate video and
+  // audio streams, extract/process/encode phases) restart their own percentages, which made bars jump back.
+  if (typeof patch.progress === 'number' && !patch.status && entry.state.status === 'running') {
+    patch = { ...patch, progress: Math.max(entry.state.progress, patch.progress) }
+  }
   Object.assign(entry.state, patch)
   if (TERMINAL.includes(entry.state.status)) {
     historyChanged = true // a row just finished (or a finished one was edited): the renderer needs the full list
@@ -1344,6 +1401,7 @@ handleStart('tasks:start', async (_e, req) => {
   let child
   try {
     child = spawn(ytdlpCommand(), args)
+    attachLog(child, id)
   } catch (err) {
     updateTask(id, { status: 'error', error: `Failed to start yt-dlp: ${err.message}` })
     return id
@@ -1357,6 +1415,9 @@ handleStart('tasks:start', async (_e, req) => {
   let skipped = 0
   const files = new Set()
   let stdoutBuf = ''
+  let streamBase = 0 // bytes of the yt-dlp streams already finished (progress weighting)
+  let streamSize = 0 // size of the stream being downloaded now
+  const isVideoFormat = Object.hasOwn(VIDEO_EXT, req.format)
   child.stdout.on('data', (chunk) => {
     // Lines can straddle chunk boundaries — only parse complete ones.
     stdoutBuf += chunk.toString()
@@ -1378,7 +1439,15 @@ handleStart('tasks:start', async (_e, req) => {
           const overall = (Math.max(0, pl.index - 1) + pct) / pl.total
           updateTask(id, { progress: Math.max(entry.state.progress, Math.min(0.999, overall)) })
         } else if (!wholePlaylist) {
-          updateTask(id, { progress: pct })
+          // yt-dlp reports each stream (video, then audio) as its own 0-100%. Weigh each by its size
+          // against the whole download so the bar fills once, smoothly: finished streams + current one.
+          const sizeMatch = line.match(/of\s+~?\s*([\d.]+)\s*(B|KiB|MiB|GiB)/)
+          if (sizeMatch) streamSize = Number(sizeMatch[1]) * { B: 1, KiB: 1024, MiB: 1048576, GiB: 1073741824 }[sizeMatch[2]]
+          const doneBytes = streamBase + pct * streamSize
+          const known = Math.max(entry.state.sizeIsEstimate ? entry.state.sizeBytes ?? 0 : 0, streamBase + streamSize)
+          // Without a size estimate, assume a video download still has a small audio stream to come.
+          const total = known > streamBase + streamSize ? known : streamBase + streamSize * (streamBase === 0 && isVideoFormat ? 1.1 : 1)
+          updateTask(id, { progress: Math.min(0.99, total > 0 ? doneBytes / total : pct) })
         }
       }
       // Subtitles-only jobs have no media file: the subtitle file is the result.
@@ -1388,6 +1457,10 @@ handleStart('tasks:start', async (_e, req) => {
         entry.finalPath = subFile[1].trim().replace(/\.[^./\\]+$/, '.srt')
         files.add(entry.finalPath)
         updateTask(id, { label: path.basename(entry.finalPath) })
+      }
+      if (/^\[download\] Destination:/.test(line) && streamSize > 0) {
+        streamBase += streamSize // the previous stream finished; the next one starts counting on top of it
+        streamSize = 0
       }
       const dest = line.match(/(?:Destination|Merging formats into):?\s+"?([^"\n]+)"?/)
       if (dest && !req.subs?.only) {
@@ -1714,6 +1787,15 @@ ipcMain.handle('library:importApply', async (_e, entries, run) => {
   return { added, started }
 })
 
+ipcMain.handle('tasks:logs', (_e, id) => (typeof id === 'string' ? [...(tasks.get(id)?.log?.lines ?? [])] : []))
+ipcMain.handle('tasks:logWatch', (_e, id, on) => {
+  if (typeof id !== 'string') return
+  if (on) logWatched.add(id)
+  else {
+    logWatched.delete(id)
+    logPending.delete(id)
+  }
+})
 ipcMain.handle('tasks:list', () => [...tasks.values()].map((t) => t.state))
 ipcMain.handle('tasks:defaultDownloadDir', () => defaultDownloadDir())
 // --- end: downloader/task-orchestration-main-process ---
@@ -1837,6 +1919,7 @@ function runDocConvert(id, req, fmt, outputPath) {
       work,
       req.inputPath,
     ], { detached: process.platform !== 'win32' })
+    attachLog(child, id)
   } catch (err) {
     cleanup()
     updateTask(id, { status: 'error', error: `Failed to start LibreOffice: ${err.message}` })
@@ -1941,6 +2024,7 @@ async function convertJob(id, req, fmt, outputPath) {
   let child
   try {
     child = spawn('ffmpeg', convertArgs(req, outputPath))
+    attachLog(child, id)
   } catch (err) {
     updateTask(id, { status: 'error', error: `Failed to start ffmpeg: ${err.message}` })
     return
@@ -2065,6 +2149,7 @@ handleStart('tasks:startUpscale', (_e, req) => {
     let child
     try {
       child = spawn('realesrgan-ncnn-vulkan', upscaleArgs(req, outputPath))
+      attachLog(child, id)
     } catch (err) {
       updateTask(id, { status: 'error', error: `Failed to start realesrgan-ncnn-vulkan: ${err.message}` })
       return
@@ -2143,6 +2228,7 @@ function spawnTracked(cmd, args, entry, { onStdout, onStderr, cwd } = {}) {
       return
     }
     entry.child = child
+    attachLog(child, entry.state.id)
     let tail = ''
     child.stdout?.on('data', (chunk) => {
       const text = chunk.toString()
@@ -2233,7 +2319,18 @@ function createModelWorker({ python, scriptPath, idleMs = 60_000, env = () => ({
           return
         }
         entry.child = proc // tasks:cancel kills this
-        proc.job = { resolve, reject, onStdout, onStderr }
+        proc.job = {
+          resolve,
+          reject,
+          onStdout: (t) => {
+            appendLog(entry.state.id, t, 'o')
+            onStdout?.(t)
+          },
+          onStderr: (t) => {
+            appendLog(entry.state.id, t, 'e')
+            onStderr?.(t)
+          },
+        }
         proc.stdin.write(JSON.stringify(request) + '\n')
       }).finally(() => {
         if (!proc) return
@@ -2411,6 +2508,7 @@ async function chunkedFrameJob(id, req, outputPath, cfg) {
   const setProgress = (extra) => updateTask(id, { progress: Math.min(0.97, (framesDone + extra) / total) })
 
   // 1. Split (stream copy, video only).
+  jobLog(id, `Splitting the video into chunks of about ${chunkFrames} frames (no re-encode)…`)
   try {
     await spawnTracked(
       'ffmpeg',
@@ -2431,6 +2529,7 @@ async function chunkedFrameJob(id, req, outputPath, cfg) {
   const encodedParts = []
   for (let k = 0; k < segments.length; k++) {
     const hasNext = cfg.overlap && k < segments.length - 1
+    jobLog(id, `Chunk ${k + 1} of ${segments.length}: extracting frames`)
     try {
       await spawnTracked('ffmpeg', ['-y', '-i', segments[k], '-fps_mode', 'passthrough', path.join(framesDir, '%08d.png')], entry)
     } catch (err) {
@@ -2455,6 +2554,7 @@ async function chunkedFrameJob(id, req, outputPath, cfg) {
     }
 
     let doneCount = 0
+    jobLog(id, `Chunk ${k + 1} of ${segments.length}: ${cfg.failLabel.toLowerCase()} ${framesIn} frames on the GPU`)
     try {
       await spawnGpuTool(
         id,
@@ -2485,6 +2585,7 @@ async function chunkedFrameJob(id, req, outputPath, cfg) {
       const outs = listSorted(outDir)
       fs.rmSync(path.join(outDir, outs[outs.length - 1]), { force: true })
     }
+    jobLog(id, `Chunk ${k + 1} of ${segments.length}: encoding`)
     const part = path.join(doneDir, `part${String(k).padStart(5, '0')}.mkv`)
     try {
       await spawnTracked(
@@ -2505,6 +2606,7 @@ async function chunkedFrameJob(id, req, outputPath, cfg) {
   }
 
   // 3. Join the parts and mux the original audio back in.
+  jobLog(id, 'Joining the chunks and adding the original audio…')
   const listFile = path.join(tempDir, 'parts.txt')
   fs.writeFileSync(listFile, encodedParts.map((p) => `file '${p.replace(/'/g, "'\\''")}'`).join('\n') + '\n')
   try {

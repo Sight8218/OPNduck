@@ -16,6 +16,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import ProgressBar from '../components/ProgressBar'
+import TaskLogs from '../components/TaskLogs'
 import { memo, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -153,14 +155,8 @@ function TaskRowImpl({ task }: { task: TaskState }) {
         )}
         {task.experimentalMatch && <Tag>{task.experimentalMatch}</Tag>}
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--input-bg)]">
-        <div
-          className={`h-full rounded-full transition-[width] duration-300 ${
-            task.status === 'error' ? 'bg-red-500' : 'bg-[var(--accent)]'
-          } ${task.status === 'running' ? 'progress-shimmer' : ''}`}
-          style={{ width: `${Math.round(task.progress * 100)}%` }}
-        />
-      </div>
+      <ProgressBar value={task.progress} status={task.status} />
+      <TaskLogs taskId={task.id} />
       {task.error && <span className="text-xs text-red-400">{task.error}</span>}
       {askMatch && (
         <AnotherMatchDialog
@@ -284,12 +280,7 @@ function GroupBlock({
           )}
         </div>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--input-bg)]">
-        <div
-          className={`h-full rounded-full transition-[width] duration-300 ${sum.failed > 0 && sum.active === 0 ? 'bg-red-500' : 'bg-[var(--accent)]'}`}
-          style={{ width: `${Math.round(sum.progress * 100)}%` }}
-        />
-      </div>
+      <ProgressBar value={sum.progress} status={sum.active > 0 ? 'running' : sum.failed > 0 ? 'error' : 'done'} />
       {open && (
         <div className="flex flex-col gap-2 border-l border-[var(--glass-border)] pl-3">
           <AnimatePresence initial={false}>

@@ -22,6 +22,9 @@ history; entries are curated for readability.
 
 ### Fixed
 
+- **Progress bars no longer jump backwards.** A download's video and audio streams each restarted the bar from
+  0%; progress is now weighted by stream size, never moves backwards while a job runs, and every bar eases
+  toward the reported value instead of snapping.
 - **Frame Interpolation** failed with "only rife-v4 model support custom numframe" on installs whose RIFE
   defaults to an older model; it now uses `rife-v4.6`.
 - Subtitles failed with "unexpected keyword argument 'metadata_errors'" when the system PyAV didn't
@@ -30,6 +33,9 @@ history; entries are curated for readability.
 
 ### Performance
 
+- **Show live logs:** every task card (and each Library row) has a "Show live logs" toggle that tails what the
+  job's tools are printing right now (yt-dlp, ffmpeg, the upscalers, Whisper, Demucs) plus the pipeline's own
+  steps (e.g. "Chunk 2 of 5: upscaling"). Logs live in memory only.
 - **GPU subtitles (NVIDIA):** the Subtitles card offers a one-click "Add GPU support" (about 2.3 GB: the CUDA 12
   runtime libraries Whisper's GPU engine needs, installed into OPNduck's own Python environment, nothing
   system-wide). In testing a 20-second clip with the `small` model took 5 s instead of about 45 s on the CPU. If
