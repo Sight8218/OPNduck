@@ -42,6 +42,8 @@ const DEFAULTS = {
   /** Closing the window keeps OPNduck running in the system tray (subscriptions keep checking). */
   runInTray: false,
   /** Parallel yt-dlp downloads / ffmpeg+LibreOffice conversions. */
+  /** Watch folder: new media files dropped in `path` are converted to `container` (into a "converted" subfolder). */
+  watchFolder: { enabled: false, path: '', container: 'MP4' },
   maxDownloads: 3,
   maxConversions: 2,
   /** Encoder for AI video jobs: 'auto' = GPU (NVENC) when it works, 'cpu' = x264. */
@@ -84,6 +86,10 @@ function validate(next) {
   if (!['auto', 'ncnn'].includes(next.upscaleEngine)) throw new Error('Invalid upscale engine')
   if (!Number.isInteger(next.maxDownloads) || next.maxDownloads < 1 || next.maxDownloads > 6) throw new Error('Parallel downloads must be 1 to 6')
   if (!Number.isInteger(next.maxConversions) || next.maxConversions < 1 || next.maxConversions > 4) throw new Error('Parallel conversions must be 1 to 4')
+  const w = next.watchFolder
+  if (!w || typeof w.enabled !== 'boolean' || typeof w.path !== 'string' || typeof w.container !== 'string' || !/^[A-Z0-9]{2,5}$/.test(w.container)) throw new Error('Invalid watch folder')
+  if (w.path !== '' && !path.isAbsolute(w.path)) throw new Error('The watch folder must be an absolute path')
+  if (w.enabled && !w.path) throw new Error('Choose a folder to watch first')
   if (typeof next.notifyOnFinish !== 'boolean' || typeof next.runInTray !== 'boolean') throw new Error('Invalid notification setting')
   if (!['auto', 'cpu'].includes(next.videoEncoder)) throw new Error('Invalid video encoder')
   const c = next.cookies
@@ -138,6 +144,7 @@ function setSettings(patch) {
     upscaleEngine: patch.upscaleEngine !== undefined ? patch.upscaleEngine : current.upscaleEngine,
     notifyOnFinish: patch.notifyOnFinish !== undefined ? patch.notifyOnFinish : current.notifyOnFinish,
     runInTray: patch.runInTray !== undefined ? patch.runInTray : current.runInTray,
+    watchFolder: patch.watchFolder !== undefined ? { ...current.watchFolder, ...patch.watchFolder } : current.watchFolder,
     maxDownloads: patch.maxDownloads !== undefined ? patch.maxDownloads : current.maxDownloads,
     maxConversions: patch.maxConversions !== undefined ? patch.maxConversions : current.maxConversions,
     videoEncoder: patch.videoEncoder !== undefined ? patch.videoEncoder : current.videoEncoder,

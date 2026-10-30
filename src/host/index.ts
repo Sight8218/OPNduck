@@ -140,6 +140,8 @@ export interface AppSettings {
   /** Desktop notification when jobs finish while the window isn't focused. */
   notifyOnFinish: boolean
   /** Parallel downloads (1-6) and conversions (1-4). */
+  /** New media files in this folder are converted automatically (checked every 10 seconds while OPNduck runs). */
+  watchFolder: { enabled: boolean; path: string; container: string }
   maxDownloads: number
   maxConversions: number
   /** Closing the window keeps OPNduck running in the system tray. */
@@ -429,7 +431,7 @@ export interface Host {
   /** Main-process settings (proxy, login cookies). Desktop shell only. */
   settings?: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; maxDownloads?: number; maxConversions?: number; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   /** Auto-download new uploads from a channel/playlist (checked while the app is open). Desktop shell only. */
   subscriptions?: {

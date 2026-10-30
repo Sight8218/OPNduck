@@ -33,6 +33,8 @@ history; entries are curated for readability.
 
 ### Performance
 
+- **Watch folder:** Settings → Watch folder converts new media files dropped into a chosen folder (checked every 10
+  seconds; files still being copied are left alone; results go to a `converted` subfolder; each file is handled once).
 - **Trim card:** cut a section out of a video or audio file. *Fast cut* copies the streams (instant, snaps to the
   nearest keyframe); *Precise* re-encodes for an exact frame.
 - **Queue controls:** *Pause queue* in the Library stops waiting jobs from starting (running ones finish), *Run next*

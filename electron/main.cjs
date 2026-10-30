@@ -3477,10 +3477,80 @@ function notifyFinished(state, req) {
   }, 2500)
 }
 
+/* --- Watch folder: convert new media files dropped into a chosen folder ---
+ * Polls every 10 s (works the same on every OS, no fs.watch quirks). A file is picked up once its size
+ * and modification time stopped changing between two polls, so half-copied files are left alone.
+ * Each file is handled once; the list of handled files survives restarts. */
+const WATCH_EXT = new Set(['mp4', 'mkv', 'mov', 'webm', 'avi', 'm4v', 'mp3', 'wav', 'flac', 'm4a', 'ogg', 'opus', 'png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif'])
+const watchSeenFile = () => path.join(app.getPath('userData'), 'watch-seen.json')
+let watchSeen = null
+const watchPrev = new Map() // path -> "size:mtime" from the previous poll
+function loadWatchSeen() {
+  if (watchSeen) return watchSeen
+  try {
+    watchSeen = new Set(JSON.parse(fs.readFileSync(watchSeenFile(), 'utf8')))
+  } catch {
+    watchSeen = new Set()
+  }
+  return watchSeen
+}
+function pollWatchFolder() {
+  const w = getSettings().watchFolder
+  if (!w.enabled || !w.path) return
+  let names
+  try {
+    names = fs.readdirSync(w.path)
+  } catch {
+    return // folder missing or unreadable: try again next time
+  }
+  const seen = loadWatchSeen()
+  const start = startHandlers.get('tasks:startConvert')
+  if (!start || !Object.hasOwn(FORMATS, w.container)) return
+  let changed = false
+  for (const name of names) {
+    if (!WATCH_EXT.has(path.extname(name).slice(1).toLowerCase())) continue
+    const full = path.join(w.path, name)
+    let st
+    try {
+      st = fs.statSync(full)
+    } catch {
+      continue
+    }
+    if (!st.isFile()) continue
+    const sig = `${st.size}:${st.mtimeMs}`
+    const key = `${full}|${sig}`
+    if (seen.has(key)) continue
+    if (watchPrev.get(full) !== sig) {
+      watchPrev.set(full, sig) // first sighting, or still being written: wait for the next poll
+      continue
+    }
+    seen.add(key)
+    changed = true
+    const mode = FORMATS[w.container].kind === 'video' ? 'remux' : 'transcode'
+    start(null, { inputPath: full, container: w.container, mode, destination: path.join(w.path, 'converted') }).catch(() => {
+      /* a file that can't be converted shows up as a failed job if it got that far */
+    })
+  }
+  if (changed) {
+    try {
+      fs.writeFileSync(watchSeenFile(), JSON.stringify([...seen].slice(-5000)))
+    } catch {
+      /* worst case: a file is converted again after a restart */
+    }
+  }
+}
+let watchTimer = null
+function startWatchFolder() {
+  clearInterval(watchTimer)
+  watchTimer = setInterval(pollWatchFolder, 10_000)
+  watchTimer.unref?.()
+}
+
 trace('main.cjs loaded')
 app.whenReady().then(() => {
   trace('app ready')
   applyQueueLimits()
+  startWatchFolder()
   sweepStaleTempDirs()
   trace('temp sweep done')
   loadHistory()

@@ -4,6 +4,7 @@ import { IconAdjustmentsHorizontal, IconCpu, IconDownload, IconInfoCircle, IconK
 import GpuPerformanceCard from '../components/GpuPerformanceCard'
 import NotificationsCard from '../components/NotificationsCard'
 import QueueCard from '../components/QueueCard'
+import WatchFolderCard from '../components/WatchFolderCard'
 import HardwareAllocation from '../components/HardwareAllocation'
 import InfoCard from '../components/InfoCard'
 import KeybindsCard from '../components/KeybindsCard'
@@ -156,6 +157,7 @@ export default function Settings() {
             {host.settings && <GpuPerformanceCard />}
             {host.settings && <NotificationsCard />}
             {host.settings && <QueueCard />}
+            {host.settings && <WatchFolderCard />}
             <StorageCard />
             <UpdatesCard />
           </section>

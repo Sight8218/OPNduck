@@ -43,7 +43,7 @@ export default function GpuPerformanceCard() {
     host.settings?.get().then(setSettings)
   }, [])
 
-  function change(patch: Parameters<NonNullable<typeof host.settings>['set']>[0]) {
+  function change(patch: Partial<Pick<AppSettings, 'gpuThreads' | 'upscaleEngine' | 'videoEncoder'>>) {
     setSettings((s) => (s ? { ...s, ...patch, cookies: s.cookies } : s))
     void host.settings?.set(patch)
   }
