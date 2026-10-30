@@ -83,6 +83,7 @@ export default function SmartDownloadPanel({ url, onDone }: { url: string; onDon
       destination: getDownloadDirOverride() ?? undefined,
       playlist: playlistMode,
       limit: wholePlaylist && limit !== 'all' ? Number(limit) : undefined,
+      embedMeta: start.embedMeta,
       })
     } catch (err) {
       setStartError(err instanceof Error ? err.message : String(err))

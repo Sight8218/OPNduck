@@ -57,6 +57,7 @@ export interface DownloaderPrefs {
   subLangs: string[]
   subEmbed: boolean
   subOnly: boolean
+  embedMeta: boolean
 }
 
 export const DEFAULT_PREFS: DownloaderPrefs = {
@@ -67,6 +68,7 @@ export const DEFAULT_PREFS: DownloaderPrefs = {
   subLangs: [],
   subEmbed: false,
   subOnly: false,
+  embedMeta: true,
 }
 
 /** Presets saved before subtitles existed lack the new fields; fill them from defaults. */

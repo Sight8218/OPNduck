@@ -953,6 +953,17 @@ function subtitleArgs(req) {
 }
 
 /** Maps a Downloader format + quality choice to yt-dlp CLI args. */
+/** Cover art + title/artist tags written into the file (yt-dlp does the work; WAV, MOV and FLAC get tags or nothing). */
+function embedArgs(req) {
+  if (!req.embedMeta) return []
+  const args = ['--embed-metadata']
+  // FLAC covers need the Python `mutagen` module (not always present), so FLAC gets tags only.
+  if (req.format === 'MP3' || req.format === 'MP4' || req.format === 'MKV') {
+    args.push('--embed-thumbnail', '--convert-thumbnails', 'jpg') // players want jpg/png covers, YouTube serves webp
+  }
+  return args
+}
+
 function formatArgs(req) {
   const subs = subtitleArgs(req)
   // "Subtitles only": no media at all, so no -f / -x / merge flags.
@@ -963,12 +974,12 @@ function formatArgs(req) {
     if (req.format === 'MP3') {
       args.push('--audio-quality', req.audioQuality && req.audioQuality !== 'best' ? req.audioQuality : '0')
     }
-    return [...args, ...subs]
+    return [...args, ...embedArgs(req), ...subs]
   }
   if (Object.hasOwn(VIDEO_EXT, req.format)) {
     const height = req.videoQuality && req.videoQuality !== 'best' ? Number(req.videoQuality) : null
     const selector = height ? `bv*[height<=${height}]+ba/b[height<=${height}]` : 'bv*+ba/b'
-    return ['-f', selector, '--merge-output-format', VIDEO_EXT[req.format], ...subs]
+    return ['-f', selector, '--merge-output-format', VIDEO_EXT[req.format], ...embedArgs(req), ...subs]
   }
   throw new Error(`Unsupported format: ${req.format}`)
 }
@@ -1192,6 +1203,7 @@ function validateDownloadRequest(req) {
     }
   }
   if (req.audioLang != null && !LANG_RE.test(String(req.audioLang))) throw new Error('Invalid audio language')
+  if (req.embedMeta != null && typeof req.embedMeta !== 'boolean') throw new Error('Invalid embed option')
   // Spotify matches: YouTube ids already tried (and rejected) for this track.
   const VIDEO_ID_RE = /^[\w-]{6,20}$/
   if (req.matchExclude != null && (!Array.isArray(req.matchExclude) || req.matchExclude.length > 20 || !req.matchExclude.every((x) => typeof x === 'string' && VIDEO_ID_RE.test(x)))) {

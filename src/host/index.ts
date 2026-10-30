@@ -92,6 +92,8 @@ export interface DownloadRequest {
   audioTracks?: string[]
   /** Internal: this job is one language track of a parent download. */
   audioLang?: string
+  /** Write the cover art and title/artist tags into the file (MP3, FLAC, M4A-style audio, MP4, MKV). */
+  embedMeta?: boolean
   /** Spotify matches only (internal): YouTube ids already tried and rejected, and the one picked. */
   matchExclude?: string[]
   matchedId?: string

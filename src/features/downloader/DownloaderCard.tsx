@@ -65,6 +65,7 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
   const [subMode, setSubMode] = useState<SubtitleOptions['mode']>(start.subMode)
   const [subLangs, setSubLangs] = useState<string[]>(start.subLangs)
   const [subEmbed, setSubEmbed] = useState(start.subEmbed)
+  const [embedMeta, setEmbedMeta] = useState(start.embedMeta)
   const [subOnly, setSubOnly] = useState(start.subOnly)
   const [audioTracks, setAudioTracks] = useState<string[]>([])
   const [limit, setLimit] = useState('all')
@@ -98,7 +99,7 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
   const effectiveLimit = isSearch ? (limit === 'all' ? '20' : limit) : limit
   const probeLimit = isSearch ? Number(effectiveLimit) : undefined
 
-  const prefs: DownloaderPrefs = { format, videoQuality, audioQuality, subMode, subLangs, subEmbed, subOnly }
+  const prefs: DownloaderPrefs = { format, videoQuality, audioQuality, subMode, subLangs, subEmbed, subOnly, embedMeta }
   const applyPrefs = (raw: Partial<DownloaderPrefs>) => {
     const p = normalizePrefs(raw)
     setFormat(p.format)
@@ -107,6 +108,7 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
     setSubMode(p.subMode)
     setSubLangs(p.subLangs)
     setSubEmbed(p.subEmbed)
+    setEmbedMeta(p.embedMeta)
     setSubOnly(p.subOnly)
     if (p.subMode !== 'off') setShowMore(true)
   }
@@ -210,6 +212,7 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
             ? { mode: subMode, langs: subLangs, embed: subEmbed && isVideo, only: subOnly }
             : undefined,
         audioTracks: audioTracks.length > 0 ? audioTracks : undefined,
+        embedMeta,
       })
     } catch (err) {
       setStartError(err instanceof Error ? err.message : String(err))
@@ -381,6 +384,10 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
         </button>
         {showMore && (
           <div className="flex flex-col gap-3 rounded-xl border border-[var(--glass-border)] p-3">
+            <label className="flex cursor-pointer items-center gap-1.5 text-xs text-[var(--text-dim)]">
+              <input type="checkbox" className="accent-[var(--accent)]" checked={embedMeta} onChange={(e) => setEmbedMeta(e.target.checked)} />
+              Embed cover art and tags (title, artist) in the file
+            </label>
             <div>
               <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Subtitles</span>
               <SlidingSelector<SubtitleOptions['mode']>
