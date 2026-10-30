@@ -50,6 +50,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     },
   },
   checkTorchEngine: () => ipcRenderer.invoke('system:checkTorchEngine'),
+  probeMedia: (p) => ipcRenderer.invoke('media:probe', p),
   installTool: (tool) => ipcRenderer.invoke('system:installTool', tool),
   cancelInstall: () => ipcRenderer.invoke('system:installCancel'),
   onInstallProgress: (listener) => {
@@ -103,6 +104,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     startVideoUpscale: (req) => ipcRenderer.invoke('tasks:startVideoUpscale', req),
     startInterpolate: (req) => ipcRenderer.invoke('tasks:startInterpolate', req),
     startAudioAi: (req) => ipcRenderer.invoke('tasks:startAudioAi', req),
+    startTrim: (req) => ipcRenderer.invoke('tasks:startTrim', req),
     startSubtitles: (req) => ipcRenderer.invoke('tasks:startSubtitles', req),
     cancel: (taskId) => ipcRenderer.send('tasks:cancel', taskId),
     rerun: (taskId, opts) => ipcRenderer.invoke('tasks:rerun', taskId, opts),

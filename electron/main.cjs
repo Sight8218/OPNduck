@@ -1755,7 +1755,7 @@ ipcMain.handle('tasks:clearFinished', () => {
  * Export writes the finished tasks (with the requests needed to run them again) as JSON. Import
  * reads such a file back: every field is re-validated here — a hand-edited or hostile file must
  * never smuggle in a channel, path or value the app wouldn't accept from its own UI. */
-const TASK_KINDS = ['download', 'convert', 'upscale', 'interpolate', 'subtitles', 'audio-ai']
+const TASK_KINDS = ['download', 'convert', 'upscale', 'interpolate', 'subtitles', 'audio-ai', 'trim']
 
 function sanitizeImported(rows) {
   if (!Array.isArray(rows)) return []
@@ -3064,6 +3064,126 @@ handleStart('tasks:startSubtitles', (_e, req) => {
   return id
 })
 // --- end: subtitles/whisper-transcription ---
+
+/* --- Trim: cut a section out of a video or audio file --- */
+// @category: trim/trim-pipeline
+function probeMedia(inputPath) {
+  return new Promise((resolve) => {
+    let child
+    try {
+      child = spawn('ffprobe', ['-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', inputPath])
+    } catch {
+      resolve(null)
+      return
+    }
+    let out = ''
+    child.stdout.on('data', (c) => (out += c))
+    child.on('error', () => resolve(null))
+    child.on('close', () => {
+      try {
+        const info = JSON.parse(out)
+        const v = info.streams?.find((x) => x.codec_type === 'video' && x.disposition?.attached_pic !== 1)
+        const duration = Number.parseFloat(info.format?.duration)
+        if (!Number.isFinite(duration)) return resolve(null)
+        resolve({ duration, width: v?.width ?? null, height: v?.height ?? null, hasVideo: !!v })
+      } catch {
+        resolve(null)
+      }
+    })
+  })
+}
+ipcMain.handle('media:probe', (_e, inputPath) => (typeof inputPath === 'string' && path.isAbsolute(inputPath) ? probeMedia(inputPath) : null))
+
+const fmtClock = (sec) => {
+  const t = Math.max(0, Math.round(sec))
+  const h = Math.floor(t / 3600)
+  const m = Math.floor((t % 3600) / 60)
+  const r = t % 60
+  return h ? `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}` : `${m}:${String(r).padStart(2, '0')}`
+}
+
+handleStart('tasks:startTrim', async (_e, req) => {
+  assertAbsolutePath(req.inputPath, 'inputPath')
+  if (req.destination != null) assertAbsolutePath(req.destination, 'destination')
+  assertOneOf(req.mode, ['fast', 'precise'], 'mode')
+  if (!Number.isFinite(req.start) || req.start < 0) throw new Error('Invalid start time')
+  if (req.end != null && (!Number.isFinite(req.end) || req.end <= req.start)) throw new Error('The end must be after the start')
+  const id = crypto.randomUUID()
+  const destDir = req.destination || defaultDownloadDir()
+  fs.mkdirSync(destDir, { recursive: true })
+
+  const inExt = path.extname(req.inputPath).replace(/^\./, '').toLowerCase()
+  // Stream copy keeps the container; re-encoding needs one that holds H.264/AAC (or a plain audio format).
+  const keepExt = req.mode === 'fast' || ['mp4', 'mkv', 'mov', 'mp3', 'flac', 'wav', 'm4a', 'ogg', 'opus'].includes(inExt)
+  const ext = keepExt && inExt ? inExt : 'mp4'
+  const inputBase = path.basename(req.inputPath, path.extname(req.inputPath))
+  const outputPath = uniqueOutputPath(destDir, `${inputBase}-trim`, ext)
+
+  addTask(id, {
+    state: {
+      id,
+      kind: 'trim',
+      status: 'queued',
+      progress: 0,
+      label: path.basename(req.inputPath),
+      format: req.mode === 'fast' ? 'Fast cut' : 'Precise',
+      quality: `${fmtClock(req.start)} – ${req.end == null ? 'end' : fmtClock(req.end)}`,
+      sizeBytes: null,
+      sizeIsEstimate: false,
+      thumbnailUrl: null,
+      experimentalMatch: null,
+    },
+    child: null,
+    finalPath: outputPath,
+  })
+  broadcastTasks()
+
+  runInPool(convertPool, id, () => trimJob(id, req, outputPath)).catch((err) =>
+    updateTask(id, { status: 'error', error: `Trim failed to start: ${err.message}` }),
+  )
+  return id
+})
+
+async function trimJob(id, req, outputPath) {
+  const entry = tasks.get(id)
+  updateTask(id, { status: 'running' })
+  const info = await probeMedia(req.inputPath)
+  if (isCanceled(id)) return
+  if (!info) return updateTask(id, { status: 'error', error: "Couldn't read this file." })
+  const end = Math.min(req.end ?? info.duration, info.duration)
+  const length = end - req.start
+  if (length <= 0) return updateTask(id, { status: 'error', error: 'The start is past the end of the file.' })
+
+  // Fast: seek before the input and copy the streams (instant; the cut snaps to the nearest keyframe).
+  // Precise: re-encode so the cut lands on the exact frame.
+  const codec =
+    req.mode === 'fast'
+      ? ['-c', 'copy', '-avoid_negative_ts', 'make_zero']
+      : info.hasVideo
+        ? ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac']
+        : []
+  const args = ['-y', '-ss', String(req.start), '-i', req.inputPath, '-t', String(length), ...codec, '-progress', 'pipe:1', '-nostats', outputPath]
+  try {
+    await spawnTracked('ffmpeg', args, entry, {
+      onStdout: (text) => {
+        const m = [...text.matchAll(/out_time_ms=(\d+)/g)].pop()
+        if (m) updateTask(id, { progress: Math.min(0.99, Number(m[1]) / 1e6 / length) })
+      },
+    })
+  } catch (err) {
+    fs.rmSync(outputPath, { force: true })
+    if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Trim failed: ${err.message}` })
+    return
+  }
+  let realSize = null
+  try {
+    realSize = fs.statSync(outputPath).size
+  } catch {
+    /* keep null */
+  }
+  updateTask(id, { status: 'done', progress: 1, label: path.basename(outputPath), ...(realSize != null ? { sizeBytes: realSize } : {}) })
+}
+// --- end: trim/trim-pipeline ---
 
 /**
  * AI audio tools: Demucs splits a track into vocals / everything else, ffmpeg does the rest.

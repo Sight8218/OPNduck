@@ -34,6 +34,8 @@ import type {
   TaskState,
   ToolStatus,
   UpscaleRequest,
+  TrimRequest,
+  MediaInfo,
 } from './index'
 import type { OmarchyTheme } from '../themes/omarchySync'
 
@@ -64,6 +66,7 @@ interface ElectronBridge {
     onState(listener: (s: { paused: boolean }) => void): () => void
   }
   checkTorchEngine(): Promise<{ available: boolean; nvidia: boolean }>
+  probeMedia(path: string): Promise<MediaInfo | null>
   installTool(tool: PythonTool): Promise<{ ok: boolean; error?: string }>
   cancelInstall(): Promise<void>
   onInstallProgress(listener: (p: { tool: PythonTool; line: string }) => void): () => void
@@ -106,6 +109,7 @@ interface ElectronBridge {
     startInterpolate(req: InterpolateRequest): Promise<string>
     startSubtitles(req: SubtitlesRequest): Promise<string>
     startAudioAi(req: AudioAiRequest): Promise<string>
+    startTrim(req: TrimRequest): Promise<string>
     cancel(taskId: string): void
     rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
     openFolder(taskId: string): Promise<void>
@@ -181,6 +185,7 @@ export function detectElectronHost(): Host | null {
     checkFasterWhisper: () => bridge.checkFasterWhisper(),
     checkDemucs: () => bridge.checkDemucs(),
     checkTorchEngine: () => bridge.checkTorchEngine(),
+    probeMedia: (p) => bridge.probeMedia(p),
     installTool: (tool, onProgress) => {
       const off = bridge.onInstallProgress((p) => p.tool === tool && onProgress?.(p.line))
       return bridge.installTool(tool).finally(off)
@@ -230,6 +235,7 @@ export function detectElectronHost(): Host | null {
       startInterpolate: (req) => bridge.tasks.startInterpolate(req),
       startSubtitles: (req) => bridge.tasks.startSubtitles(req),
       startAudioAi: (req) => bridge.tasks.startAudioAi(req),
+      startTrim: (req) => bridge.tasks.startTrim(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
       runNext: (taskId) => bridge.tasks.runNext(taskId),
       logs: (taskId) => bridge.tasks.logs(taskId),

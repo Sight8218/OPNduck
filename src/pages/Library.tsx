@@ -48,6 +48,7 @@ const RUNNING_LABEL: Record<TaskState['kind'], string> = {
   interpolate: 'Interpolating',
   subtitles: 'Transcribing',
   'audio-ai': 'Processing audio',
+  trim: 'Trimming',
 }
 
 function statusLabel(task: TaskState): string {

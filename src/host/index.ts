@@ -211,6 +211,29 @@ export type SubtitleFormat = 'srt' | 'vtt'
 export type AudioAiMode = 'no-vocals' | 'vocals' | 'voice' | 'echo'
 export type AudioAiFormat = 'MP3' | 'FLAC' | 'WAV'
 
+export type TrimMode = 'fast' | 'precise'
+
+export interface TrimRequest {
+  /** Set by the card when it starts several jobs at once. */
+  batch?: BatchInfo
+  inputPath: string
+  /** Seconds from the start of the file. */
+  start: number
+  /** Seconds; null = to the end. */
+  end: number | null
+  /** 'fast' copies the streams (instant, but cuts land on keyframes); 'precise' re-encodes for exact cuts. */
+  mode: TrimMode
+  /** Overrides the Settings default destination for this one job. */
+  destination?: string
+}
+
+export interface MediaInfo {
+  duration: number
+  width: number | null
+  height: number | null
+  hasVideo: boolean
+}
+
 export interface AudioAiRequest {
   /** Set by the card when it starts several jobs at once. */
   batch?: BatchInfo
@@ -238,7 +261,7 @@ export interface SubtitlesRequest {
   destination?: string
 }
 
-export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai'
+export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim'
 export type TaskStatus = 'queued' | 'running' | 'done' | 'error' | 'canceled'
 
 export interface TaskState {
@@ -314,6 +337,7 @@ export interface HostTasks {
   startInterpolate(req: InterpolateRequest): Promise<string>
   startSubtitles(req: SubtitlesRequest): Promise<string>
   startAudioAi(req: AudioAiRequest): Promise<string>
+  startTrim(req: TrimRequest): Promise<string>
   cancel(taskId: string): void
   /** Replays a finished task's original request as a new task. Resolves to the new id (null if it can't be replayed). */
   rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
@@ -380,6 +404,8 @@ export interface Host {
   checkFasterWhisper(): Promise<ToolStatus>
   /** Python with torch + demucs + soundfile, for the AI Audio card. */
   checkDemucs(): Promise<ToolStatus>
+  /** Duration and size of a media file (ffprobe). Null if it can't be read. */
+  probeMedia(path: string): Promise<MediaInfo | null>
   /** The faster PyTorch video upscaling engine: whether it can run, and whether an NVIDIA GPU is present. */
   checkTorchEngine(): Promise<{ available: boolean; nvidia: boolean }>
   /** One-click install of a Python tool into OPNduck's own environment; `onProgress` gets pip's output lines. */
@@ -560,6 +586,28 @@ const browserTasks: HostTasks = {
     browserListeners.forEach((l) => l(browserTaskList))
     return id
   },
+  startTrim: async (req) => {
+    const id = crypto.randomUUID()
+    browserTaskList = [
+      {
+        id,
+        kind: 'trim',
+        status: 'error',
+        progress: 0,
+        label: 'Trimming requires the desktop app',
+        error: 'Desktop app required',
+        format: req.mode,
+        quality: '',
+        sizeBytes: null,
+        sizeIsEstimate: false,
+        thumbnailUrl: null,
+        experimentalMatch: null,
+      },
+      ...browserTaskList,
+    ]
+    browserListeners.forEach((l) => l(browserTaskList))
+    return id
+  },
   startAudioAi: async (req) => {
     const id = crypto.randomUUID()
     browserTaskList = [
@@ -643,6 +691,7 @@ const browserHost: Host = {
   checkFasterWhisper: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkDemucs: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkTorchEngine: async () => ({ available: false, nvidia: false }),
+  probeMedia: async () => null,
   installTool: async () => ({ ok: false, error: 'Desktop app required' }),
   cancelInstall: async () => {},
   tasks: browserTasks,
