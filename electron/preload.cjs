@@ -93,7 +93,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     remove: (ids) => ipcRenderer.invoke('tasks:remove', ids),
     list: () => ipcRenderer.invoke('tasks:list'),
     onUpdate: (listener) => {
-      const handler = (_e, tasks) => listener(tasks)
+      const handler = (_e, update) => listener(update)
       ipcRenderer.on('tasks:update', handler)
       return () => ipcRenderer.removeListener('tasks:update', handler)
     },

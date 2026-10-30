@@ -22,6 +22,8 @@ import { host, type AudioQuality, type DownloadFormat, type PlaylistInfo, type V
 import {
   AUDIO_QUALITY_OPTIONS,
   FORMAT_OPTIONS,
+  LIMIT_OPTIONS,
+  SEARCH_LIMIT_OPTIONS,
   VIDEO_FORMATS,
   VIDEO_QUALITY_OPTIONS,
   isSpotifyTrack,
@@ -66,6 +68,10 @@ export default function SmartDownloadPanel({ url, onDone }: { url: string; onDon
   }, [url])
   const wholePlaylist = !!playlist && playlist.count > 0 && (!playlist.ambiguous || playlistMode === 'all')
   const needsLogin = !!playlist?.needsLogin
+  // One click on a channel link must not mean "the whole channel": default to a first-N.
+  const isSearch = playlist?.type === 'search'
+  const [limitPick, setLimitPick] = useState<string | null>(null)
+  const limit = limitPick ?? (isSearch ? '20' : playlist?.type === 'channel' ? '25' : 'all')
 
   async function run() {
     try {
@@ -76,6 +82,7 @@ export default function SmartDownloadPanel({ url, onDone }: { url: string; onDon
       audioQuality: format === 'MP3' ? audioQuality : undefined,
       destination: getDownloadDirOverride() ?? undefined,
       playlist: playlistMode,
+      limit: wholePlaylist && limit !== 'all' ? Number(limit) : undefined,
       })
     } catch (err) {
       setStartError(err instanceof Error ? err.message : String(err))
@@ -148,6 +155,17 @@ export default function SmartDownloadPanel({ url, onDone }: { url: string; onDon
                 : `${playlist.type === 'channel' ? 'Channel' : playlist.type === 'search' ? 'Search results' : 'Playlist'}: ${playlist.title} — ${playlist.count} videos`}
             </span>
           )}
+        </div>
+      )}
+      {wholePlaylist && !needsLogin && (
+        <div>
+          <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">How many</span>
+          <GlassSelect
+            id="palette-dl-limit"
+            options={isSearch ? SEARCH_LIMIT_OPTIONS : LIMIT_OPTIONS}
+            value={limit}
+            onChange={setLimitPick}
+          />
         </div>
       )}
       {startError && <span className="text-xs text-red-400">{startError}</span>}

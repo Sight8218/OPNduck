@@ -508,6 +508,7 @@ const tasks = new Map() // taskId -> { state: TaskState, child: ChildProcess|nul
 function addTask(id, entry) {
   entry.state.createdAt = Date.now()
   tasks.set(id, entry)
+  historyChanged = true
 }
 
 function defaultDownloadDir() {
@@ -518,14 +519,25 @@ function defaultDownloadDir() {
 // the renderer re-render each subscribed card, so coalesce them to at most one per 120ms
 // (trailing edge — the latest snapshot always goes out).
 let broadcastTimer = null
+// The history (up to 500 finished rows) rarely changes while a job's progress ticks; sending it
+// all every 120ms made every tick cost a 500-row IPC clone. Ticks carry only the active tasks
+// ({ full: false }, merged by id in the renderer); anything that adds, removes or edits a finished
+// row sends the complete list ({ full: true }).
+let historyChanged = true
 function broadcastTasks() {
   if (broadcastTimer) return
   broadcastTimer = setTimeout(() => {
     broadcastTimer = null
-    const snapshot = [...tasks.values()].map((t) => t.state)
-    for (const win of BrowserWindow.getAllWindows()) win.webContents.send('tasks:update', snapshot)
+    const all = [...tasks.values()].map((t) => t.state)
+    const active = all.filter((s) => !TERMINAL.includes(s.status))
+    const full = historyChanged || all.length !== lastSentCount
+    historyChanged = false
+    lastSentCount = all.length
+    const payload = { full, tasks: full ? all : active }
+    for (const win of BrowserWindow.getAllWindows()) win.webContents.send('tasks:update', payload)
   }, 120)
 }
+let lastSentCount = -1
 
 /* --- History: finished tasks persist across restarts, with the request needed to re-run them --- */
 const TERMINAL = ['done', 'error', 'canceled']
@@ -606,7 +618,10 @@ function updateTask(id, patch) {
   // 'error'/'close' event after a kill) must not flip 'canceled' to 'done' or vice versa.
   if (patch.status && TERMINAL.includes(entry.state.status)) return
   Object.assign(entry.state, patch)
-  if (TERMINAL.includes(entry.state.status)) scheduleHistorySave()
+  if (TERMINAL.includes(entry.state.status)) {
+    historyChanged = true // a row just finished (or a finished one was edited): the renderer needs the full list
+    scheduleHistorySave()
+  }
   // A finished conversion frees its concurrency slot for the next queued one.
   if (entry.releaseSlot && TERMINAL.includes(entry.state.status)) entry.releaseSlot()
   // A job that never produced output leaves behind the empty placeholder uniqueOutputPath() made.
@@ -1417,6 +1432,7 @@ ipcMain.handle('tasks:remove', (_e, ids) => {
     const t = typeof id === 'string' ? tasks.get(id) : null
     if (t && TERMINAL.includes(t.state.status)) {
       tasks.delete(id)
+      historyChanged = true
       removed++
     }
   }
@@ -1428,6 +1444,7 @@ ipcMain.handle('tasks:remove', (_e, ids) => {
 })
 ipcMain.handle('tasks:clearFinished', () => {
   for (const [id, t] of tasks) if (TERMINAL.includes(t.state.status)) tasks.delete(id)
+  historyChanged = true
   saveHistory()
   broadcastTasks()
 })
@@ -1516,6 +1533,7 @@ ipcMain.handle('library:importApply', async (_e, entries, run) => {
       }
     } else {
       tasks.set(entry.state.id, { state: entry.state, child: null, finalPath: null, channel: entry.channel, req: entry.req })
+      historyChanged = true
       added++
     }
   }
@@ -2688,7 +2706,27 @@ app.on('web-contents-created', (_e, contents) => {
   })
 })
 
+/** Work folders of jobs that were killed mid-run (quit, crash) are never cleaned up by the job itself.
+ *  Only ones untouched for 2 hours go: a live job (even another running OPNduck) keeps writing to its own. */
+function sweepStaleTempDirs() {
+  const cutoff = Date.now() - 2 * 60 * 60 * 1000
+  try {
+    for (const name of fs.readdirSync(os.tmpdir())) {
+      if (!/^opnduck-(doc|upscale|interpolate|audioai)-/.test(name)) continue
+      const dir = path.join(os.tmpdir(), name)
+      try {
+        if (fs.statSync(dir).mtimeMs < cutoff) fs.rmSync(dir, { recursive: true, force: true })
+      } catch {
+        /* gone already, or not ours to remove */
+      }
+    }
+  } catch {
+    /* unreadable temp dir: nothing to sweep */
+  }
+}
+
 app.whenReady().then(() => {
+  sweepStaleTempDirs()
   loadHistory()
   startSubscriptions()
   createWindow()

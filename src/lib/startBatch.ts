@@ -1,4 +1,5 @@
 import type { BatchInfo } from '../host'
+import { notify } from './notice'
 
 /**
  * Starts one job per item and returns the ids of the ones that actually started. Uses
@@ -13,5 +14,10 @@ export async function startBatch<T>(
 ): Promise<string[]> {
   const batch = items.length > 1 ? { id: crypto.randomUUID(), label: `${items.length} files — ${label}`, size: items.length } : undefined
   const results = await Promise.allSettled(items.map((item) => start(item, batch)))
+  const failed = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+  if (failed.length) {
+    const why = failed[0].reason instanceof Error ? failed[0].reason.message : String(failed[0].reason)
+    notify(`${failed.length} of ${items.length} couldn't be started: ${why}`)
+  }
   return results.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []))
 }

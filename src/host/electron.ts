@@ -101,7 +101,7 @@ interface ElectronBridge {
     clearFinished(): Promise<void>
     remove(ids: string[]): Promise<number>
     list(): Promise<TaskState[]>
-    onUpdate(listener: (tasks: TaskState[]) => void): () => void
+    onUpdate(listener: (update: { full: boolean; tasks: TaskState[] }) => void): () => void
     getDefaultDownloadDir(): Promise<string>
     probe(req: DownloadRequest): Promise<DownloadProbe>
   }
@@ -120,9 +120,20 @@ export function detectElectronHost(): Host | null {
 
   let cachedTasks: TaskState[] = []
   const listeners = new Set<(tasks: TaskState[]) => void>()
-  bridge.tasks.onUpdate((tasks) => {
-    cachedTasks = tasks
-    listeners.forEach((l) => l(tasks))
+  bridge.tasks.onUpdate(({ full, tasks }) => {
+    if (full) {
+      cachedTasks = tasks
+    } else {
+      // A progress tick: only the active tasks came, so merge them by id into what we have.
+      const byId = new Map(tasks.map((t) => [t.id, t]))
+      const seen = new Set<string>()
+      cachedTasks = cachedTasks.map((t) => {
+        seen.add(t.id)
+        return byId.get(t.id) ?? t
+      })
+      for (const t of tasks) if (!seen.has(t.id)) cachedTasks.push(t)
+    }
+    listeners.forEach((l) => l(cachedTasks))
   })
 
   // Seed from the main process: history persisted from earlier launches exists before

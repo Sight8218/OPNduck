@@ -194,6 +194,8 @@ const TaskRow = memo(
     a.task.experimentalMatch === b.task.experimentalMatch,
 )
 
+const PAGE_SIZE = 60
+
 const KIND_OPTIONS: { value: KindFilter; label: string }[] = [
   { value: 'all', label: 'All types' },
   { value: 'download', label: 'Downloads' },
@@ -305,6 +307,8 @@ function GroupBlock({
 export default function Library() {
   const tasks = useTasks()
   const [view, setView] = useState<ViewOptions>(readView)
+  // A long history is rendered in pages: 500 animated rows at once is what made this page heavy.
+  const [shownCount, setShownCount] = useState(PAGE_SIZE)
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
   const [pendingImport, setPendingImport] = useState<ImportedTask[] | null>(null)
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null)
@@ -458,7 +462,7 @@ export default function Library() {
       ) : (
         <div className="flex flex-col gap-3">
           <AnimatePresence initial={false}>
-            {items.map((item) =>
+            {items.slice(0, shownCount).map((item) =>
               item.type === 'task' ? (
                 <TaskRow key={item.task.id} task={item.task} />
               ) : (
@@ -478,6 +482,11 @@ export default function Library() {
               ),
             )}
           </AnimatePresence>
+          {items.length > shownCount && (
+            <button type="button" className="glass-btn self-center px-4 py-2 text-sm" onClick={() => setShownCount((n) => n + PAGE_SIZE)}>
+              Show {Math.min(PAGE_SIZE, items.length - shownCount)} more ({items.length - shownCount} hidden)
+            </button>
+          )}
         </div>
       )}
         </>
