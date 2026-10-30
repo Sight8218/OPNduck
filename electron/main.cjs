@@ -1981,12 +1981,13 @@ const gpuThreadArg = (kind) => (getSettings().gpuThreads === 'low' ? GPU_THREADS
 
 /** Runs an ncnn GPU tool with the faster thread setting; if it fails before finishing a single frame
  *  (typically not enough GPU memory for that setting), retries once with the conservative one. */
-async function spawnGpuTool(id, cmd, args, kind, entry, opts, framesDone) {
-  const threads = gpuThreadArg(kind)
+async function spawnGpuTool(id, cmd, args, kind, entry, opts, framesDone, state = { low: false }) {
+  const threads = state.low ? GPU_THREADS.low : gpuThreadArg(kind)
   try {
     return await spawnTracked(cmd, [...args, '-j', threads], entry, opts)
   } catch (err) {
     if (isCanceled(id) || threads === GPU_THREADS.low || framesDone() > 0) throw err
+    state.low = true // once the fast setting failed, the remaining chunks of this job use the safe one
     return spawnTracked(cmd, [...args, '-j', GPU_THREADS.low], entry, opts)
   }
 }
@@ -2166,7 +2167,7 @@ function probeVideoMeta(inputPath) {
           resolve(null)
           return
         }
-        resolve({ fps, frameCount })
+        resolve({ fps, frameCount, fpsNum: num, fpsDen: den, width: stream.width, height: stream.height })
       } catch {
         resolve(null)
       }
@@ -2221,12 +2222,40 @@ handleStart('tasks:startVideoUpscale', async (_e, req) => {
 
 const runVideoUpscale = (id, req, outputPath) => runInPool(gpuPool, id, () => videoUpscaleJob(id, req, outputPath))
 
-async function videoUpscaleJob(id, req, outputPath) {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opnduck-upscale-'))
+/* --- Chunked frame pipelines (video upscale, frame interpolation) ---
+ * Extracting every frame of a long video to PNG at once needs tens of GB of temp disk. Instead the
+ * source video is split (stream copy, keyframe-aligned, so nothing is re-encoded or lost) into
+ * segments of a few GB worth of frames; each segment is extracted -> processed on the GPU ->
+ * encoded to its own small file -> its PNGs deleted, and the encoded segments are joined at the end
+ * together with the original audio. Peak temp use is one segment, not the whole video. */
+const CHUNK_BUDGET_BYTES = 2.5e9
+
+/** Frames per segment such that one segment's PNGs (input + output) stay around CHUNK_BUDGET_BYTES.
+ *  OPNDUCK_CHUNK_FRAMES forces a size (tests). */
+function framesPerChunk(meta, outFactor, isScale) {
+  const forced = Number(process.env.OPNDUCK_CHUNK_FRAMES)
+  if (Number.isInteger(forced) && forced >= 2) return forced
+  const px = (meta.width || 1920) * (meta.height || 1080)
+  const outBytes = px * 1.5 * (isScale ? outFactor * outFactor : outFactor) // PNG ~1.5 bytes/px
+  return Math.max(24, Math.floor(CHUNK_BUDGET_BYTES / (px * 1.5 + outBytes)))
+}
+
+/** Lists numbered files of a directory in order. */
+const listSorted = (dir) => fs.readdirSync(dir).sort()
+
+/**
+ * Runs the extract -> GPU tool -> encode loop over keyframe segments.
+ * cfg: { tempPrefix, tool, threadsKind, failLabel, outFactor, isScale, gpuArgs(inDir, outDir, framesIn, hasNext),
+ *        overlap }  — `overlap` (interpolation) feeds each segment the first frame of the next one so the
+ * boundary gets its in-between frames; the extra output frame is dropped.
+ */
+async function chunkedFrameJob(id, req, outputPath, cfg) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), cfg.tempPrefix))
+  const segDir = path.join(tempDir, 'segments')
+  const doneDir = path.join(tempDir, 'encoded')
   const framesDir = path.join(tempDir, 'frames')
-  const upscaledDir = path.join(tempDir, 'upscaled')
-  fs.mkdirSync(framesDir, { recursive: true })
-  fs.mkdirSync(upscaledDir, { recursive: true })
+  const outDir = path.join(tempDir, 'processed')
+  for (const d of [segDir, doneDir, framesDir, outDir]) fs.mkdirSync(d, { recursive: true })
   const cleanup = () => {
     try {
       fs.rmSync(tempDir, { recursive: true, force: true })
@@ -2234,111 +2263,136 @@ async function videoUpscaleJob(id, req, outputPath) {
       /* best-effort — a leftover temp dir isn't worth failing the task over */
     }
   }
+  const fail = (message) => {
+    if (!isCanceled(id)) updateTask(id, { status: 'error', error: message })
+    cleanup()
+  }
+  const emptyDir = (dir) => {
+    for (const f of fs.readdirSync(dir)) fs.rmSync(path.join(dir, f), { force: true })
+  }
 
   const meta = await probeVideoMeta(req.inputPath)
-  if (isCanceled(id)) {
-    cleanup()
-    return
-  }
+  if (isCanceled(id)) return cleanup()
   if (!meta) {
     updateTask(id, { status: 'error', error: "Couldn't read this video's frame rate/frame count." })
-    cleanup()
-    return
+    return cleanup()
   }
-
   const entry = tasks.get(id)
   updateTask(id, { status: 'running' })
+  if (isCanceled(id)) return cleanup()
 
-  // Phase budget: extraction 0-20%, upscaling 20-90%, reassembly 90-100%.
+  const chunkFrames = framesPerChunk(meta, cfg.outFactor, cfg.isScale)
+  const total = meta.frameCount
+  let framesDone = 0
+  const setProgress = (extra) => updateTask(id, { progress: Math.min(0.97, (framesDone + extra) / total) })
+
+  // 1. Split (stream copy, video only).
   try {
     await spawnTracked(
       'ffmpeg',
-      ['-y', '-i', req.inputPath, '-progress', 'pipe:1', '-nostats', path.join(framesDir, '%08d.png')],
+      ['-y', '-i', req.inputPath, '-map', '0:v:0', '-c', 'copy', '-f', 'segment', '-segment_time', String(Math.max(1, chunkFrames / meta.fps)),
+        '-reset_timestamps', '1', path.join(segDir, 'seg%05d.mkv')],
       entry,
-      {
-        onStdout: (text) => {
-          const m = text.match(/frame=\s*(\d+)/)
-          if (m) updateTask(id, { progress: Math.min(0.2, (0.2 * Number(m[1])) / meta.frameCount) })
-        },
-      },
     )
   } catch (err) {
-    // A cancel mid-phase kills entry.child, which makes spawnTracked's
-    // promise reject just like a real failure would — don't let that
-    // overwrite the 'canceled' status tasks:cancel already set.
-    if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Frame extraction failed: ${err.message}` })
-    cleanup()
-    return
+    return fail(`Splitting the video failed: ${err.message}`)
   }
-  if (isCanceled(id)) {
-    cleanup()
-    return
-  }
+  if (isCanceled(id)) return cleanup()
+  const segments = listSorted(segDir).map((f) => path.join(segDir, f))
+  if (!segments.length) return fail('Splitting the video produced nothing.')
 
-  try {
+  // 2. Per segment: extract -> process -> encode.
+  const gpuState = { low: false }
+  const outFps = `${meta.fpsNum * cfg.outFactorFps}/${meta.fpsDen}`
+  const encodedParts = []
+  for (let k = 0; k < segments.length; k++) {
+    const hasNext = cfg.overlap && k < segments.length - 1
+    try {
+      await spawnTracked('ffmpeg', ['-y', '-i', segments[k], '-fps_mode', 'passthrough', path.join(framesDir, '%08d.png')], entry)
+    } catch (err) {
+      return fail(`Frame extraction failed: ${err.message}`)
+    }
+    if (isCanceled(id)) return cleanup()
+    const framesIn = fs.readdirSync(framesDir).length
+    if (framesIn === 0) return fail('A video segment had no frames.')
+    setProgress(framesIn * 0.1)
+    if (hasNext) {
+      // The next segment's first frame completes the last frame pair of this one.
+      try {
+        await spawnTracked(
+          'ffmpeg',
+          ['-y', '-i', segments[k + 1], '-fps_mode', 'passthrough', '-frames:v', '1', '-start_number', String(framesIn + 1), path.join(framesDir, '%08d.png')],
+          entry,
+        )
+      } catch (err) {
+        return fail(`Frame extraction failed: ${err.message}`)
+      }
+      if (isCanceled(id)) return cleanup()
+    }
+
     let doneCount = 0
-    await spawnGpuTool(
-      id,
-      'realesrgan-ncnn-vulkan',
-      ['-i', framesDir, '-o', upscaledDir, '-s', String(req.scale), '-n', req.model, '-v'],
-      'upscale',
-      entry,
-      {
-        onStderr: (text) => {
-          // "-> ... done" lines mark whole-frame completion — far more useful
-          // for overall video progress than the per-tile percentage lines,
-          // which restart for every individual frame.
-          const matches = text.match(/ done\r?\n/g)
-          if (matches) {
-            doneCount += matches.length
-            updateTask(id, { progress: Math.min(0.9, 0.2 + (0.7 * doneCount) / meta.frameCount) })
-          }
+    try {
+      await spawnGpuTool(
+        id,
+        cfg.tool,
+        cfg.gpuArgs(framesDir, outDir, framesIn, hasNext),
+        cfg.threadsKind,
+        entry,
+        {
+          onStderr: (text) => {
+            // " done" lines mark whole-frame completion (the per-tile percentages restart every frame).
+            const matches = text.match(/ done\r?\n/g)
+            if (matches) {
+              doneCount += matches.length
+              setProgress(framesIn * (0.1 + 0.8 * Math.min(1, doneCount / (framesIn * (cfg.isScale ? 1 : cfg.outFactor)))))
+            }
+          },
         },
-      },
-      () => doneCount,
-    )
-  } catch (err) {
-    if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Upscaling failed: ${err.message}` })
-    cleanup()
-    return
-  }
-  if (isCanceled(id)) {
-    cleanup()
-    return
+        () => doneCount,
+        gpuState,
+      )
+    } catch (err) {
+      return fail(`${cfg.failLabel} failed: ${err.message}`)
+    }
+    if (isCanceled(id)) return cleanup()
+
+    // With overlap the last output is the next segment's first frame: it belongs to that segment.
+    if (hasNext) {
+      const outs = listSorted(outDir)
+      fs.rmSync(path.join(outDir, outs[outs.length - 1]), { force: true })
+    }
+    const part = path.join(doneDir, `part${String(k).padStart(5, '0')}.mkv`)
+    try {
+      await spawnTracked(
+        'ffmpeg',
+        ['-y', '-framerate', outFps, '-i', path.join(outDir, '%08d.png'), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', part],
+        entry,
+      )
+    } catch (err) {
+      return fail(`Reassembly failed: ${err.message}`)
+    }
+    if (isCanceled(id)) return cleanup()
+    encodedParts.push(part)
+    emptyDir(framesDir)
+    emptyDir(outDir)
+    fs.rmSync(segments[k], { force: true })
+    framesDone += framesIn
+    setProgress(0)
   }
 
+  // 3. Join the parts and mux the original audio back in.
+  const listFile = path.join(tempDir, 'parts.txt')
+  fs.writeFileSync(listFile, encodedParts.map((p) => `file '${p.replace(/'/g, "'\\''")}'`).join('\n') + '\n')
   try {
     await spawnTracked(
       'ffmpeg',
-      [
-        '-y',
-        '-framerate', String(meta.fps),
-        '-i', path.join(upscaledDir, '%08d.png'),
-        '-i', req.inputPath,
-        '-map', '0:v',
-        '-map', '1:a?',
-        '-c:v', 'libx264',
-        '-pix_fmt', 'yuv420p',
-        '-c:a', 'aac',
-        '-shortest',
-        '-progress', 'pipe:1',
-        '-nostats',
-        outputPath,
-      ],
+      ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-i', req.inputPath, '-map', '0:v', '-map', '1:a?', '-c:v', 'copy', '-c:a', 'aac', '-shortest',
+        '-progress', 'pipe:1', '-nostats', outputPath],
       entry,
-      {
-        onStdout: (text) => {
-          const m = text.match(/frame=\s*(\d+)/)
-          if (m) updateTask(id, { progress: Math.min(1, 0.9 + (0.1 * Number(m[1])) / meta.frameCount) })
-        },
-      },
     )
   } catch (err) {
-    if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Reassembly failed: ${err.message}` })
-    cleanup()
-    return
+    return fail(`Reassembly failed: ${err.message}`)
   }
-
   cleanup()
 
   let realSize = null
@@ -2347,15 +2401,40 @@ async function videoUpscaleJob(id, req, outputPath) {
   } catch {
     /* keep null if the output can't be read */
   }
-  updateTask(id, {
-    status: 'done',
-    progress: 1,
-    label: path.basename(outputPath),
-    ...(realSize != null ? { sizeBytes: realSize } : {}),
+  updateTask(id, { status: 'done', progress: 1, label: path.basename(outputPath), ...(realSize != null ? { sizeBytes: realSize } : {}) })
+}
+
+const videoUpscaleJob = (id, req, outputPath) =>
+  chunkedFrameJob(id, req, outputPath, {
+    tempPrefix: 'opnduck-upscale-',
+    tool: 'realesrgan-ncnn-vulkan',
+    threadsKind: 'upscale',
+    failLabel: 'Upscaling',
+    outFactor: req.scale,
+    outFactorFps: 1,
+    isScale: true,
+    overlap: false,
+    gpuArgs: (inDir, outDir) => ['-i', inDir, '-o', outDir, '-s', String(req.scale), '-n', req.model, '-v'],
   })
 
-  return
-}
+const interpolateJob = (id, req, outputPath) =>
+  chunkedFrameJob(id, req, outputPath, {
+    tempPrefix: 'opnduck-interpolate-',
+    tool: 'rife-ncnn-vulkan',
+    threadsKind: 'interpolate',
+    failLabel: 'Interpolation',
+    outFactor: req.multiplier,
+    outFactorFps: req.multiplier,
+    isScale: false,
+    overlap: true,
+    // rife-v4.6: the tool's default model (rife-HD) can't make a custom frame count (-n), v4 models can.
+    // With the next segment's first frame appended the output spans framesIn+1 inputs, so N*mult+1 frames
+    // keep the spacing at 1/mult (the extra last one is dropped); the final segment has no neighbour.
+    gpuArgs: (inDir, outDir, framesIn, hasNext) => [
+      '-i', inDir, '-o', outDir, '-n', String(framesIn * req.multiplier + (hasNext ? 1 : 0)), '-m', 'rife-v4.6', '-v',
+    ],
+  })
+/* --- end: chunked frame pipelines --- */
 
 // --- end: upscaler/video-upscale-pipeline ---
 
@@ -2411,141 +2490,6 @@ handleStart('tasks:startInterpolate', async (_e, req) => {
 })
 
 const runInterpolate = (id, req, outputPath) => runInPool(gpuPool, id, () => interpolateJob(id, req, outputPath))
-
-async function interpolateJob(id, req, outputPath) {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opnduck-interpolate-'))
-  const framesDir = path.join(tempDir, 'frames')
-  const interpolatedDir = path.join(tempDir, 'interpolated')
-  fs.mkdirSync(framesDir, { recursive: true })
-  fs.mkdirSync(interpolatedDir, { recursive: true })
-  const cleanup = () => {
-    try {
-      fs.rmSync(tempDir, { recursive: true, force: true })
-    } catch {
-      /* best-effort — a leftover temp dir isn't worth failing the task over */
-    }
-  }
-
-  const meta = await probeVideoMeta(req.inputPath)
-  if (isCanceled(id)) {
-    cleanup()
-    return
-  }
-  if (!meta) {
-    updateTask(id, { status: 'error', error: "Couldn't read this video's frame rate/frame count." })
-    cleanup()
-    return
-  }
-
-  const entry = tasks.get(id)
-  updateTask(id, { status: 'running' })
-  const targetFrameCount = meta.frameCount * req.multiplier
-
-  // Phase budget: extraction 0-20%, interpolation 20-90%, reassembly 90-100%.
-  try {
-    await spawnTracked(
-      'ffmpeg',
-      ['-y', '-i', req.inputPath, '-progress', 'pipe:1', '-nostats', path.join(framesDir, '%08d.png')],
-      entry,
-      {
-        onStdout: (text) => {
-          const m = text.match(/frame=\s*(\d+)/)
-          if (m) updateTask(id, { progress: Math.min(0.2, (0.2 * Number(m[1])) / meta.frameCount) })
-        },
-      },
-    )
-  } catch (err) {
-    // A cancel mid-phase kills entry.child, which makes spawnTracked's
-    // promise reject just like a real failure would — don't let that
-    // overwrite the 'canceled' status tasks:cancel already set.
-    if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Frame extraction failed: ${err.message}` })
-    cleanup()
-    return
-  }
-  if (isCanceled(id)) {
-    cleanup()
-    return
-  }
-
-  try {
-    let doneCount = 0
-    await spawnGpuTool(
-      id,
-      'rife-ncnn-vulkan',
-      // rife-v4.6: the tool's default model (rife-HD) can't make a custom frame count (-n), v4 models can.
-      ['-i', framesDir, '-o', interpolatedDir, '-n', String(targetFrameCount), '-m', 'rife-v4.6', '-v'],
-      'interpolate',
-      entry,
-      {
-        onStderr: (text) => {
-          const matches = text.match(/ done\r?\n/g)
-          if (matches) {
-            doneCount += matches.length
-            updateTask(id, { progress: Math.min(0.9, 0.2 + (0.7 * doneCount) / targetFrameCount) })
-          }
-        },
-      },
-      () => doneCount,
-    )
-  } catch (err) {
-    if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Interpolation failed: ${err.message}` })
-    cleanup()
-    return
-  }
-  if (isCanceled(id)) {
-    cleanup()
-    return
-  }
-
-  try {
-    await spawnTracked(
-      'ffmpeg',
-      [
-        '-y',
-        '-framerate', String(meta.fps * req.multiplier),
-        '-i', path.join(interpolatedDir, '%08d.png'),
-        '-i', req.inputPath,
-        '-map', '0:v',
-        '-map', '1:a?',
-        '-c:v', 'libx264',
-        '-pix_fmt', 'yuv420p',
-        '-c:a', 'aac',
-        '-shortest',
-        '-progress', 'pipe:1',
-        '-nostats',
-        outputPath,
-      ],
-      entry,
-      {
-        onStdout: (text) => {
-          const m = text.match(/frame=\s*(\d+)/)
-          if (m) updateTask(id, { progress: Math.min(1, 0.9 + (0.1 * Number(m[1])) / targetFrameCount) })
-        },
-      },
-    )
-  } catch (err) {
-    if (!isCanceled(id)) updateTask(id, { status: 'error', error: `Reassembly failed: ${err.message}` })
-    cleanup()
-    return
-  }
-
-  cleanup()
-
-  let realSize = null
-  try {
-    realSize = fs.statSync(outputPath).size
-  } catch {
-    /* keep null if the output can't be read */
-  }
-  updateTask(id, {
-    status: 'done',
-    progress: 1,
-    label: path.basename(outputPath),
-    ...(realSize != null ? { sizeBytes: realSize } : {}),
-  })
-
-  return
-}
 
 // --- end: interpolate/frame-interpolation-pipeline ---
 

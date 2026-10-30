@@ -30,6 +30,12 @@ history; entries are curated for readability.
 
 ### Performance
 
+- **Long videos no longer need huge temp space:** video upscaling and frame interpolation now work in
+  chunks (the video is split without re-encoding, each chunk is processed and encoded on its own, then the
+  chunks are joined with the original audio). Temp disk use is bounded by one chunk (about 2.5 GB) instead of
+  every frame of the video; a 12-second test clip dropped from 226 MB to 59 MB (upscale) and 74 MB to 21 MB
+  (interpolate) with identical frame counts and duration. Each chunk reloads the model, so very short clips
+  can take a little longer.
 - **Smaller install:** the app archive no longer carries 105 MB of UI libraries that were already bundled
   into the page (50 MB → 1.4 MB), and only the English Chromium locale ships. Unpacked app 332 → 276 MB,
   AppImage 136 → 124 MB. Library, Settings and Plugins load when first opened (main script 549 → 492 KB).
