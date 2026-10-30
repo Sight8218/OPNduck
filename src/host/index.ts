@@ -137,6 +137,10 @@ export interface AppSettings {
   upscaleEngine: 'auto' | 'ncnn'
   /** AI video encoder: 'auto' = GPU (NVENC) when it works, 'cpu' = x264. */
   videoEncoder: 'auto' | 'cpu'
+  /** Desktop notification when jobs finish while the window isn't focused. */
+  notifyOnFinish: boolean
+  /** Closing the window keeps OPNduck running in the system tray. */
+  runInTray: boolean
   cookies: {
     mode: 'none' | 'browser' | 'file' | 'login'
     browser: string
@@ -388,7 +392,7 @@ export interface Host {
   /** Main-process settings (proxy, login cookies). Desktop shell only. */
   settings?: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   /** Auto-download new uploads from a channel/playlist (checked while the app is open). Desktop shell only. */
   subscriptions?: {

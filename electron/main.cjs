@@ -18,7 +18,7 @@
 
 // OPNDUCK_TRACE=1 prints a startup timeline (ms since process start); scripts/perf-check uses it.
 const trace = process.env.OPNDUCK_TRACE ? (label) => console.log(`[trace] ${label} ${Math.round(process.uptime() * 1000)}ms`) : () => {}
-const { app, BrowserWindow, ipcMain, dialog, shell, Notification } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, Notification, Tray, Menu, nativeImage } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const os = require('node:os')
@@ -98,6 +98,13 @@ function createWindow() {
     if (!win.isDestroyed()) win.webContents.send('omarchy:theme-changed', theme)
   })
   win.on('closed', stopWatchingOmarchy)
+  // With "keep running in the tray" the close button only hides the window.
+  win.on('close', (event) => {
+    if (!quitting && tray && getSettings().runInTray) {
+      event.preventDefault()
+      win.hide()
+    }
+  })
 
   return win
 }
@@ -153,7 +160,11 @@ function ytDlpInstallHint() {
 
 // Shared yt-dlp args (UTF-8 output, proxy, login cookies) come from ytdlpBaseArgs() in settings.cjs.
 ipcMain.handle('settings:get', () => getSettings())
-ipcMain.handle('settings:set', (_e, patch) => setSettings(patch))
+ipcMain.handle('settings:set', (_e, patch) => {
+  const next = setSettings(patch)
+  if (patch && 'runInTray' in patch) applyTray()
+  return next
+})
 
 // Built-in sign-in window (see login.cjs): the user logs in themselves, OPNduck keeps only cookies.
 ipcMain.handle('login:open', async (e, url) => {
@@ -842,6 +853,7 @@ function updateTask(id, patch) {
     patch = { ...patch, progress: Math.max(entry.state.progress, patch.progress) }
   }
   Object.assign(entry.state, patch)
+  if (patch.status && patch.status !== 'canceled' && TERMINAL.includes(patch.status)) notifyFinished(entry.state, entry.req)
   if (TERMINAL.includes(entry.state.status)) {
     historyChanged = true // a row just finished (or a finished one was edited): the renderer needs the full list
     scheduleHistorySave()
@@ -3241,6 +3253,71 @@ function sweepStaleTempDirs() {
   }
 }
 
+/* --- Tray + "job finished" notifications --- */
+let tray = null
+let quitting = false
+function showMainWindow() {
+  const win = BrowserWindow.getAllWindows()[0]
+  if (!win) return createWindow()
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
+}
+/** Creates or removes the tray icon to match the setting. */
+function applyTray() {
+  const want = getSettings().runInTray
+  if (want && !tray) {
+    try {
+      tray = new Tray(nativeImage.createFromPath(path.join(__dirname, 'tray.png')))
+      tray.setToolTip('OPNduck')
+      tray.setContextMenu(
+        Menu.buildFromTemplate([
+          { label: 'Show OPNduck', click: showMainWindow },
+          { label: 'Check subscriptions now', click: () => void subscriptions?.checkNow() },
+          { type: 'separator' },
+          { label: 'Quit', click: () => app.quit() },
+        ]),
+      )
+      tray.on('click', showMainWindow)
+    } catch {
+      tray = null // no tray support on this desktop: closing the window just quits as before
+    }
+  } else if (!want && tray) {
+    tray.destroy()
+    tray = null
+    BrowserWindow.getAllWindows().forEach((w) => w.show()) // never strand a hidden window
+  }
+}
+
+// Several jobs finishing together (a batch) become one notification.
+const finishedBatch = { done: [], failed: [] }
+let finishedTimer = null
+function notifyFinished(state, req) {
+  if (!getSettings().notifyOnFinish || !Notification.isSupported()) return
+  if (BrowserWindow.getAllWindows().some((w) => w.isVisible() && w.isFocused())) return // you're looking at it
+  if (req?.batch?.label?.startsWith('Subscription')) return // subscriptions announce their own new videos
+  finishedBatch[state.status === 'done' ? 'done' : 'failed'].push(state)
+  clearTimeout(finishedTimer)
+  finishedTimer = setTimeout(() => {
+    const { done, failed } = finishedBatch
+    const n = done.length + failed.length
+    let title, body
+    if (n === 1) {
+      const t = done[0] ?? failed[0]
+      title = done.length ? 'OPNduck: finished' : 'OPNduck: a job failed'
+      body = done.length ? t.label : `${t.label}: ${t.error ?? 'error'}`
+    } else {
+      title = `OPNduck: ${n} jobs finished`
+      body = failed.length ? `${done.length} done, ${failed.length} failed` : 'All done'
+    }
+    finishedBatch.done = []
+    finishedBatch.failed = []
+    const note = new Notification({ title, body: String(body).slice(0, 200) })
+    note.on('click', showMainWindow)
+    note.show()
+  }, 2500)
+}
+
 trace('main.cjs loaded')
 app.whenReady().then(() => {
   trace('app ready')
@@ -3251,6 +3328,7 @@ app.whenReady().then(() => {
   startSubscriptions()
   trace('subscriptions started')
   createWindow()
+  applyTray()
   trace('window created')
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -3262,6 +3340,7 @@ app.on('before-quit', () => subscriptions?.stop())
 // Don't orphan ffmpeg/soffice/python on exit, and don't lose a result that finished inside
 // the 400ms history-save debounce.
 app.on('before-quit', () => {
+  quitting = true
   whisperWorker.stop()
   demucsWorker.stop()
   clearTimeout(saveTimer)

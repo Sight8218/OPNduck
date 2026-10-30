@@ -37,6 +37,10 @@ const DEFAULTS = {
   gpuThreads: 'auto',
   /** Video upscaling engine: 'auto' = PyTorch when it can run (faster, streams frames), else ncnn; 'ncnn' = always ncnn. */
   upscaleEngine: 'auto',
+  /** Desktop notification when jobs finish while the window isn't focused. */
+  notifyOnFinish: true,
+  /** Closing the window keeps OPNduck running in the system tray (subscriptions keep checking). */
+  runInTray: false,
   /** Encoder for AI video jobs: 'auto' = GPU (NVENC) when it works, 'cpu' = x264. */
   videoEncoder: 'auto',
   cookies: {
@@ -75,6 +79,7 @@ function validate(next) {
   }
   if (!['auto', 'low'].includes(next.gpuThreads)) throw new Error('Invalid GPU performance mode')
   if (!['auto', 'ncnn'].includes(next.upscaleEngine)) throw new Error('Invalid upscale engine')
+  if (typeof next.notifyOnFinish !== 'boolean' || typeof next.runInTray !== 'boolean') throw new Error('Invalid notification setting')
   if (!['auto', 'cpu'].includes(next.videoEncoder)) throw new Error('Invalid video encoder')
   const c = next.cookies
   if (!c || !['none', 'browser', 'file', 'login'].includes(c.mode)) throw new Error('Invalid cookie source')
@@ -126,6 +131,8 @@ function setSettings(patch) {
     proxy: patch.proxy !== undefined ? String(patch.proxy).trim() : current.proxy,
     gpuThreads: patch.gpuThreads !== undefined ? patch.gpuThreads : current.gpuThreads,
     upscaleEngine: patch.upscaleEngine !== undefined ? patch.upscaleEngine : current.upscaleEngine,
+    notifyOnFinish: patch.notifyOnFinish !== undefined ? patch.notifyOnFinish : current.notifyOnFinish,
+    runInTray: patch.runInTray !== undefined ? patch.runInTray : current.runInTray,
     videoEncoder: patch.videoEncoder !== undefined ? patch.videoEncoder : current.videoEncoder,
     cookies: { ...current.cookies, ...(patch.cookies && typeof patch.cookies === 'object' ? patch.cookies : {}) },
   }

@@ -33,6 +33,11 @@ history; entries are curated for readability.
 
 ### Performance
 
+- **Notifications and tray:** Settings → Notifications & tray. A desktop notification when jobs finish while OPNduck
+  isn't the focused window (a batch becomes one notification), and an option to keep running in the system tray
+  when you close the window so jobs and subscription checks continue.
+- **Download extras:** a checkbox embeds cover art and tags (title, artist) into MP3, MP4 and MKV files (FLAC gets
+  tags only). Subtitles can be **translated to English** (new checkbox on the Subtitles card; output `name.en.srt`).
 - **Faster video upscaling engine (PyTorch, NVIDIA):** frames now stream ffmpeg → GPU → ffmpeg through pipes with
   no temporary image files at all. End to end on an RTX 3080 it was about 1.4–1.8× faster than the classic engine
   at 2× and 2.3–3.6× faster at 4× (output quality matches: SSIM 0.993). Settings → GPU jobs picks Auto or Classic
