@@ -30,6 +30,10 @@ history; entries are curated for readability.
 
 ### Performance
 
+- **GPU subtitles (NVIDIA):** the Subtitles card offers a one-click "Add GPU support" (about 2.3 GB: the CUDA 12
+  runtime libraries Whisper's GPU engine needs, installed into OPNduck's own Python environment, nothing
+  system-wide). In testing a 20-second clip with the `small` model took 5 s instead of about 45 s on the CPU. If
+  the GPU can't be used, subtitles still fall back to the CPU automatically.
 - **AI models stay loaded between files:** AI Audio (Demucs) and Subtitles (Whisper) now run in a background
   worker that keeps the model in memory, so a batch only pays the load cost once (second Demucs job: 4.3 s →
   0.9 s on a 20-second clip). The worker exits after 60 s idle so it doesn't hold GPU memory, and cancelling a

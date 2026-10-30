@@ -28,10 +28,13 @@ export default function InstallToolPanel({
   sizeNote,
   hint,
   onInstalled,
+  label,
 }: {
   tool: PythonTool
   sizeNote: string
-  hint: string
+  hint?: string
+  /** Button text instead of "Install automatically". */
+  label?: string
   onInstalled: () => void
 }) {
   const [busy, setBusy] = useState(false)
@@ -55,7 +58,7 @@ export default function InstallToolPanel({
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <button type="button" className="glass-btn px-3 py-1.5 text-xs" onClick={install} disabled={busy}>
-          {busy ? 'Installing…' : `Install automatically (${sizeNote})`}
+          {busy ? 'Installing…' : `${label ?? 'Install automatically'} (${sizeNote})`}
         </button>
         {busy && (
           <button type="button" className="glass-btn px-3 py-1.5 text-xs" onClick={() => void host.cancelInstall()}>
@@ -65,8 +68,12 @@ export default function InstallToolPanel({
       </div>
       {busy && <span className="truncate font-mono text-[11px] text-[var(--text-dim)]">{line}</span>}
       {error && <pre className="max-h-32 overflow-auto whitespace-pre-wrap text-[11px] text-red-400">{error}</pre>}
-      <span className="text-[11px] text-[var(--text-faint)]">Or by hand:</span>
-      <code className="select-all rounded-md bg-[var(--bg-solid)] px-2 py-1 font-mono text-[11px] text-[var(--text)]">{hint}</code>
+      {hint && (
+        <>
+          <span className="text-[11px] text-[var(--text-faint)]">Or by hand:</span>
+          <code className="select-all rounded-md bg-[var(--bg-solid)] px-2 py-1 font-mono text-[11px] text-[var(--text)]">{hint}</code>
+        </>
+      )}
     </div>
   )
 }

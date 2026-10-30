@@ -376,6 +376,33 @@ function venvHasPackage(name) {
   }
 }
 
+/** True if an NVIDIA GPU driver is present (nvidia-smi exists), i.e. GPU Whisper is worth offering. */
+function hasNvidiaGpu() {
+  try {
+    return require('node:child_process').spawnSync('nvidia-smi', ['-L'], { timeout: 4000 }).status === 0
+  } catch {
+    return false
+  }
+}
+
+/** Library folders of the CUDA 12 runtime the whisper-gpu install puts in the OPNduck venv
+ *  (site-packages/nvidia/<lib>/lib on Linux, .../bin on Windows). Empty when it isn't installed. */
+function venvNvidiaLibDirs() {
+  try {
+    const site = process.platform === 'win32'
+      ? path.join(VENV_DIR, 'Lib', 'site-packages')
+      : path.join(VENV_DIR, 'lib', fs.readdirSync(path.join(VENV_DIR, 'lib')).find((d) => d.startsWith('python')) ?? '', 'site-packages')
+    const root = path.join(site, 'nvidia')
+    const sub = process.platform === 'win32' ? 'bin' : 'lib'
+    const dirs = fs.readdirSync(root).map((d) => path.join(root, d, sub)).filter((d) => fs.existsSync(d))
+    // Only count it as installed when the CUDA 12 cuBLAS is really there.
+    const hasCublas12 = dirs.some((d) => fs.readdirSync(d).some((f) => /^(lib)?cublas(64_12\.dll|\.so\.12)/.test(f)))
+    return hasCublas12 ? dirs : []
+  } catch {
+    return []
+  }
+}
+
 /** The Python that runs faster-whisper: OPNDUCK_PYTHON, else the OPNduck venv once it has the package
  *  (the one-click install puts it there), else the system Python (e.g. a distro python-faster-whisper). */
 function whisperPython() {
@@ -427,15 +454,21 @@ ipcMain.handle('system:checkFasterWhisper', () => {
       return
     }
     // 'error' = no Python at all; a non-zero exit = Python without the module.
-    child.on('error', () => resolve({ available: false, installHint: fasterWhisperInstallHint() }))
-    child.on('close', (code) => resolve({ available: code === 0, installHint: fasterWhisperInstallHint() }))
+    const done = (available) => resolve({ available, installHint: fasterWhisperInstallHint(), nvidia: hasNvidiaGpu(), gpu: venvNvidiaLibDirs().length > 0 })
+    child.on('error', () => done(false))
+    child.on('close', (code) => done(code === 0))
   })
 })
 
 /* --- One-click Python tool install (AI Audio / Subtitles) ---
  * Creates the OPNduck venv (~/.opnduck-venv) if needed and pip-installs the packages into it,
  * streaming pip's output lines to the window that asked. One install at a time; cancelable. */
-const INSTALL_PACKAGES = { demucs: ['torch', 'demucs', 'soundfile'], whisper: ['faster-whisper'] }
+// whisper-gpu adds the CUDA 12 runtime libraries the prebuilt GPU Whisper engine (ctranslate2) needs.
+const INSTALL_PACKAGES = {
+  demucs: ['torch', 'demucs', 'soundfile'],
+  whisper: ['faster-whisper'],
+  'whisper-gpu': ['faster-whisper', 'nvidia-cublas-cu12', 'nvidia-cudnn-cu12'],
+}
 let installChild = null
 
 ipcMain.handle('system:installTool', (e, tool) => {
@@ -2140,7 +2173,7 @@ function spawnTracked(cmd, args, entry, { onStdout, onStderr, cwd } = {}) {
  * work so an idle app doesn't hold GPU memory, and cancelling a job (which kills `entry.child`) just
  * kills the worker — the next job starts a fresh one.
  */
-function createModelWorker({ python, scriptPath, idleMs = 60_000 }) {
+function createModelWorker({ python, scriptPath, idleMs = 60_000, env = () => ({}) }) {
   let child = null
   let idleTimer = null
 
@@ -2151,7 +2184,7 @@ function createModelWorker({ python, scriptPath, idleMs = 60_000 }) {
     const script = fs.readFileSync(scriptPath, 'utf8') // read here: an external Python can't open a file inside app.asar
     const proc = spawn(python(), ['-c', script, '--serve'], {
       cwd: pythonCwd(), // `python -c` imports from the cwd; keep it away from user/shared folders
-      env: { ...process.env, PYTHONUNBUFFERED: '1' },
+      env: { ...process.env, PYTHONUNBUFFERED: '1', ...env() },
     })
     child = proc
     proc.job = null
@@ -2595,7 +2628,14 @@ const runInterpolate = (id, req, outputPath) => runInPool(gpuPool, id, () => int
 const WHISPER_MODELS = ['tiny', 'base', 'small', 'medium']
 const SUBTITLE_FORMATS = ['srt', 'vtt']
 const WHISPER_SCRIPT = path.join(__dirname, 'whisper_subtitles.py')
-const whisperWorker = createModelWorker({ python: () => whisperPython(), scriptPath: WHISPER_SCRIPT })
+// GPU Whisper finds its CUDA 12 libraries through the dynamic-linker path (PATH on Windows).
+function whisperEnv() {
+  const dirs = venvNvidiaLibDirs()
+  if (!dirs.length) return {}
+  const key = process.platform === 'win32' ? 'PATH' : 'LD_LIBRARY_PATH'
+  return { [key]: [...dirs, process.env[key]].filter(Boolean).join(path.delimiter) }
+}
+const whisperWorker = createModelWorker({ python: () => whisperPython(), scriptPath: WHISPER_SCRIPT, env: whisperEnv })
 
 handleStart('tasks:startSubtitles', (_e, req) => {
   assertAbsolutePath(req.inputPath, 'inputPath')

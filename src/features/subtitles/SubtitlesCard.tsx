@@ -3,7 +3,7 @@ import InstallToolPanel from '../../components/InstallToolPanel'
 import FeatureCard from '../../components/FeatureCard'
 import GlassSelect from '../../components/GlassSelect'
 import Tag from '../../components/Tag'
-import { host, type SubtitleFormat, type WhisperModel } from '../../host'
+import { host, type SubtitleFormat, type ToolStatus, type WhisperModel } from '../../host'
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
 import PresetBar from '../../components/PresetBar'
@@ -64,7 +64,7 @@ export default function SubtitlesCard({ feature }: { feature: FeatureDefinition 
   const [language, setLanguage] = useState('auto')
   const [format, setFormat] = useState<SubtitleFormat>('srt')
   const [submittedIds, setSubmittedIds] = useSubmittedIds('subtitles')
-  const [whisper, setWhisper] = useState<{ available: boolean; installHint: string } | null>(null)
+  const [whisper, setWhisper] = useState<ToolStatus | null>(null)
 
   useEffect(() => {
     if (!host.isDesktop) return
@@ -109,7 +109,35 @@ export default function SubtitlesCard({ feature }: { feature: FeatureDefinition 
           <span className="text-[var(--text-dim)]">
             Subtitles need Python 3 with the faster-whisper package.
           </span>
-          <InstallToolPanel tool="whisper" sizeNote="about 200 MB" hint={whisper.installHint} onInstalled={() => host.checkFasterWhisper().then(setWhisper)} />
+          {whisper.nvidia && (
+            <InstallToolPanel
+              tool="whisper-gpu"
+              label="Install with NVIDIA GPU support"
+              sizeNote="about 2.3 GB"
+              onInstalled={() => host.checkFasterWhisper().then(setWhisper)}
+            />
+          )}
+          <InstallToolPanel
+            tool="whisper"
+            label={whisper.nvidia ? 'Install CPU-only' : undefined}
+            sizeNote="about 200 MB"
+            hint={whisper.installHint}
+            onInstalled={() => host.checkFasterWhisper().then(setWhisper)}
+          />
+        </div>
+      )}
+      {!missing && whisper?.nvidia && !whisper.gpu && (
+        <div className="flex flex-col gap-1 rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-xs">
+          <span className="font-medium text-[var(--text)]">Use your NVIDIA GPU for subtitles</span>
+          <span className="text-[var(--text-dim)]">
+            Subtitles currently run on the CPU. Adding GPU support made transcription about 6× faster in testing.
+          </span>
+          <InstallToolPanel
+            tool="whisper-gpu"
+            label="Add GPU support"
+            sizeNote="about 2.3 GB"
+            onInstalled={() => host.checkFasterWhisper().then(setWhisper)}
+          />
         </div>
       )}
 

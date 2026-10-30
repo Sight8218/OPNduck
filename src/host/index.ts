@@ -66,7 +66,7 @@ export interface BatchInfo {
 }
 
 /** Python tools OPNduck can install for you into its own environment. */
-export type PythonTool = 'demucs' | 'whisper'
+export type PythonTool = 'demucs' | 'whisper' | 'whisper-gpu'
 
 export interface DownloadRequest {
   /** Set by the card when it starts several jobs at once. */
@@ -324,6 +324,9 @@ export interface ToolStatus {
   /** yt-dlp only: its version, and whether it's OPNduck's own downloaded copy (vs. the system one). */
   version?: string
   managed?: boolean
+  /** faster-whisper only: an NVIDIA GPU is present, and whether OPNduck's CUDA 12 libraries are installed. */
+  nvidia?: boolean
+  gpu?: boolean
 }
 
 export interface Host {
