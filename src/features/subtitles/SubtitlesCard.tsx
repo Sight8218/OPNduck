@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import InstallToolPanel from '../../components/InstallToolPanel'
 import FeatureCard from '../../components/FeatureCard'
 import GlassSelect from '../../components/GlassSelect'
 import Tag from '../../components/Tag'
@@ -106,12 +107,9 @@ export default function SubtitlesCard({ feature }: { feature: FeatureDefinition 
         <div className="flex flex-col gap-1 rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-xs">
           <span className="font-medium text-[var(--text)]">faster-whisper isn't installed</span>
           <span className="text-[var(--text-dim)]">
-            Subtitles need Python 3 with the faster-whisper package:
+            Subtitles need Python 3 with the faster-whisper package.
           </span>
-          <code className="select-all rounded-md bg-[var(--bg-solid)] px-2 py-1 font-mono text-[var(--text)]">
-            {whisper.installHint}
-          </code>
-          <span className="text-[var(--text-dim)]">Restart OPNduck after installing.</span>
+          <InstallToolPanel tool="whisper" sizeNote="about 200 MB" hint={whisper.installHint} onInstalled={() => host.checkFasterWhisper().then(setWhisper)} />
         </div>
       )}
 

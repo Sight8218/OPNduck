@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { IconX } from '@tabler/icons-react'
+import InstallToolPanel from '../../components/InstallToolPanel'
 import FeatureCard from '../../components/FeatureCard'
 import GlassSelect from '../../components/GlassSelect'
 import PresetBar from '../../components/PresetBar'
@@ -93,10 +94,10 @@ export default function AudioAiCard({ feature }: { feature: FeatureDefinition })
         <div className="flex flex-col gap-1 rounded-xl border border-[var(--input-border)] bg-[var(--input-bg)] p-3 text-xs">
           <span className="font-medium text-[var(--text)]">Demucs isn't set up</span>
           <span className="text-[var(--text-dim)]">
-            The AI modes need Python with torch, demucs and soundfile (about 2–3 GB). The model itself (~80 MB) downloads the first
-            time you run it. Install, then restart OPNduck:
+            The AI modes need Python with torch, demucs and soundfile (a big download). The model itself (~80 MB) downloads the first
+            time you run it.
           </span>
-          <code className="select-all rounded-md bg-[var(--bg-solid)] px-2 py-1 font-mono text-[var(--text)]">{demucs.installHint}</code>
+          <InstallToolPanel tool="demucs" sizeNote="about 5 GB" hint={demucs.installHint} onInstalled={() => host.checkDemucs().then(setDemucs)} />
           <span className="text-[var(--text-dim)]">The "Reduce echo & noise" mode works without it.</span>
         </div>
       )}

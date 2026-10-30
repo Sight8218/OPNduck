@@ -29,6 +29,7 @@ import type {
   DownloadRequest,
   Host,
   InterpolateRequest,
+  PythonTool,
   SubtitlesRequest,
   TaskState,
   ToolStatus,
@@ -56,6 +57,9 @@ interface ElectronBridge {
   checkRife(): Promise<ToolStatus>
   checkFasterWhisper(): Promise<ToolStatus>
   checkDemucs(): Promise<ToolStatus>
+  installTool(tool: PythonTool): Promise<{ ok: boolean; error?: string }>
+  cancelInstall(): Promise<void>
+  onInstallProgress(listener: (p: { tool: PythonTool; line: string }) => void): () => void
   settings: {
     get(): Promise<AppSettings>
     set(patch: { proxy?: string; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
@@ -164,6 +168,11 @@ export function detectElectronHost(): Host | null {
     checkRife: () => bridge.checkRife(),
     checkFasterWhisper: () => bridge.checkFasterWhisper(),
     checkDemucs: () => bridge.checkDemucs(),
+    installTool: (tool, onProgress) => {
+      const off = bridge.onInstallProgress((p) => p.tool === tool && onProgress?.(p.line))
+      return bridge.installTool(tool).finally(off)
+    },
+    cancelInstall: () => bridge.cancelInstall(),
     settings: {
       get: () => bridge.settings.get(),
       set: (patch) => bridge.settings.set(patch),

@@ -65,6 +65,9 @@ export interface BatchInfo {
   size: number
 }
 
+/** Python tools OPNduck can install for you into its own environment. */
+export type PythonTool = 'demucs' | 'whisper'
+
 export interface DownloadRequest {
   /** Set by the card when it starts several jobs at once. */
   batch?: BatchInfo
@@ -346,6 +349,9 @@ export interface Host {
   checkFasterWhisper(): Promise<ToolStatus>
   /** Python with torch + demucs + soundfile, for the AI Audio card. */
   checkDemucs(): Promise<ToolStatus>
+  /** One-click install of a Python tool into OPNduck's own environment; `onProgress` gets pip's output lines. */
+  installTool(tool: PythonTool, onProgress?: (line: string) => void): Promise<{ ok: boolean; error?: string }>
+  cancelInstall(): Promise<void>
   tasks: HostTasks
   /** Update check against GitHub releases. Desktop shell only (notify-only: opens the release page). */
   updates?: {
@@ -593,6 +599,8 @@ const browserHost: Host = {
   checkRife: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkFasterWhisper: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkDemucs: async () => ({ available: false, installHint: 'Desktop app required' }),
+  installTool: async () => ({ ok: false, error: 'Desktop app required' }),
+  cancelInstall: async () => {},
   tasks: browserTasks,
 }
 

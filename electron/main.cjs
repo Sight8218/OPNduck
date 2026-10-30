@@ -304,13 +304,29 @@ function pythonCommand() {
  * the system Python. Kept separate from pythonCommand() because the venv holds torch/demucs but
  * not necessarily faster-whisper, which the Subtitles card looks for in the regular Python.
  */
+const VENV_DIR = process.env.OPNDUCK_VENV || path.join(os.homedir(), process.platform === 'win32' ? 'opnduck-venv' : '.opnduck-venv')
+const VENV_PYTHON = path.join(VENV_DIR, ...(process.platform === 'win32' ? ['Scripts', 'python.exe'] : ['bin', 'python']))
+
 function demucsPython() {
   if (process.env.OPNDUCK_PYTHON) return process.env.OPNDUCK_PYTHON
-  const venv =
-    process.platform === 'win32'
-      ? path.join(os.homedir(), 'opnduck-venv', 'Scripts', 'python.exe')
-      : path.join(os.homedir(), '.opnduck-venv', 'bin', 'python')
-  return fs.existsSync(venv) ? venv : pythonCommand()
+  return fs.existsSync(VENV_PYTHON) ? VENV_PYTHON : pythonCommand()
+}
+
+/** True if the OPNduck venv has a package folder installed (a cheap file check, no Python spawn). */
+function venvHasPackage(name) {
+  try {
+    const libs = process.platform === 'win32' ? [path.join(VENV_DIR, 'Lib')] : fs.readdirSync(path.join(VENV_DIR, 'lib')).map((d) => path.join(VENV_DIR, 'lib', d))
+    return libs.some((lib) => fs.existsSync(path.join(lib, 'site-packages', name)))
+  } catch {
+    return false
+  }
+}
+
+/** The Python that runs faster-whisper: OPNDUCK_PYTHON, else the OPNduck venv once it has the package
+ *  (the one-click install puts it there), else the system Python (e.g. a distro python-faster-whisper). */
+function whisperPython() {
+  if (process.env.OPNDUCK_PYTHON) return process.env.OPNDUCK_PYTHON
+  return venvHasPackage('faster_whisper') ? VENV_PYTHON : pythonCommand()
 }
 
 function fasterWhisperInstallHint() {
@@ -351,7 +367,7 @@ ipcMain.handle('system:checkFasterWhisper', () => {
     try {
       // cwd = tmpdir: `python -c` puts the cwd on sys.path, so never run it from a folder
       // that could hold a planted faster_whisper.py.
-      child = spawn(pythonCommand(), ['-c', 'import faster_whisper'], { cwd: pythonCwd() })
+      child = spawn(whisperPython(), ['-c', 'import faster_whisper'], { cwd: pythonCwd() })
     } catch {
       resolve({ available: false, installHint: fasterWhisperInstallHint() })
       return
@@ -360,6 +376,65 @@ ipcMain.handle('system:checkFasterWhisper', () => {
     child.on('error', () => resolve({ available: false, installHint: fasterWhisperInstallHint() }))
     child.on('close', (code) => resolve({ available: code === 0, installHint: fasterWhisperInstallHint() }))
   })
+})
+
+/* --- One-click Python tool install (AI Audio / Subtitles) ---
+ * Creates the OPNduck venv (~/.opnduck-venv) if needed and pip-installs the packages into it,
+ * streaming pip's output lines to the window that asked. One install at a time; cancelable. */
+const INSTALL_PACKAGES = { demucs: ['torch', 'demucs', 'soundfile'], whisper: ['faster-whisper'] }
+let installChild = null
+
+ipcMain.handle('system:installTool', (e, tool) => {
+  if (!Object.hasOwn(INSTALL_PACKAGES, tool)) return { ok: false, error: 'Unknown tool.' }
+  if (process.env.OPNDUCK_PYTHON) return { ok: false, error: 'OPNDUCK_PYTHON is set, so OPNduck is not managing Python packages. Install them in that Python yourself.' }
+  if (installChild) return { ok: false, error: 'An install is already running.' }
+  const send = (line) => {
+    if (!e.sender.isDestroyed()) e.sender.send('system:installProgress', { tool, line })
+  }
+  const run = (cmd, args) =>
+    new Promise((resolve) => {
+      let child
+      try {
+        child = spawn(cmd, args, { cwd: pythonCwd(), env: { ...process.env, PIP_DISABLE_PIP_VERSION_CHECK: '1', PYTHONUNBUFFERED: '1' } })
+      } catch (err) {
+        resolve({ code: -1, tail: String(err.message ?? err) })
+        return
+      }
+      installChild = child
+      let tail = ''
+      const onData = (chunk) => {
+        for (const raw of String(chunk).split(/\r?\n|\r/)) {
+          const line = raw.trim()
+          if (!line) continue
+          tail = (tail + '\n' + line).slice(-600)
+          send(line.slice(0, 200))
+        }
+      }
+      child.stdout.on('data', onData)
+      child.stderr.on('data', onData)
+      child.on('error', (err) => resolve({ code: -1, tail: String(err.message ?? err) }))
+      child.on('close', (code, signal) => resolve({ code: signal ? -2 : code, tail }))
+    })
+  return (async () => {
+    try {
+      if (!fs.existsSync(VENV_PYTHON)) {
+        send('Creating the OPNduck Python environment…')
+        const made = await run(pythonCommand(), ['-m', 'venv', VENV_DIR])
+        if (made.code === -2) return { ok: false, error: 'Canceled.' }
+        if (made.code !== 0) return { ok: false, error: `Couldn't create a Python environment (is Python 3 installed?)\n${made.tail}` }
+      }
+      send('Installing packages…')
+      const res = await run(VENV_PYTHON, ['-m', 'pip', 'install', '--progress-bar', 'off', ...INSTALL_PACKAGES[tool]])
+      if (res.code === -2) return { ok: false, error: 'Canceled.' }
+      if (res.code !== 0) return { ok: false, error: `pip failed:\n${res.tail}` }
+      return { ok: true }
+    } finally {
+      installChild = null
+    }
+  })()
+})
+ipcMain.handle('system:installCancel', () => {
+  installChild?.kill()
 })
 
 ipcMain.handle('omarchy:get', () => readOmarchyTheme())
@@ -2455,7 +2530,7 @@ handleStart('tasks:startSubtitles', (_e, req) => {
     updateTask(id, { status: 'running' })
     let lineBuf = ''
     spawnTracked(
-      pythonCommand(),
+      whisperPython(),
       ['-c', script, req.inputPath, outputPath, req.model, req.language, req.format],
       entry,
       {

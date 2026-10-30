@@ -39,6 +39,13 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   checkRealesrgan: () => ipcRenderer.invoke('system:checkRealesrgan'),
   checkRife: () => ipcRenderer.invoke('system:checkRife'),
   checkFasterWhisper: () => ipcRenderer.invoke('system:checkFasterWhisper'),
+  installTool: (tool) => ipcRenderer.invoke('system:installTool', tool),
+  cancelInstall: () => ipcRenderer.invoke('system:installCancel'),
+  onInstallProgress: (listener) => {
+    const handler = (_e, p) => listener(p)
+    ipcRenderer.on('system:installProgress', handler)
+    return () => ipcRenderer.removeListener('system:installProgress', handler)
+  },
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),
     set: (patch) => ipcRenderer.invoke('settings:set', patch),
