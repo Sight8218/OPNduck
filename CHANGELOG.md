@@ -59,6 +59,11 @@ history; entries are curated for readability.
   the new **Jade Horse** and **Starship**), plus **Osaka Jade**, which rc2 dropped but stays here as a swatch picker. They work on any system, not just where Omarchy is
   installed, share the Omarchy look and keep your choice between launches. "Synced with Omarchy" still follows your live
   theme and picks up new Omarchy themes automatically.
+- **More developer utilities** (Settings → Developer tools, with dev mode on, Ctrl+Shift+D): system and tool versions
+  (OPNduck, Electron, Chromium, GPU, yt-dlp, ffmpeg, upscalers, Python, PyTorch), live per-process CPU and memory, an
+  app log viewer with level filters, a raw tasks inspector, buttons for DevTools, reload, the data folder and a test
+  notification, simulated jobs (success or failure) to try the UI, and **Copy diagnostics** — a bug-report text with
+  your home folder and any credentials removed.
 - **Notifications and tray:** Settings → Notifications & tray. A desktop notification when jobs finish while OPNduck
   isn't the focused window (a batch becomes one notification), and an option to keep running in the system tray
   when you close the window so jobs and subscription checks continue.

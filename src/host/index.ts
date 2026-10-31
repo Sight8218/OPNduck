@@ -426,6 +426,21 @@ export interface Host {
   /** Present only on hosts that can see the OS-level Omarchy theme (Electron
    *  on Linux); undefined everywhere else, including a non-Omarchy Linux
    *  desktop that just happens to run Electron. */
+  /** Developer utilities (Settings, dev mode on). Desktop shell only. */
+  dev?: {
+    info(): Promise<Record<string, Record<string, string | number | boolean>>>
+    metrics(): Promise<{ pid: number; type: string; cpu: number; memMB: number }[]>
+    logs(): Promise<{ t: number; level: string; text: string }[]>
+    tasks(): Promise<unknown[]>
+    /** A redacted report (versions, tools, settings, recent log) ready to paste into a bug report. */
+    diagnostics(): Promise<string>
+    openUserData(): Promise<string>
+    toggleDevTools(): Promise<void>
+    reloadUI(): Promise<void>
+    testNotification(): Promise<boolean>
+    /** Starts a simulated job (no real work) to try the UI; `fail` makes it error out. Resolves to its task id. */
+    fakeJob(fail?: boolean): Promise<string>
+  }
   /** The job queue as a whole: pause starting new jobs (running ones finish). Desktop shell only. */
   queue?: {
     state(): Promise<{ paused: boolean }>

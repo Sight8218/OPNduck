@@ -19,6 +19,17 @@
 // OPNDUCK_TRACE=1 prints a startup timeline (ms since process start); scripts/perf-check uses it.
 const trace = process.env.OPNDUCK_TRACE ? (label) => console.log(`[trace] ${label} ${Math.round(process.uptime() * 1000)}ms`) : () => {}
 const { app, BrowserWindow, ipcMain, dialog, shell, Notification, Tray, Menu, nativeImage } = require('electron')
+
+// The last few hundred lines of main-process and renderer console output, for Settings -> Developer tools.
+const appLog = []
+for (const level of ['log', 'info', 'warn', 'error']) {
+  const original = console[level].bind(console)
+  console[level] = (...args) => {
+    appLog.push({ t: Date.now(), level, text: require('node:util').format(...args).slice(0, 500) })
+    if (appLog.length > 500) appLog.shift()
+    original(...args)
+  }
+}
 const path = require('node:path')
 const fs = require('node:fs')
 const os = require('node:os')
@@ -3079,6 +3090,118 @@ handleStart('tasks:startSubtitles', (_e, req) => {
   return id
 })
 // --- end: subtitles/whisper-transcription ---
+
+/* --- Developer tools (Settings, with dev mode on) --- */
+// @category: dev/dev-tools-main
+/** Makes text safe to paste in a bug report: home folder -> ~, credentials inside URLs hidden. */
+function redact(text) {
+  return String(text).split(os.homedir()).join('~').replace(/(\w+:\/\/)[^/\s@]+@/g, '$1***@')
+}
+
+/** First line of a command's output, or null if it can't run. */
+function commandLine(cmd, args, timeout = 5000) {
+  try {
+    const r = require('node:child_process').spawnSync(cmd, args, { timeout, encoding: 'utf8' })
+    if (r.error || r.status !== 0) return null
+    return (r.stdout || r.stderr || '').split('\n')[0].trim() || null
+  } catch {
+    return null
+  }
+}
+
+/** True if the program can be started at all (some tools exit non-zero on -h, so the exit code doesn't matter). */
+function commandExists(cmd) {
+  try {
+    const r = require('node:child_process').spawnSync(cmd, ['-h'], { timeout: 5000 })
+    return !r.error
+  } catch {
+    return false
+  }
+}
+
+function collectDevInfo() {
+  const mem = process.getSystemMemoryInfo?.() ?? {}
+  const gpu = commandLine('nvidia-smi', ['--query-gpu=name,driver_version,memory.total', '--format=csv,noheader'])
+  return {
+    app: { version: app.getVersion(), packaged: app.isPackaged, userData: redact(app.getPath('userData')), uptimeSec: Math.round(process.uptime()) },
+    runtime: { electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node, v8: process.versions.v8 },
+    system: {
+      platform: `${process.platform} ${process.arch}`,
+      os: os.release(),
+      cpu: `${os.cpus()[0]?.model ?? 'unknown'} x${os.cpus().length}`,
+      ramGB: +(os.totalmem() / 1e9).toFixed(1),
+      freeRamGB: mem.available ? +(mem.available / 1e6).toFixed(1) : +(os.freemem() / 1e9).toFixed(1),
+      gpu: gpu ?? 'no NVIDIA GPU detected',
+    },
+    tools: {
+      'yt-dlp': commandLine(ytdlpCommand(), ['--version']) ?? 'not found',
+      ffmpeg: commandLine('ffmpeg', ['-version'])?.replace(/^ffmpeg version /, '').split(' ')[0] ?? 'not found',
+      realesrgan: commandExists('realesrgan-ncnn-vulkan') ? 'found' : 'not found',
+      rife: commandExists('rife-ncnn-vulkan') ? 'found' : 'not found',
+      python: commandLine(pythonCommand(), ['--version']) ?? 'not found',
+      venv: fs.existsSync(VENV_PYTHON) ? redact(VENV_DIR) : 'not created',
+      'GPU Whisper libs': venvNvidiaLibDirs().length ? 'installed' : 'not installed',
+    },
+    jobs: { tasks: tasks.size, running: [...tasks.values()].filter((t) => t.state.status === 'running').length, queuePaused },
+  }
+}
+
+ipcMain.handle('dev:info', async () => {
+  const info = collectDevInfo()
+  info.tools.pytorchEngine = (await torchEngineReady()) ? 'CUDA available' : 'not available'
+  return info
+})
+/** Per-process CPU and memory of the whole app (browser, GPU, renderer, utility). */
+ipcMain.handle('dev:metrics', () =>
+  app.getAppMetrics().map((m) => ({ pid: m.pid, type: m.type, cpu: +m.cpu.percentCPUUsage.toFixed(1), memMB: Math.round((m.memory.workingSetSize || 0) / 1024) })),
+)
+ipcMain.handle('dev:logs', () => appLog.slice(-300).map((l) => ({ t: l.t, level: l.level, text: redact(l.text) })))
+ipcMain.handle('dev:tasks', () =>
+  JSON.parse(redact(JSON.stringify([...tasks.values()].map((t) => ({ channel: t.channel, state: t.state, req: t.req, finalPath: t.finalPath ?? null }))))),
+)
+ipcMain.handle('dev:diagnostics', async () => {
+  const report = {
+    generatedAt: new Date().toISOString(),
+    ...collectDevInfo(),
+    settings: JSON.parse(redact(JSON.stringify(getSettings()))),
+    recentTasks: [...tasks.values()].slice(-15).map((t) => ({ kind: t.state.kind, status: t.state.status, format: t.state.format, error: t.state.error ?? null })),
+    log: appLog.slice(-150).map((l) => `${new Date(l.t).toISOString()} ${l.level} ${redact(l.text)}`),
+  }
+  return JSON.stringify(report, null, 2)
+})
+ipcMain.handle('dev:openUserData', () => shell.openPath(app.getPath('userData')))
+ipcMain.handle('dev:toggleDevTools', (e) => e.sender.toggleDevTools())
+ipcMain.handle('dev:reloadUI', (e) => e.sender.reloadIgnoringCache())
+ipcMain.handle('dev:testNotification', () => {
+  if (!Notification.isSupported()) return false
+  new Notification({ title: 'OPNduck: test notification', body: 'If you can read this, notifications work.' }).show()
+  return true
+})
+/** A fake job that ticks to 100% over ~12 s (or fails at 60%), to try out the UI without real work. */
+ipcMain.handle('dev:fakeJob', (_e, fail) => {
+  const id = crypto.randomUUID()
+  addTask(id, {
+    state: { id, kind: 'convert', status: 'running', progress: 0, label: fail ? 'Dev test job (will fail)' : 'Dev test job', format: 'TEST', quality: 'simulated', sizeBytes: null, sizeIsEstimate: false, thumbnailUrl: null, experimentalMatch: null },
+    child: null,
+    finalPath: null,
+  })
+  let n = 0
+  jobLog(id, 'Dev test job started (simulated, no real work)')
+  const timer = setInterval(() => {
+    n++
+    jobLog(id, `step ${n}`)
+    if (isCanceled(id)) return clearInterval(timer)
+    if (fail && n >= 7) {
+      clearInterval(timer)
+      updateTask(id, { status: 'error', error: 'Simulated failure' })
+    } else if (n >= 12) {
+      clearInterval(timer)
+      updateTask(id, { status: 'done', progress: 1 })
+    } else updateTask(id, { progress: n / 12 })
+  }, 1000)
+  broadcastTasks()
+  return id
+})
 
 /* --- Trim: cut a section out of a video or audio file --- */
 // @category: trim/trim-pipeline

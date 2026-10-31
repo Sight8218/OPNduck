@@ -49,6 +49,18 @@ contextBridge.exposeInMainWorld('opnduckHost', {
       return () => ipcRenderer.removeListener('queue:state', handler)
     },
   },
+  dev: {
+    info: () => ipcRenderer.invoke('dev:info'),
+    metrics: () => ipcRenderer.invoke('dev:metrics'),
+    logs: () => ipcRenderer.invoke('dev:logs'),
+    tasks: () => ipcRenderer.invoke('dev:tasks'),
+    diagnostics: () => ipcRenderer.invoke('dev:diagnostics'),
+    openUserData: () => ipcRenderer.invoke('dev:openUserData'),
+    toggleDevTools: () => ipcRenderer.invoke('dev:toggleDevTools'),
+    reloadUI: () => ipcRenderer.invoke('dev:reloadUI'),
+    testNotification: () => ipcRenderer.invoke('dev:testNotification'),
+    fakeJob: (fail) => ipcRenderer.invoke('dev:fakeJob', !!fail),
+  },
   checkTorchEngine: () => ipcRenderer.invoke('system:checkTorchEngine'),
   probeMedia: (p) => ipcRenderer.invoke('media:probe', p),
   mediaFrame: (p, t, width) => ipcRenderer.invoke('media:frame', p, t, width),

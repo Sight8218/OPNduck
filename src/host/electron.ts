@@ -60,6 +60,7 @@ interface ElectronBridge {
   checkRife(): Promise<ToolStatus>
   checkFasterWhisper(): Promise<ToolStatus>
   checkDemucs(): Promise<ToolStatus>
+  dev: NonNullable<Host['dev']>
   queue: {
     state(): Promise<{ paused: boolean }>
     setPaused(paused: boolean): Promise<void>
@@ -195,6 +196,7 @@ export function detectElectronHost(): Host | null {
       return bridge.installTool(tool).finally(off)
     },
     cancelInstall: () => bridge.cancelInstall(),
+    dev: bridge.dev,
     queue: {
       state: () => bridge.queue.state(),
       setPaused: (paused) => bridge.queue.setPaused(paused),
