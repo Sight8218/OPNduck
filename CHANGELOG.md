@@ -31,6 +31,14 @@ history; entries are curated for readability.
   match faster-whisper; audio is now decoded with ffmpeg. Songs no longer come out empty (the speech
   filter is retried off), and a file with no speech reports that instead of saving an empty .srt.
 
+### Changed
+
+- **Electron 45.2.0** (Chromium 156, Node 24.22). Release notes for 45.0–45.2 reviewed: nothing in OPNduck uses the
+  removed sandbox preload globals, the changed ASAR `fs.open` behaviour, or the deprecated `safeStorage`. New in
+  OPNduck from it: the taskbar/dock icon shows the overall progress of running jobs (`setProgressBar`, now working on
+  Linux launchers too), the "job finished" notification has a **Show in folder** button, and the window remembers its
+  position, size and maximized state between launches (not visible on tiling window managers, which set the size).
+
 ### Security
 
 - Updated Electron to 44.10.0 and refreshed dependencies; `npm audit` now reports 0 vulnerabilities (Electron, undici

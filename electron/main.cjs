@@ -55,6 +55,9 @@ function createWindow() {
     minWidth: 940,
     minHeight: 600,
     title: 'OPNduck',
+    // Electron 45: remembers the window's position, size and maximized state between launches.
+    name: 'main',
+    windowStatePersistence: true,
     // transparent: true eliminates the gray compositor edge on frameless windows
     transparent: true,
     backgroundColor: '#00000000',
@@ -750,6 +753,17 @@ function defaultDownloadDir() {
 // the renderer re-render each subscribed card, so coalesce them to at most one per 120ms
 // (trailing edge — the latest snapshot always goes out).
 let broadcastTimer = null
+/** Overall progress of running jobs on the taskbar/dock icon (Windows, macOS, and Linux launchers since Electron 45). */
+function updateTaskbarProgress(active) {
+  const value = active.length ? active.reduce((sum, s) => sum + (s.progress || 0), 0) / active.length : -1
+  for (const win of BrowserWindow.getAllWindows()) {
+    try {
+      win.setProgressBar(value < 0 ? -1 : Math.min(1, Math.max(0, value)))
+    } catch {
+      /* no taskbar integration here */
+    }
+  }
+}
 // The history (up to 500 finished rows) rarely changes while a job's progress ticks; sending it
 // all every 120ms made every tick cost a 500-row IPC clone. Ticks carry only the active tasks
 // ({ full: false }, merged by id in the renderer); anything that adds, removes or edits a finished
@@ -761,6 +775,7 @@ function broadcastTasks() {
     broadcastTimer = null
     const all = [...tasks.values()].map((t) => t.state)
     const active = all.filter((s) => !TERMINAL.includes(s.status))
+    updateTaskbarProgress(active)
     const full = historyChanged || all.length !== lastSentCount
     historyChanged = false
     lastSentCount = all.length
@@ -3515,7 +3530,11 @@ function notifyFinished(state, req) {
     }
     finishedBatch.done = []
     finishedBatch.failed = []
-    const note = new Notification({ title, body: String(body).slice(0, 200) })
+    const only = n === 1 && done.length ? tasks.get(done[0].id) : null
+    const canReveal = !!only?.finalPath && fs.existsSync(only.finalPath)
+    // Electron 45 added notification action buttons on Linux.
+    const note = new Notification({ title, body: String(body).slice(0, 200), ...(canReveal ? { actions: [{ type: 'button', text: 'Show in folder' }] } : {}) })
+    note.on('action', () => canReveal && shell.showItemInFolder(only.finalPath))
     note.on('click', showMainWindow)
     note.show()
   }, 2500)
