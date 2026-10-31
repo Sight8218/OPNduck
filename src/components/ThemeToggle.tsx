@@ -79,7 +79,7 @@ export default function ThemeToggle({
 
       <h3 className="mb-1 mt-6 text-sm font-bold">Omarchy themes</h3>
       <p className="mb-3 text-xs text-[var(--text-dim)]">
-        All {Object.keys(OMARCHY_PALETTES).length} themes from Omarchy 4.5, built in, so you can use them on any system (Omarchy not required).
+        All {Object.keys(OMARCHY_PALETTES).length} themes from Omarchy 4.5 plus the classics that were dropped (Osaka Jade), built in, so you can use them on any system (Omarchy not required).
       </p>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {Object.entries(OMARCHY_PALETTES).map(([slug, c]) => {

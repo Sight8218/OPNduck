@@ -56,7 +56,7 @@ history; entries are curated for readability.
   moves a queued job to the front of its line, and Settings → Job queue sets how many downloads (1–6) and
   conversions (1–4) run at once.
 - **All Omarchy 4.5 themes built in:** Settings → Appearance now lists every theme from Omarchy 4.5.0-rc2 (23, including
-  the new **Jade Horse** and **Starship**) as a swatch picker. They work on any system, not just where Omarchy is
+  the new **Jade Horse** and **Starship**), plus **Osaka Jade**, which rc2 dropped but stays here as a swatch picker. They work on any system, not just where Omarchy is
   installed, share the Omarchy look and keep your choice between launches. "Synced with Omarchy" still follows your live
   theme and picks up new Omarchy themes automatically.
 - **Notifications and tray:** Settings → Notifications & tray. A desktop notification when jobs finish while OPNduck
