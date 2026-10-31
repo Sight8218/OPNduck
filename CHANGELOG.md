@@ -6,6 +6,9 @@ history; entries are curated for readability.
 
 ## [Unreleased]
 
+### Performance
+- Engine checks (PyTorch, Demucs, Whisper) are remembered between launches and re-checked in the background, so the cards no longer wait about 2.5 s for a Python start. `nvidia-smi` is asked once per session instead of on every check.
+
 ## [0.5.1-Beta] - 2026-10-31
 
 ### Added

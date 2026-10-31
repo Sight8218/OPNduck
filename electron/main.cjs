@@ -428,13 +428,104 @@ function venvHasPackage(name) {
 }
 
 /** True if an NVIDIA GPU driver is present (nvidia-smi exists), i.e. GPU Whisper is worth offering. */
+let nvidiaPresent = null // nvidia-smi blocks the main process while it runs, so ask once per session
 function hasNvidiaGpu() {
+  nvidiaPresent ??= (() => {
+    try {
+      return require('node:child_process').spawnSync('nvidia-smi', ['-L'], { timeout: 4000 }).status === 0
+    } catch {
+      return false
+    }
+  })()
+  return nvidiaPresent
+}
+
+/* --- Engine checks: "can Python import X?" spawns an interpreter (0.5 to 2.5 s), so the answer is
+ *  remembered in memory and in userData/engine-cache.json. A cached answer is returned at once and
+ *  re-checked in the background; it is dropped when the Python or the venv's packages change. --- */
+// @category: system/engine-cache
+let engineDisk = null
+const engineChecks = new Map() // key -> { fp, promise }
+const engineCacheFile = () => path.join(app.getPath('userData'), 'engine-cache.json')
+
+function loadEngineDisk() {
+  if (engineDisk) return engineDisk
   try {
-    return require('node:child_process').spawnSync('nvidia-smi', ['-L'], { timeout: 4000 }).status === 0
+    const parsed = JSON.parse(fs.readFileSync(engineCacheFile(), 'utf8'))
+    engineDisk = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
   } catch {
-    return false
+    engineDisk = {}
+  }
+  return engineDisk
+}
+
+function saveEngineDisk() {
+  try {
+    const file = engineCacheFile()
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(`${file}.tmp`, JSON.stringify(engineDisk))
+    fs.renameSync(`${file}.tmp`, file)
+  } catch {
+    /* a cache that can't be saved just means a slower next start */
   }
 }
+
+/** Changes whenever packages are installed into or removed from the OPNduck venv. */
+function venvFingerprint() {
+  try {
+    const lib = process.platform === 'win32' ? path.join(VENV_DIR, 'Lib') : path.join(VENV_DIR, 'lib', fs.readdirSync(path.join(VENV_DIR, 'lib')).find((d) => d.startsWith('python')) ?? '')
+    return String(fs.statSync(path.join(lib, 'site-packages')).mtimeMs)
+  } catch {
+    return 'no-venv'
+  }
+}
+
+/** Runs `python -c code` and resolves true when it exits 0. */
+function pythonCheck(python, code) {
+  return new Promise((resolve) => {
+    let child
+    try {
+      child = spawn(python, ['-c', code], { cwd: pythonCwd() })
+    } catch {
+      resolve(false)
+      return
+    }
+    child.on('error', () => resolve(false))
+    child.on('close', (exit) => resolve(exit === 0))
+  })
+}
+
+function cachedEngineCheck(key, python, code) {
+  const fp = `${python}|${venvFingerprint()}`
+  const hit = engineChecks.get(key)
+  if (hit && hit.fp === fp) return hit.promise
+  const refresh = () =>
+    pythonCheck(python, code).then((value) => {
+      loadEngineDisk()[key] = { fp, value }
+      saveEngineDisk()
+      engineChecks.set(key, { fp, promise: Promise.resolve(value) })
+      return value
+    })
+  const saved = loadEngineDisk()[key]
+  let promise
+  if (saved && saved.fp === fp && typeof saved.value === 'boolean') {
+    promise = Promise.resolve(saved.value)
+    void refresh()
+  } else promise = refresh()
+  engineChecks.set(key, { fp, promise })
+  return promise
+}
+
+function clearEngineCache() {
+  engineChecks.clear()
+  engineDisk = {}
+  try {
+    fs.rmSync(engineCacheFile(), { force: true })
+  } catch {
+    /* nothing to remove */
+  }
+}
+// --- end: system/engine-cache ---
 
 /** Library folders of the CUDA 12 runtime the whisper-gpu install puts in the OPNduck venv
  *  (site-packages/nvidia/<lib>/lib on Linux, .../bin on Windows). Empty when it isn't installed. */
@@ -482,36 +573,15 @@ function demucsInstallHint() {
 /** Can the fast (PyTorch) video upscaling engine run here, and would an NVIDIA GPU make it worthwhile? */
 ipcMain.handle('system:checkTorchEngine', async () => ({ available: await torchEngineReady(), nvidia: hasNvidiaGpu() }))
 
-ipcMain.handle('system:checkDemucs', () => {
-  return new Promise((resolve) => {
-    let child
-    try {
-      child = spawn(demucsPython(), ['-c', 'import torch, demucs, soundfile'], { cwd: pythonCwd() })
-    } catch {
-      resolve({ available: false, installHint: demucsInstallHint() })
-      return
-    }
-    child.on('error', () => resolve({ available: false, installHint: demucsInstallHint() }))
-    child.on('close', (code) => resolve({ available: code === 0, installHint: demucsInstallHint() }))
-  })
-})
+ipcMain.handle('system:checkDemucs', async () => ({
+  available: await cachedEngineCheck('demucs', demucsPython(), 'import torch, demucs, soundfile'),
+  installHint: demucsInstallHint(),
+}))
 
-ipcMain.handle('system:checkFasterWhisper', () => {
-  return new Promise((resolve) => {
-    let child
-    try {
-      // cwd = tmpdir: `python -c` puts the cwd on sys.path, so never run it from a folder
-      // that could hold a planted faster_whisper.py.
-      child = spawn(whisperPython(), ['-c', 'import faster_whisper'], { cwd: pythonCwd() })
-    } catch {
-      resolve({ available: false, installHint: fasterWhisperInstallHint() })
-      return
-    }
-    // 'error' = no Python at all; a non-zero exit = Python without the module.
-    const done = (available) => resolve({ available, installHint: fasterWhisperInstallHint(), nvidia: hasNvidiaGpu(), gpu: venvNvidiaLibDirs().length > 0 })
-    child.on('error', () => done(false))
-    child.on('close', (code) => done(code === 0))
-  })
+ipcMain.handle('system:checkFasterWhisper', async () => {
+  // cwd = userData (see pythonCwd): `python -c` puts the cwd on sys.path, so never a folder that could hold a planted faster_whisper.py.
+  const available = await cachedEngineCheck('whisper', whisperPython(), 'import faster_whisper')
+  return { available, installHint: fasterWhisperInstallHint(), nvidia: hasNvidiaGpu(), gpu: venvNvidiaLibDirs().length > 0 }
 })
 
 /* --- One-click Python tool install (AI Audio / Subtitles) ---
@@ -569,7 +639,7 @@ ipcMain.handle('system:installTool', (e, tool) => {
       const res = await run(VENV_PYTHON, ['-m', 'pip', 'install', '--progress-bar', 'off', ...INSTALL_PACKAGES[tool]])
       if (res.code === -2) return { ok: false, error: 'Canceled.' }
       if (res.code !== 0) return { ok: false, error: `pip failed:\n${res.tail}` }
-      torchReady = null // re-check whether PyTorch can run now
+      clearEngineCache() // what Python can import has changed
       return { ok: true }
     } finally {
       installChild = null
@@ -2812,21 +2882,9 @@ async function ensureWeights(id, model) {
   return file
 }
 
-let torchReady = null // cached: can OPNduck's Python run PyTorch on a CUDA GPU?
 function torchEngineReady() {
   if (getSettings().upscaleEngine === 'ncnn') return Promise.resolve(false)
-  torchReady ??= new Promise((resolve) => {
-    let child
-    try {
-      child = spawn(demucsPython(), ['-c', 'import sys, torch, numpy; sys.exit(0 if torch.cuda.is_available() else 3)'], { cwd: pythonCwd() })
-    } catch {
-      resolve(false)
-      return
-    }
-    child.on('error', () => resolve(false))
-    child.on('close', (code) => resolve(code === 0))
-  })
-  return torchReady
+  return cachedEngineCheck('torch', demucsPython(), 'import sys, torch, numpy; sys.exit(0 if torch.cuda.is_available() else 3)')
 }
 
 const encoderWorks = new Map()
@@ -3299,6 +3357,7 @@ ipcMain.handle('dev:fakeJob', (_e, fail) => {
   return id
 })
 
+ipcMain.handle('dev:clearEngineCache', () => clearEngineCache())
 ipcMain.handle('dev:ipc', () => ipcTrace.slice(-200))
 ipcMain.handle('dev:settings', () => ({
   path: redact(path.join(app.getPath('userData'), 'settings.json')),
@@ -3889,6 +3948,12 @@ app.whenReady().then(() => {
   createWindow()
   applyTray()
   trace('window created')
+  // Warm the engine checks once the window is up, so the cards don't wait on a Python start.
+  setTimeout(() => {
+    void torchEngineReady()
+    void cachedEngineCheck('demucs', demucsPython(), 'import torch, demucs, soundfile')
+    void cachedEngineCheck('whisper', whisperPython(), 'import faster_whisper')
+  }, 1500)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })

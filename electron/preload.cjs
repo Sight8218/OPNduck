@@ -64,6 +64,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     reloadUI: () => ipcRenderer.invoke('dev:reloadUI'),
     testNotification: () => ipcRenderer.invoke('dev:testNotification'),
     fakeJob: (fail) => ipcRenderer.invoke('dev:fakeJob', !!fail),
+    clearEngineCache: () => ipcRenderer.invoke('dev:clearEngineCache'),
     ipc: () => ipcRenderer.invoke('dev:ipc'),
     settings: () => ipcRenderer.invoke('dev:settings'),
     showSettingsFile: () => ipcRenderer.invoke('dev:showSettingsFile'),

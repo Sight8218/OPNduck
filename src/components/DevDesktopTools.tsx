@@ -120,6 +120,7 @@ export default function DevDesktopTools() {
             Sample {kind}
           </button>
         ))}
+        <button type="button" className={btn} onClick={() => void dev.clearEngineCache().then(() => flash('Engine checks forgotten: the next check runs for real'))}>Clear engine cache</button>
         <button type="button" className={btn} onClick={() => void dev.diagnostics().then((d) => copy('diag', d))}>
           {copied === 'diag' ? 'Copied!' : 'Copy diagnostics (redacted)'}
         </button>

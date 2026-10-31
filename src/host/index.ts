@@ -451,6 +451,8 @@ export interface Host {
     testNotification(): Promise<boolean>
     /** Starts a simulated job (no real work) to try the UI; `fail` makes it error out. Resolves to its task id. */
     fakeJob(fail?: boolean): Promise<string>
+    /** Forgets the remembered engine checks (PyTorch, Demucs, Whisper) so the next check runs for real. */
+    clearEngineCache(): Promise<void>
     /** Recent IPC calls: channel, duration, error (arguments are never recorded). */
     ipc(): Promise<{ t: number; channel: string; ms: number; error: string | null }[]>
     /** The saved settings (redacted) and where the file lives. */
