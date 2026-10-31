@@ -18,7 +18,7 @@
 
 // OPNDUCK_TRACE=1 prints a startup timeline (ms since process start); scripts/perf-check uses it.
 const trace = process.env.OPNDUCK_TRACE ? (label) => console.log(`[trace] ${label} ${Math.round(process.uptime() * 1000)}ms`) : () => {}
-const { app, BrowserWindow, ipcMain, dialog, shell, Notification, Tray, Menu, nativeImage } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage } = require('electron')
 
 // The last few hundred lines of main-process and renderer console output, for Settings -> Developer tools.
 const appLog = []
@@ -64,6 +64,7 @@ const { getSettings, setSettings, ytdlpBaseArgs, hasCookies } = require('./setti
 const { openLoginWindow, clearLogin, loginStatus, loginContents } = require('./login.cjs')
 const { createSubscriptionManager } = require('./subscriptions.cjs')
 const { createMcpServer } = require('./mcp.cjs')
+const platform = require('./platform_electron.cjs')
 
 const DEV_SERVER_URL = process.env.OPNDUCK_DEV_URL || 'http://localhost:1420'
 
@@ -234,7 +235,7 @@ ipcMain.handle('login:test', async () => {
 const YTDLP_ASSET = process.platform === 'win32' ? 'yt-dlp.exe' : process.platform === 'darwin' ? 'yt-dlp_macos' : 'yt-dlp_linux'
 const YTDLP_RELEASE = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/'
 function managedYtDlpPath() {
-  return path.join(app.getPath('userData'), 'bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp')
+  return path.join(platform.paths.userData, 'bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp')
 }
 function ytdlpCommand() {
   const managed = managedYtDlpPath()
@@ -446,7 +447,7 @@ function hasNvidiaGpu() {
 // @category: system/engine-cache
 let engineDisk = null
 const engineChecks = new Map() // key -> { fp, promise }
-const engineCacheFile = () => path.join(app.getPath('userData'), 'engine-cache.json')
+const engineCacheFile = () => path.join(platform.paths.userData, 'engine-cache.json')
 
 function loadEngineDisk() {
   if (engineDisk) return engineDisk
@@ -560,7 +561,7 @@ function fasterWhisperInstallHint() {
 
 /** Where Python runs from: `python -c` puts the cwd on sys.path, so never a shared/user folder. */
 function pythonCwd() {
-  const dir = app.getPath('userData')
+  const dir = platform.paths.userData
   fs.mkdirSync(dir, { recursive: true })
   return dir
 }
@@ -672,7 +673,7 @@ function isNewerVersion(a, b) {
 }
 
 ipcMain.handle('updates:check', async () => {
-  const current = app.getVersion()
+  const current = platform.version
   try {
     const res = await fetch(RELEASES_API, {
       headers: { 'User-Agent': 'OPNduck-update-check', Accept: 'application/vnd.github+json' },
@@ -699,7 +700,7 @@ ipcMain.handle('updates:openRelease', (_e, url) => {
   // Compare parsed parts: a bare startsWith() would also accept look-alike prefixes.
   const u = parseHttpUrl(url)
   if (u && u.protocol === 'https:' && u.hostname === 'github.com' && (u.pathname + '/').startsWith(RELEASES_PAGE_PATH + '/')) {
-    return shell.openExternal(u.href)
+    return platform.openExternal(u.href)
   }
 })
 
@@ -832,7 +833,7 @@ function appendLog(id, chunk, stream = 'o') {
     logTimer = setTimeout(() => {
       logTimer = null
       for (const [tid, pend] of logPending) {
-        for (const win of BrowserWindow.getAllWindows()) win.webContents.send('tasks:log', { id: tid, ...pend })
+        platform.emit('tasks:log', { id: tid, ...pend })
       }
       logPending.clear()
     }, 120)
@@ -847,7 +848,7 @@ function attachLog(child, id) {
 }
 
 function defaultDownloadDir() {
-  return path.join(app.getPath('downloads'), 'OPNduck')
+  return path.join(platform.paths.downloads, 'OPNduck')
 }
 
 // Progress callbacks can fire many times a second (ffmpeg, upscalers); every broadcast makes
@@ -881,7 +882,7 @@ function broadcastTasks() {
     historyChanged = false
     lastSentCount = all.length
     const payload = { full, tasks: full ? all : active }
-    for (const win of BrowserWindow.getAllWindows()) win.webContents.send('tasks:update', payload)
+    platform.emit('tasks:update', payload)
   }, 120)
 }
 let lastSentCount = -1
@@ -892,7 +893,7 @@ const MAX_HISTORY = 500
 const startHandlers = new Map() // IPC channel -> start function, so a stored request can be re-run
 
 function historyFile() {
-  return path.join(app.getPath('userData'), 'history.json')
+  return path.join(platform.paths.userData, 'history.json')
 }
 
 let saveTimer = null
@@ -1033,7 +1034,7 @@ function makePool(limit) {
   allPools.push(pool)
   return pool
 }
-const broadcastQueueState = () => BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('queue:state', { paused: queuePaused }))
+const broadcastQueueState = () => platform.emit('queue:state', { paused: queuePaused })
 // Batches would otherwise spawn one process per file at once: ffmpeg/soffice conversions are
 // light (2 at a time); upscalers/interpolation fight over one GPU and Whisper loads a whole
 // model per process (1 at a time each).
@@ -1758,8 +1759,8 @@ function probeEntries(rawUrl, limit) {
 let subscriptions = null
 function startSubscriptions() {
   subscriptions = createSubscriptionManager({
-    file: path.join(app.getPath('userData'), 'subscriptions.json'),
-    seenDir: path.join(app.getPath('userData'), 'subscriptions'),
+    file: path.join(platform.paths.userData, 'subscriptions.json'),
+    seenDir: path.join(platform.paths.userData, 'subscriptions'),
     listEntries: probeEntries,
     startDownload: (req) => startHandlers.get('tasks:start')(null, req),
     whenTaskDone: (taskId, cb) => {
@@ -1769,10 +1770,10 @@ function startSubscriptions() {
       entry.onDone = cb
     },
     notify: (title, body) => {
-      if (Notification.isSupported()) new Notification({ title, body }).show()
+      platform.notify({ title, body })
     },
     onChange: (list) => {
-      for (const win of BrowserWindow.getAllWindows()) win.webContents.send('subs:changed', list)
+      platform.emit('subs:changed', list)
     },
     defaultDir: defaultDownloadDir,
   })
@@ -1837,7 +1838,7 @@ ipcMain.handle('tasks:rerun', (_e, id, opts) => {
 ipcMain.handle('tasks:openFolder', (_e, id) => {
   const entry = tasks.get(id)
   if (!entry) return
-  if (entry.finalPath && fs.existsSync(entry.finalPath)) return shell.showItemInFolder(entry.finalPath)
+  if (entry.finalPath && fs.existsSync(entry.finalPath)) return platform.showInFolder(entry.finalPath)
   // req comes from an imported file for some entries, so it may hold anything: openPath() would
   // happily launch a file (script, .desktop, ...) with its default app. Only ever open a folder.
   const dest = entry.req?.destination
@@ -1847,7 +1848,7 @@ ipcMain.handle('tasks:openFolder', (_e, id) => {
   } catch {
     /* missing or unreadable: fall back to the default folder */
   }
-  shell.openPath(dir)
+  platform.openPath(dir)
 })
 // Removes specific finished tasks from the history (running ones are never touched).
 ipcMain.handle('tasks:remove', (_e, ids) => {
@@ -1922,7 +1923,7 @@ ipcMain.handle('library:export', async (e) => {
     .map((t) => ({ state: { ...t.state }, channel: t.channel, req: t.req }))
   const stamp = new Date().toISOString().slice(0, 10)
   const res = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender) ?? undefined, {
-    defaultPath: path.join(app.getPath('documents'), `opnduck-library-${stamp}.json`),
+    defaultPath: path.join(platform.paths.documents, `opnduck-library-${stamp}.json`),
     filters: [{ name: 'OPNduck library', extensions: ['json'] }],
   })
   if (res.canceled || !res.filePath) return { ok: false, count: 0 }
@@ -2852,7 +2853,7 @@ const sha256File = (file) => crypto.createHash('sha256').update(fs.readFileSync(
 /** The model weights file, downloaded once (checksum-pinned official release) into userData/models. */
 async function ensureWeights(id, model) {
   const spec = TORCH_MODELS[model]
-  const dir = path.join(app.getPath('userData'), 'models')
+  const dir = path.join(platform.paths.userData, 'models')
   const file = path.join(dir, spec.file)
   try {
     if (fs.existsSync(file) && sha256File(file) === spec.sha256) return file
@@ -3168,7 +3169,7 @@ handleStart('tasks:startSubtitles', (_e, req) => {
 let mcp = null
 function needMcp() {
   mcp ??= createMcpServer({
-    userDataDir: app.getPath('userData'),
+    userDataDir: platform.paths.userData,
     tasks,
     startHandlers,
     cancelTask,
@@ -3190,7 +3191,7 @@ async function applyMcp() {
 function mcpInfo() {
   const server = needMcp()
   const bridge = path.join(__dirname, 'mcp_bridge.cjs')
-  const packaged = app.isPackaged
+  const packaged = platform.isPackaged
   const command = packaged ? process.execPath : 'node'
   const args = [bridge, server.infoFile]
   const env = packaged ? { ELECTRON_RUN_AS_NODE: '1' } : {}
@@ -3260,7 +3261,7 @@ async function collectDevInfo() {
     commandLine(pythonCommand(), ['--version']),
   ])
   return {
-    app: { version: app.getVersion(), packaged: app.isPackaged, userData: redact(app.getPath('userData')), uptimeSec: Math.round(process.uptime()) },
+    app: { version: platform.version, packaged: platform.isPackaged, userData: redact(platform.paths.userData), uptimeSec: Math.round(process.uptime()) },
     runtime: { electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node, v8: process.versions.v8 },
     system: {
       platform: `${process.platform} ${process.arch}`,
@@ -3318,12 +3319,12 @@ devHandle('dev:diagnostics', async () => {
   }
   return JSON.stringify(report, null, 2)
 })
-devHandle('dev:openUserData', () => shell.openPath(app.getPath('userData')))
+devHandle('dev:openUserData', () => platform.openPath(platform.paths.userData))
 devHandle('dev:toggleDevTools', (e) => e.sender.toggleDevTools())
 devHandle('dev:reloadUI', (e) => e.sender.reloadIgnoringCache())
 devHandle('dev:testNotification', () => {
-  if (!Notification.isSupported()) return false
-  new Notification({ title: 'OPNduck: test notification', body: 'If you can read this, notifications work.' }).show()
+  if (!platform.canNotify()) return false
+  platform.notify({ title: 'OPNduck: test notification', body: 'If you can read this, notifications work.' })
   return true
 })
 /** A fake job that ticks to 100% over ~12 s (or fails at 60%), to try out the UI without real work. */
@@ -3355,10 +3356,10 @@ devHandle('dev:fakeJob', (_e, fail) => {
 devHandle('dev:clearEngineCache', () => clearEngineCache())
 devHandle('dev:ipc', () => ipcTrace.slice(-200))
 devHandle('dev:settings', () => ({
-  path: redact(path.join(app.getPath('userData'), 'settings.json')),
+  path: redact(path.join(platform.paths.userData, 'settings.json')),
   json: JSON.stringify(JSON.parse(redact(JSON.stringify(getSettings()))), null, 2),
 }))
-devHandle('dev:showSettingsFile', () => shell.showItemInFolder(path.join(app.getPath('userData'), 'settings.json')))
+devHandle('dev:showSettingsFile', () => platform.showInFolder(path.join(platform.paths.userData, 'settings.json')))
 devHandle('dev:jobChannels', () => [...startHandlers.keys()])
 /** Starts any job from a raw request (goes through the same validation as the UI's own start call). */
 devHandle('dev:startJob', async (_e, channel, req) => {
@@ -3368,7 +3369,7 @@ devHandle('dev:startJob', async (_e, channel, req) => {
 })
 /** Makes small sample files with ffmpeg, to test jobs without hunting for media. */
 devHandle('dev:makeTestMedia', (_e, kind) => {
-  const dir = path.join(app.getPath('userData'), 'test-media')
+  const dir = path.join(platform.paths.userData, 'test-media')
   fs.mkdirSync(dir, { recursive: true })
   const specs = {
     video: ['sample-video.mp4', ['-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=30:duration=10', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=10', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest']],
@@ -3824,8 +3825,8 @@ function applyTray() {
 const finishedBatch = { done: [], failed: [] }
 let finishedTimer = null
 function notifyFinished(state, req) {
-  if (!getSettings().notifyOnFinish || !Notification.isSupported()) return
-  if (BrowserWindow.getAllWindows().some((w) => w.isVisible() && w.isFocused())) return // you're looking at it
+  if (!getSettings().notifyOnFinish || !platform.canNotify()) return
+  if (platform.isFocused()) return // you're looking at it
   if (req?.batch?.label?.startsWith('Subscription')) return // subscriptions announce their own new videos
   finishedBatch[state.status === 'done' ? 'done' : 'failed'].push(state)
   clearTimeout(finishedTimer)
@@ -3846,10 +3847,13 @@ function notifyFinished(state, req) {
     const only = n === 1 && done.length ? tasks.get(done[0].id) : null
     const canReveal = !!only?.finalPath && fs.existsSync(only.finalPath)
     // Electron 45 added notification action buttons on Linux.
-    const note = new Notification({ title, body: String(body).slice(0, 200), ...(canReveal ? { actions: [{ type: 'button', text: 'Show in folder' }] } : {}) })
-    note.on('action', () => canReveal && shell.showItemInFolder(only.finalPath))
-    note.on('click', showMainWindow)
-    note.show()
+    platform.notify({
+      title,
+      body: String(body).slice(0, 200),
+      actions: canReveal ? ['Show in folder'] : [],
+      onAction: () => canReveal && platform.showInFolder(only.finalPath),
+      onClick: showMainWindow,
+    })
   }, 2500)
 }
 
@@ -3858,7 +3862,7 @@ function notifyFinished(state, req) {
  * and modification time stopped changing between two polls, so half-copied files are left alone.
  * Each file is handled once; the list of handled files survives restarts. */
 const WATCH_EXT = new Set(['mp4', 'mkv', 'mov', 'webm', 'avi', 'm4v', 'mp3', 'wav', 'flac', 'm4a', 'ogg', 'opus', 'png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif'])
-const watchSeenFile = () => path.join(app.getPath('userData'), 'watch-seen.json')
+const watchSeenFile = () => path.join(platform.paths.userData, 'watch-seen.json')
 let watchSeen = null
 const watchPrev = new Map() // path -> "size:mtime" from the previous poll
 function loadWatchSeen() {
