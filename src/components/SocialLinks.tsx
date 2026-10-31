@@ -15,7 +15,7 @@ export default function SocialLinks({ spacing = 'gap-11' }: { spacing?: string }
     if (!el) return
     const sync = () => {
       for (const b of Array.from(el.children) as HTMLElement[]) {
-        const hidden = b.offsetTop > 0
+        const hidden = b.getBoundingClientRect().top - el.getBoundingClientRect().top > 2
         b.tabIndex = hidden ? -1 : 0
         b.setAttribute('aria-hidden', hidden ? 'true' : 'false')
       }
