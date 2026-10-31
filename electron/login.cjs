@@ -178,4 +178,4 @@ function loginStatus() {
   }
 }
 
-module.exports = { openLoginWindow, clearLogin, loginStatus, loginContents, toNetscape, isAllowedLoginUrl }
+module.exports = { openLoginWindow, clearLogin, loginStatus, loginContents }

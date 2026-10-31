@@ -1,9 +1,8 @@
 # OPNduck Desktop Suite 🦆
 
-OPNduck is a local-first, open-source media processing suite. It brings powerful AI
-upscaling, motion frame-interpolation, media downloads, conversions, and transcription
-directly to your local GPU/CPU at zero cost — no subscriptions, no cloud, no spying. All
-your media stays on your machine.
+OPNduck is a local-first, open-source media tool. It upscales images and video, interpolates
+frames, downloads, converts, trims and transcribes, all on your own GPU/CPU. No subscription,
+no cloud; your files stay on your machine.
 
 This is **v0.5.1-Beta**, a small follow-up to the v0.5.0-Beta performance release: OPNduck can now be driven by any MCP-capable AI app (Settings → System, off by default), the menu icons are animated, and there is something hiding for the curious. The v0.5.0-Beta release brought the performance work. Video upscaling now streams frames through the GPU
 (PyTorch, NVIDIA) with no temporary image files, about 1.4-3.6x faster than the classic engine in testing, and

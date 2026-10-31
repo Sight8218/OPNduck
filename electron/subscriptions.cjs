@@ -275,4 +275,4 @@ function createSubscriptionManager(deps) {
   return { list, add, remove, setEnabled, checkNow, start, stop }
 }
 
-module.exports = { createSubscriptionManager, MAX_SUBSCRIPTIONS, ENTRIES_PER_CHECK }
+module.exports = { createSubscriptionManager }

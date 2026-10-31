@@ -27,12 +27,7 @@ import { OMARCHY_PALETTES } from './omarchyPalettes'
 /** `palette:<slug>` = one of the bundled Omarchy palettes (omarchyPalettes.ts), usable on any OS. */
 export type Theme = 'blarange' | 'monochrome' | 'omarchy' | `palette:${string}`
 
-export const paletteSlug = (t: string): string | null => (t.startsWith('palette:') && Object.hasOwn(OMARCHY_PALETTES, t.slice(8)) ? t.slice(8) : null)
-
-/** The two always-available presets. ThemeToggle renders a 3rd "omarchy"
- *  card itself, only when Omarchy is actually detected — kept out of this
- *  list so it never appears unconditionally. */
-export const THEMES: Theme[] = ['blarange', 'monochrome']
+const paletteSlug = (t: string): string | null => (t.startsWith('palette:') && Object.hasOwn(OMARCHY_PALETTES, t.slice(8)) ? t.slice(8) : null)
 
 /** Every valid stored value, including the conditionally-shown one — used
  *  only to validate localStorage, never to decide what to render. */
