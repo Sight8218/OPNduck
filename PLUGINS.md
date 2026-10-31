@@ -143,7 +143,7 @@ opnduck.exec.run(name, args, { cwd? }) -> { code, stdout, stderr }   [exec]
 opnduck.net.fetch(url, init) -> { status, headers, body }   [network]   host must be in manifest "network"
 opnduck.settings.get(key) / .set(key, value)      [settings]
 opnduck.notify({ title, body })                   [notify]
-opnduck.on(event, fn) -> unsubscribe              [hooks]
+opnduck.on(event, fn) -> unsubscribe              [hooks]   events carry the job's id, kind, status and label, for every job (not only the plugin's own)
 opnduck.tools.handle(name, fn)                    [tools]  fn(args) -> result for a tool declared in the manifest
 opnduck.commands.handle(id, fn)                   command palette entry declared in the manifest
 opnduck.rpc.handle(name, fn)                      expose fn(arg) to this plugin's own UI

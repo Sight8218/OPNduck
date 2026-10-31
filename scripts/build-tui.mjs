@@ -18,3 +18,4 @@ await build({
   logLevel: 'info',
 })
 for (const py of ['torch_upscale.py', 'demucs_separate.py', 'whisper_subtitles.py']) copyFileSync(`electron/${py}`, `dist-tui/${py}`)
+copyFileSync('electron/core/plugin_worker.cjs', 'dist-tui/plugin_worker.cjs') // loaded as a worker by path, so the bundler cannot include it

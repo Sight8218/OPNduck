@@ -36,6 +36,7 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 const platform = createNodePlatform({ version: pkg.version, scriptsDir: here })
 const core = createCore({
   platform,
+  pluginWorkerFile: path.join(here, 'plugin_worker.cjs'),
   onFinished: (state) => {
     if (!core.settings.getSettings().notifyOnFinish) return
     platform.notify({ title: state.status === 'done' ? 'OPNduck: finished' : 'OPNduck: a job failed', body: state.label })

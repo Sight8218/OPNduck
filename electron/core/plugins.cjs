@@ -39,6 +39,7 @@ const SCOPES = ['universal', 'desktop-exclusive']
 const MAX_FILE_BYTES = 64 * 1024 * 1024
 const MAX_FETCH_BYTES = 16 * 1024 * 1024
 const MAX_EXEC_OUTPUT = 8 * 1024 * 1024
+const MAX_ACTIVE_JOBS = 10
 const TOOL_TIMEOUT_MS = 10 * 60 * 1000
 const ACTIVATE_TIMEOUT_MS = 10 * 1000
 
@@ -130,6 +131,7 @@ function validateManifest(raw) {
         const ok = isPlainObject(t) && typeof t.name === 'string' && TOOL_NAME_RE.test(t.name) && isStr(t.description, 1000) && isPlainObject(t.inputSchema) && t.inputSchema.type === 'object'
         if (!ok) bad('each tool needs a name (a-z, 0-9, _), a description and an inputSchema of type "object"')
         else if (seen.has(t.name)) bad(`duplicate tool name: ${t.name}`)
+        else if (String(raw.id).length + 2 + t.name.length > 64) bad(`tool name "${t.name}" is too long: "<id>__<name>" must fit in 64 characters (MCP clients cap tool names there)`)
         else {
           seen.add(t.name)
           tools.push({ name: t.name, description: t.description, inputSchema: t.inputSchema })
@@ -396,11 +398,34 @@ function createApi(ctx) {
       guard.require('jobs')
       if (typeof name !== 'string') throw new Error('jobs.start needs a tool name such as "convert"')
       const { channel, req } = buildStartRequest(name, args) // schema-checked; start requests never carry an output folder
+      if (name === 'download') {
+        let u
+        try {
+          u = new URL(req.url)
+        } catch {
+          throw new Error('url must be a full http(s) link')
+        }
+        if (!['http:', 'https:'].includes(u.protocol)) throw new Error('url must start with http:// or https://')
+      }
       for (const [key, value] of Object.entries(req)) {
         if (!/path/i.test(key)) continue
         guard.require('files:read')
         for (const p of [].concat(value)) if (!files.canRead(p)) throw new PermissionError(`This plugin may not read ${String(p).slice(0, 200)}`)
       }
+      if (name !== 'download') {
+        let st
+        try {
+          st = fs.statSync(req.inputPath)
+        } catch {
+          throw new Error('inputPath does not exist')
+        }
+        if (!st.isFile()) throw new Error('inputPath is not a regular file')
+      }
+      const active = [...ctx.ownJobs].filter((jobId) => {
+        const t = core.engine.tasks.get(jobId)
+        return t && !core.engine.TERMINAL.includes(t.state.status)
+      })
+      if (active.length >= MAX_ACTIVE_JOBS) throw new Error(`Too many jobs from this plugin are waiting or running (limit ${MAX_ACTIVE_JOBS})`)
       const id = await core.startJob(channel, req)
       ctx.ownJobs.add(id)
       return id
@@ -559,7 +584,6 @@ function createApi(ctx) {
 function createPluginHost({ core, platform, pluginsDir, safeMode = false, pickPath, fetchImpl, workerFile, log = () => {} }) {
   const dir = pluginsDir ?? path.join(platform.paths.userData, 'plugins')
   const stateFile = path.join(dir, 'plugins.json')
-  const worker = workerFile ?? path.join(__dirname, 'plugin_worker.cjs')
   let state = loadState(stateFile)
   const runtime = new Map() // id -> { entry, status, worker, ...per-plugin runtime }
   const persist = () => saveState(stateFile, state)
@@ -637,7 +661,8 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, pickPa
     const entryFile = resolveEntry(pluginDir, manifest.backend.entry)
     rec.status = 'starting'
     rec.stopping = false
-    const w = new Worker(worker, { workerData: { id: manifest.id, version: manifest.version, entry: entryFile }, env: {}, stdout: true, stderr: true, resourceLimits: { maxOldGenerationSizeMb: 256 } })
+    // Resolved here, not at startup: a bundled build (the TUI) has no __dirname and passes workerFile instead.
+    const w = new Worker(workerFile ?? path.join(__dirname, 'plugin_worker.cjs'), { workerData: { id: manifest.id, version: manifest.version, entry: entryFile }, env: {}, stdout: true, stderr: true, resourceLimits: { maxOldGenerationSizeMb: 256 } })
     rec.worker = w
     w.stdout.on('data', (b) => log(`[plugin ${manifest.id}] ${String(b).trimEnd()}`))
     w.stderr.on('data', (b) => log(`[plugin ${manifest.id}] ${String(b).trimEnd()}`))
@@ -645,6 +670,7 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, pickPa
       const timer = setTimeout(() => reject(new Error('activate() took too long')), ACTIVATE_TIMEOUT_MS)
       const done = (fn, arg) => (clearTimeout(timer), fn(arg))
       w.on('message', (msg) => {
+        if (rec.worker !== w) return // a worker that was replaced or stopped
         if (msg.type === 'ready') done(resolve)
         else if (msg.type === 'failed') done(reject, Object.assign(new Error(msg.error?.message ?? 'activate failed'), { name: msg.error?.name }))
         else if (msg.type === 'call') {
@@ -660,8 +686,8 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, pickPa
           else p.reject(Object.assign(new Error(msg.error?.message ?? 'Failed'), { name: msg.error?.name }))
         }
       })
-      w.on('error', (err) => (rec.status === 'starting' ? done(reject, err) : crash(rec, `crashed: ${err.message}`)))
-      w.on('exit', (code) => (rec.status === 'starting' ? done(reject, new Error(`exited with code ${code} while starting`)) : crash(rec, `exited unexpectedly (code ${code})`)))
+      w.on('error', (err) => rec.worker !== w ? undefined : (rec.status === 'starting' ? done(reject, err) : crash(rec, `crashed: ${err.message}`)))
+      w.on('exit', (code) => rec.worker !== w ? undefined : (rec.status === 'starting' ? done(reject, new Error(`exited with code ${code} while starting`)) : crash(rec, `exited unexpectedly (code ${code})`)))
     }).catch((err) => {
       rec.status = 'starting' // let crash() record it
       crash(rec, `failed to start: ${err.message}`)
@@ -705,7 +731,10 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, pickPa
       st.version = manifest.version
       persist()
     }
-    if (!manifest.backend) return void (rec.status = 'running') // a card with no backend has nothing to start
+    if (!manifest.backend) {
+      rec.api = buildApi(rec, st) // a card with no backend has no worker, but its UI still calls the host API
+      return void (rec.status = 'running')
+    }
     try {
       await startBackend(rec)
     } catch (err) {
@@ -743,6 +772,9 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, pickPa
   return {
     /** Scans the plugins folder and starts every enabled, approved plugin. */
     async init() {
+      await Promise.all([...runtime.values()].map((rec) => stopRuntime(rec))) // init() twice must not orphan workers
+      runtime.clear()
+      state = loadState(stateFile)
       const scanned = scanPlugins(dir)
       for (const entry of scanned) runtime.set(entry.id, newRuntime(entry))
       for (const id of Object.keys(state.plugins)) if (!runtime.has(id)) delete state.plugins[id] // folder is gone

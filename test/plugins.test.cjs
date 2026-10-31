@@ -58,6 +58,13 @@ test('tools and settings require their permission, tools also a backend', () => 
   assert.equal(P.validateManifest(valid({ permissions: ['settings'], settings: { a: { type: 'string' } } })).ok, true)
 })
 
+test('tool names must keep "<id>__<name>" within 64 characters', () => {
+  const tool = (name) => ({ name, description: 'x', inputSchema: { type: 'object', properties: {} } })
+  const m = (id, name) => valid({ id, permissions: ['tools'], tools: [tool(name)] })
+  assert.equal(P.validateManifest(m('a'.repeat(40), 'b'.repeat(22))).ok, true) // 40 + 2 + 22 = 64
+  assert.equal(P.validateManifest(m('a'.repeat(40), 'b'.repeat(23))).ok, false)
+})
+
 test('a card needs tagline, icon and scope; a plugin needs at least one entry', () => {
   assert.equal(P.validateManifest(valid({ backend: undefined })).ok, false)
   assert.equal(P.validateManifest(valid({ ui: { entry: 'ui.js' } })).ok, false)
@@ -189,12 +196,30 @@ test('every namespace refuses without its permission', async () => {
 test('jobs.start validates against the tool schema and only reads allowed paths', async () => {
   const { api, downloads, jobs } = apiFor({}, ['jobs', 'files:read'])
   const inside = path.join(downloads, 'a.mp4')
+  fs.writeFileSync(inside, '')
   assert.equal(await api.call('jobs.start', ['convert', { inputPath: inside, container: 'MP4' }]), 'job1')
   assert.equal(jobs[0].channel, 'tasks:startConvert')
   await assert.rejects(api.call('jobs.start', ['convert', { inputPath: '/etc/passwd', container: 'MP4' }]), P.PermissionError)
   await assert.rejects(api.call('jobs.start', ['convert', { inputPath: inside, outputDir: '/tmp' }]), /Unknown argument/)
   await assert.rejects(api.call('jobs.start', ['nope', {}]), /Unknown start tool/)
   assert.equal(jobs.length, 1)
+})
+
+test('jobs.start re-checks what the app checks: http(s) URLs, files that exist, a job limit', async () => {
+  const { api, downloads, jobs } = apiFor({}, ['jobs', 'files:read'])
+  await assert.rejects(api.call('jobs.start', ['download', { url: 'file:///etc/passwd' }]), /http/)
+  await assert.rejects(api.call('jobs.start', ['download', { url: 'not a url' }]), /full http/)
+  assert.equal(await api.call('jobs.start', ['download', { url: 'https://example.com/v' }]), 'job1')
+  await assert.rejects(api.call('jobs.start', ['convert', { inputPath: path.join(downloads, 'missing.mp4'), container: 'MP4' }]), /does not exist/)
+  fs.mkdirSync(path.join(downloads, 'dir'))
+  await assert.rejects(api.call('jobs.start', ['convert', { inputPath: path.join(downloads, 'dir'), container: 'MP4' }]), /regular file/)
+  assert.equal(jobs.length, 1)
+  // the limit counts this plugin's own unfinished jobs
+  const tasks = new Map()
+  const core = { startJob: async () => { const id = `j${tasks.size}`; tasks.set(id, { state: { status: 'running' } }); return id }, engine: { tasks, TERMINAL: ['done', 'error', 'canceled'], cancelTask() {} }, tools: {} }
+  const limited = apiFor({}, ['jobs'], { core }).api
+  for (let i = 0; i < 10; i++) await limited.call('jobs.start', ['download', { url: 'https://example.com/v' }])
+  await assert.rejects(limited.call('jobs.start', ['download', { url: 'https://example.com/v' }]), /Too many jobs/)
 })
 
 test('jobs.start with a path needs files:read even when jobs is granted', async () => {
@@ -372,6 +397,32 @@ test('host: events reach subscribed plugins', async () => {
   host.emit('not-an-event', {})
   await new Promise((r) => setTimeout(r, 100))
   assert.deepEqual(await host.callFromUi('demo', 'rpc.call', ['events']), [{ id: 'j1', status: 'done' }])
+  await host.shutdown()
+})
+
+test('host: a card-only plugin (no backend) can still use the UI API', async () => {
+  const card = { manifest: { id: 'card', name: 'Card', version: '1.0.0', apiVersion: 1, author: 'A', description: 'D', tagline: 't', icon: '★', scope: 'universal', permissions: ['settings'], settings: { mode: { type: 'string', default: 'a' } }, ui: { entry: 'ui.js' } }, files: { 'ui.js': 'export default () => null' } }
+  const { host } = makeHost({ card })
+  await host.init()
+  assert.equal((await host.enable('card', ['settings'])).status, 'running')
+  assert.equal(await host.callFromUi('card', 'settings.get', ['mode']), 'a')
+  await host.callFromUi('card', 'settings.set', ['mode', 'b'])
+  assert.equal(await host.callFromUi('card', 'settings.get', ['mode']), 'b')
+  await assert.rejects(host.callFromUi('card', 'files.read', ['/x']), /not available from a plugin card/)
+})
+
+test('host: re-enabling right after a crash starts a clean worker; init() twice orphans nothing', async () => {
+  const flaky = { manifest: valid({ id: 'flaky', permissions: ['tools'], tools: [{ name: 'ping', description: 'x', inputSchema: { type: 'object', properties: {} } }] }), files: { 'backend.cjs': 'exports.activate = async (o) => { await o.tools.handle("ping", () => "pong") }' } }
+  const { host } = makeHost({ flaky })
+  await host.init()
+  await host.enable('flaky', ['tools'])
+  await host.enable('flaky', ['tools']) // restart while the first worker is still shutting down
+  await new Promise((r) => setTimeout(r, 200))
+  assert.equal(host.list()[0].status, 'running')
+  assert.equal(await host.callTool('flaky__ping', {}), 'pong')
+  await host.init() // a rescan: the old worker is stopped, state is reloaded, enabled plugins start again
+  assert.equal(host.list()[0].status, 'running')
+  assert.equal(await host.callTool('flaky__ping', {}), 'pong')
   await host.shutdown()
 })
 
