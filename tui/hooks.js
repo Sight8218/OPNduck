@@ -13,10 +13,9 @@ export function useCoreEvents(platform) {
 /** The terminal's width and height, kept current when the window is resized. */
 export function useTerminalSize() {
   const { stdout } = useStdout()
-  const read = () => ({ cols: stdout?.columns ?? 80, rows: stdout?.rows ?? 24 })
-  const [size, setSize] = useState(read)
+  const [size, setSize] = useState(() => ({ cols: stdout?.columns ?? 80, rows: stdout?.rows ?? 24 }))
   useEffect(() => {
-    const onResize = () => setSize(read())
+    const onResize = () => setSize({ cols: stdout?.columns ?? 80, rows: stdout?.rows ?? 24 })
     stdout?.on('resize', onResize)
     return () => void stdout?.off('resize', onResize)
   }, [stdout])

@@ -16,7 +16,7 @@ const clip = (text, n) => (text.length > n ? text.slice(0, Math.max(1, n - 1)) +
 
 /** The job list with live progress, and the keys that act on the selected job. */
 export default function Queue({ theme, core }) {
-  const { engine, platform } = core
+  const { engine } = core
   const { cols } = useTerminalSize()
   const [sel, setSel] = useState(0)
   const [showLog, setShowLog] = useState(false)
@@ -56,7 +56,7 @@ export default function Queue({ theme, core }) {
       {paused ? <Text color={theme.accent}>Queue paused</Text> : null}
       <Box flexDirection="column" borderStyle="single" borderColor={theme.dim} paddingX={1}>
         {rows.length === 0 ? <Text color={theme.dim}>No jobs yet. Start one from a tool, or pass --start.</Text> : null}
-        {rows.slice(0, 14).map((s, n) => {
+        {rows.slice(0, 14).map((s) => {
           const active = cur && s.id === cur.id
           const color = s.status === 'error' ? theme.err : s.status === 'done' ? theme.ok : active ? theme.accent : theme.text
           return (
