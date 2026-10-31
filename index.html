@@ -22,7 +22,9 @@
         el.setAttribute('data-theme', t === 'blarange' || t === 'monochrome' ? t : 'omarchy');
         if (t !== 'blarange' && t !== 'monochrome') {
           var c = JSON.parse(localStorage.getItem('opnduck.themeTokens') || '{}');
-          for (var k in c) el.style.setProperty(k, c[k]);
+          ['--bg-solid', '--accent', '--text'].forEach(function (k) {
+            if (c && typeof c[k] === 'string') el.style.setProperty(k, c[k]);
+          });
         }
       } catch (e) {}
     </script>

@@ -33,8 +33,8 @@ export default function PixelField() {
       preserveAspectRatio="xMidYMin slice"
       shapeRendering="crispEdges"
     >
-      {dots.map((d) => (
-        <rect key={`${d.x}-${d.y}`} x={d.x} y={d.y} width="1" height="1" opacity={d.opacity} />
+      {dots.map((d, i) => (
+        <rect key={i} x={d.x} y={d.y} width="1" height="1" opacity={d.opacity} />
       ))}
     </svg>
   )
