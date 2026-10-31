@@ -7,7 +7,7 @@ The OPNduck tools in a terminal: download, convert, trim, upscale (image and vid
 From a checkout: `npm run tui` (builds and starts it).
 From a release: unpack `opnduck-tui-<version>.tar.gz` and run `./opnduck-tui.mjs` (needs Node.js 20 or newer).
 
-As an npm package (once published): `npm install -g opnduck-tui`, then `opnduck-tui` (or `npx opnduck-tui`). The same build is also published to GitHub Packages as `@sight8218/opnduck-tui`.
+As an npm package: `npm install -g opnduck-tui`, then `opnduck-tui` (or `npx opnduck-tui`). The same build is also published to GitHub Packages as `@sight8218/opnduck-tui`.
 
 Options: `--theme <name>` (any of the 26 themes, also `OPNDUCK_THEME`), `--screen <tools|queue>`, `--start <channel> '<json>'` to start a job when it opens (repeatable), `--help`.
 
