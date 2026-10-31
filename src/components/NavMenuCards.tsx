@@ -1,10 +1,10 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { NAV_ITEMS } from '../lib/nav'
+import { useNavItems } from '../lib/useNavItems'
 import { useNavDisplay } from '../lib/navContext'
 import NavIcon, { type NavIconEffect } from './NavIcon'
 
-const EFFECTS: Record<string, NavIconEffect> = { '/': 'hop', '/library': 'books', '/plugins': 'plug', '/settings': 'spin' }
+const EFFECTS: Record<string, NavIconEffect> = { '/': 'hop', '/library': 'books', '/plugins': 'plug', '/settings': 'spin', '/arcade': 'pad' }
 
 /**
  * The four menu cards (Home · Library · Plugins · Settings) with a single
@@ -14,15 +14,16 @@ const EFFECTS: Record<string, NavIconEffect> = { '/': 'hop', '/library': 'books'
 export default function NavMenuCards({ layoutId = 'nav-active' }: { layoutId?: string }) {
   const { navDisplay } = useNavDisplay()
   const { pathname } = useLocation()
+  const items = useNavItems()
 
   const activeIndex = (() => {
-    const match = NAV_ITEMS.find((i) => (i.end ? pathname === i.to : pathname.startsWith(i.to)))
-    return match?.index ?? 0
+    const match = items.find((i) => (i.end ? pathname === i.to : pathname.startsWith(i.to)))
+    return match?.index ?? -1
   })()
 
   return (
     <div className="flex items-center gap-0.5">
-      {NAV_ITEMS.map((item) => {
+      {items.map((item) => {
         const isActive = item.index === activeIndex
         const showIcon = navDisplay !== 'text'
         const showLabel = navDisplay !== 'icon'

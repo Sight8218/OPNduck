@@ -1,8 +1,10 @@
+import { useNavigate } from 'react-router-dom'
 import HamburgerMenu from './HamburgerMenu'
 import NavMenuCards from './NavMenuCards'
 import SocialLinks from './SocialLinks'
 import WindowControls from './WindowControls'
 import { useNavDisplay } from '../lib/navContext'
+import { unlockArcade } from '../lib/arcadeStore'
 
 /**
  * Unified top navigation bar.
@@ -13,6 +15,12 @@ import { useNavDisplay } from '../lib/navContext'
  */
 export default function NavBar() {
   const { navDisplay } = useNavDisplay()
+  const navigate = useNavigate()
+  // Secret: the wordmark opens the Arcade, and the first click unlocks it for good.
+  const openArcade = () => {
+    unlockArcade()
+    navigate('/arcade')
+  }
   // In text/icon modes the left cluster sits closer together so the strip
   // doesn't feel sparse on the left; hybrid keeps the airy spacing.
   const divider = navDisplay === 'hybrid' ? 'mx-7' : navDisplay === 'text' ? 'mx-4' : 'mx-3'
@@ -54,7 +62,9 @@ export default function NavBar() {
             Colors come from --accent/--accent-soft/--card-glow so the gradient
             and glow retint per theme (e.g. black & white in Monochrome). */}
         <div
-          className="titlebar-no-drag pointer-events-none select-none whitespace-nowrap px-2 text-center text-2xl font-extrabold tracking-wide"
+          role="presentation"
+          onClick={openArcade}
+          className="titlebar-no-drag cursor-default select-none whitespace-nowrap px-2 text-center text-2xl font-extrabold tracking-wide"
           style={{ filter: 'drop-shadow(0 0 14px var(--card-glow))' }}
         >
           <span

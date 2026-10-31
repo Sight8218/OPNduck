@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Routes, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { NAV_ITEMS, swipeFor } from '../lib/nav'
+import { ARCADE_ITEM, NAV_ITEMS, swipeFor } from '../lib/nav'
 
 function indexOf(pathname: string): number {
-  const match = NAV_ITEMS.find((i) => (i.end ? pathname === i.to : pathname.startsWith(i.to)))
+  const match = [...NAV_ITEMS, ARCADE_ITEM].find((i) => (i.end ? pathname === i.to : pathname.startsWith(i.to)))
   return match?.index ?? 0
 }
 

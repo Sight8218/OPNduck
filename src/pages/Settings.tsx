@@ -10,6 +10,7 @@ import HardwareAllocation from '../components/HardwareAllocation'
 import InfoCard from '../components/InfoCard'
 import KeybindsCard from '../components/KeybindsCard'
 import NavDisplayCard from '../components/NavDisplayCard'
+import ArcadeCard from '../components/ArcadeCard'
 import MotionCard from '../components/MotionCard'
 import BackgroundCard from '../components/BackgroundCard'
 import UpdatesCard from '../components/UpdatesCard'
@@ -120,6 +121,7 @@ export default function Settings() {
             <ThemeToggle theme={theme} onChange={setTheme} omarchy={omarchy} />
             <BackgroundCard />
             <NavDisplayCard />
+            <ArcadeCard />
             <MotionCard />
 
             {devMode && <DevTools />}

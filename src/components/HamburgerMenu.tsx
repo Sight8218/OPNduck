@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { NavLink } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { HAMBURGER_ICON, NAV_ITEMS, SOCIALS } from '../lib/nav'
+import { HAMBURGER_ICON, SOCIALS } from '../lib/nav'
+import { useNavItems } from '../lib/useNavItems'
 
 /**
  * Hamburger dropdown (the very first item from the left in the top bar).
@@ -20,6 +21,7 @@ import { HAMBURGER_ICON, NAV_ITEMS, SOCIALS } from '../lib/nav'
  * ancestor chain entirely, the same fix already used for the Settings rail.
  */
 export default function HamburgerMenu() {
+  const navItems = useNavItems()
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const buttonWrapRef = useRef<HTMLDivElement>(null)
@@ -86,7 +88,7 @@ export default function HamburgerMenu() {
                 Pages
               </p>
               <div className="mb-1 flex flex-col gap-0.5">
-                {NAV_ITEMS.map((item, i) => {
+                {navItems.map((item, i) => {
                   const Icon = item.icon
                   return (
                     <NavLink
@@ -124,7 +126,7 @@ export default function HamburgerMenu() {
                     role="menuitem"
                     onClick={() => window.open(s.url, '_blank', 'noopener,noreferrer')}
                     className="pop-in flex items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-[var(--text-dim)] transition-colors hover:bg-[var(--input-bg)] hover:text-[var(--text)]"
-                    style={{ ['--pop-delay' as string]: `${(NAV_ITEMS.length + i) * 30}ms` }}
+                    style={{ ['--pop-delay' as string]: `${(navItems.length + i) * 30}ms` }}
                   >
                     <span
                       aria-hidden="true"

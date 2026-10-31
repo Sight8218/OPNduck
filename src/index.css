@@ -198,6 +198,18 @@ body {
 .group:active .nav-spark {
   animation: nav-spark 0.55s ease-out;
 }
+.group:hover .nav-icon-pad,
+.group:active .nav-icon-pad {
+  animation: nav-pad 0.6s ease-in-out;
+}
+/* Arcade: the pad wiggles like a thumb is mashing it. */
+@keyframes nav-pad {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-12deg) scale(1.1); }
+  40% { transform: rotate(10deg) scale(1.1); }
+  60% { transform: rotate(-8deg); }
+  80% { transform: rotate(6deg); }
+}
 @keyframes nav-spin {
   to {
     transform: rotate(360deg);

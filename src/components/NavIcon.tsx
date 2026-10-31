@@ -1,7 +1,7 @@
 import type { Icon } from '@tabler/icons-react'
 
 /** Which little animation each menu icon plays while its menu card is hovered or pressed. */
-export type NavIconEffect = 'hop' | 'books' | 'plug' | 'spin'
+export type NavIconEffect = 'hop' | 'books' | 'plug' | 'spin' | 'pad'
 
 /** Menu icon with a hover animation (CSS, see `.nav-icon-*` in index.css). The card must have the `group` class. */
 export default function NavIcon({ icon: Glyph, effect }: { icon: Icon; effect: NavIconEffect }) {
