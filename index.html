@@ -80,13 +80,14 @@
         font-weight: 800;
         letter-spacing: 0.12em;
         display: flex;
+        color: var(--accent, #e1892f);
+        text-shadow: 0 0 14px color-mix(in srgb, var(--accent, #e1892f) 45%, transparent);
       }
       .splash-word span {
         display: inline-block;
         animation: splash-pop 1.8s cubic-bezier(0.3, 1.4, 0.5, 1) infinite;
         animation-delay: calc(var(--i) * 70ms);
       }
-      .splash-word .o { color: var(--accent, #e1892f); }
       @keyframes splash-bob {
         0%, 100% { transform: translateY(0) rotate(-3deg); }
         50% { transform: translateY(-7px) rotate(3deg); }
@@ -112,7 +113,7 @@
         <circle class="eye" cx="45" cy="17" r="2.4"/>
       </svg>
       <div class="splash-waves"><svg viewBox="0 0 336 14" aria-hidden="true"><path d="M0 7 q10.5 -8 21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.7"/></svg></div>
-      <div class="splash-word" aria-label="OPNduck"><span class="o" style="--i:0">O</span><span class="o" style="--i:1">P</span><span class="o" style="--i:2">N</span><span style="--i:3">d</span><span style="--i:4">u</span><span style="--i:5">c</span><span style="--i:6">k</span></div>
+      <div class="splash-word" aria-label="OPNduck"><span style="--i:0">O</span><span style="--i:1">P</span><span style="--i:2">N</span><span style="--i:3">d</span><span style="--i:4">u</span><span style="--i:5">c</span><span style="--i:6">k</span></div>
     </div>
 
     <div id="root"></div>
