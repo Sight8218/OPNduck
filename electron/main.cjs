@@ -60,11 +60,13 @@ const { spawn } = require('node:child_process')
 const crypto = require('node:crypto')
 const { pathToFileURL } = require('node:url')
 const { readOmarchyTheme, watchOmarchyTheme } = require('./omarchy.cjs')
-const { getSettings, setSettings, ytdlpBaseArgs, hasCookies } = require('./settings.cjs')
+const settings = require('./core/settings.cjs')
+const { getSettings, setSettings, ytdlpBaseArgs, hasCookies } = settings
 const { openLoginWindow, clearLogin, loginStatus, loginContents } = require('./login.cjs')
 const { createSubscriptionManager } = require('./subscriptions.cjs')
 const { createMcpServer } = require('./mcp.cjs')
 const platform = require('./platform_electron.cjs')
+settings.configure(platform)
 const tools = require('./core/tools.cjs').createTools(platform)
 const {
   ytdlpCommand, sofficeCommand, pythonCommand, demucsPython, whisperPython, pythonCwd,

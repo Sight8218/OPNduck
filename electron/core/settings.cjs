@@ -24,7 +24,13 @@
  */
 const fs = require('node:fs')
 const path = require('node:path')
-const { app } = require('electron')
+const { userDataDir } = require('./platform.cjs')
+
+/** Where settings live. Defaults to the platform's user-data folder; the desktop app passes its own via configure(). */
+let dataDir = userDataDir
+function configure(platform) {
+  dataDir = () => platform.paths.userData
+}
 
 /** Browsers yt-dlp can read cookies from (its own allow-list, minus Safari). */
 const COOKIE_BROWSERS = ['firefox', 'chromium', 'chrome', 'edge', 'brave', 'opera', 'vivaldi']
@@ -63,11 +69,11 @@ const DEFAULTS = {
 
 /** Where the built-in sign-in window's cookies are written (mode 0600). */
 function loginCookieFile() {
-  return path.join(app.getPath('userData'), 'login-cookies.txt')
+  return path.join(dataDir(), 'login-cookies.txt')
 }
 
 function settingsFile() {
-  return path.join(app.getPath('userData'), 'settings.json')
+  return path.join(dataDir(), 'settings.json')
 }
 
 /** Throws a user-readable Error for anything that isn't a valid settings shape. */
@@ -186,4 +192,4 @@ function hasCookies() {
   )
 }
 
-module.exports = { getSettings, setSettings, ytdlpBaseArgs, hasCookies, loginCookieFile }
+module.exports = { configure, getSettings, setSettings, ytdlpBaseArgs, hasCookies, loginCookieFile }

@@ -29,7 +29,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const { BrowserWindow, session } = require('electron')
-const { loginCookieFile } = require('./settings.cjs')
+const { loginCookieFile } = require('./core/settings.cjs')
 
 const PARTITION = 'persist:opnduck-login'
 const DEFAULT_URL = 'https://accounts.google.com/ServiceLogin?service=youtube&continue=https%3A%2F%2Fwww.youtube.com%2F'
