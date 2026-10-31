@@ -17,13 +17,17 @@
  */
 
 
-import { clearOmarchyTokens } from './omarchySync'
+import { applyOmarchyTokens, clearOmarchyTokens } from './omarchySync'
+import { OMARCHY_PALETTES } from './omarchyPalettes'
 
 /** 'omarchy' mirrors the Linux desktop's live Omarchy theme — see
  *  themes/omarchySync.ts. It's only ever offered when Omarchy is detected
  *  (ThemeToggle), but is a valid stored value so a prior choice survives
  *  even before that detection resolves on a fresh launch. */
-export type Theme = 'blarange' | 'monochrome' | 'omarchy'
+/** `palette:<slug>` = one of the bundled Omarchy palettes (omarchyPalettes.ts), usable on any OS. */
+export type Theme = 'blarange' | 'monochrome' | 'omarchy' | `palette:${string}`
+
+export const paletteSlug = (t: string): string | null => (t.startsWith('palette:') && Object.hasOwn(OMARCHY_PALETTES, t.slice(8)) ? t.slice(8) : null)
 
 /** The two always-available presets. ThemeToggle renders a 3rd "omarchy"
  *  card itself, only when Omarchy is actually detected — kept out of this
@@ -38,12 +42,19 @@ const STORAGE_KEY = 'opnduck.theme'
 
 export function applyTheme(theme: Theme): void {
   if (typeof document !== 'undefined') {
+    const slug = paletteSlug(theme)
+    if (slug) {
+      // Bundled Omarchy palettes share the Omarchy look (square corners etc.), with their own fixed colors.
+      document.documentElement.setAttribute('data-theme', 'omarchy')
+      applyOmarchyTokens({ slug, colors: OMARCHY_PALETTES[slug] })
+    } else {
     document.documentElement.setAttribute('data-theme', theme)
     // 'omarchy' needs live color data to render, applied separately by
     // useTheme.ts — but switching AWAY from it must clear any inline
     // tokens left over, or they'd keep overriding Blarange/Monochrome's
     // own stylesheet values (inline style always wins).
     if (theme !== 'omarchy') clearOmarchyTokens()
+    }
   }
   try {
     localStorage.setItem(STORAGE_KEY, theme)
@@ -56,7 +67,7 @@ export function readStoredTheme(): Theme {
   if (typeof window === 'undefined') return 'blarange'
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored && (ALL_THEMES as string[]).includes(stored)) return stored as Theme
+    if (stored && ((ALL_THEMES as string[]).includes(stored) || paletteSlug(stored))) return stored as Theme
   } catch {
     /* fall through to default */
   }

@@ -17,7 +17,12 @@
  */
 
 
+import { OMARCHY_PALETTES } from '../themes/omarchyPalettes'
+import { omarchySlugToLabel } from '../themes/omarchySync'
 import { THEMES, type Theme } from '../themes/theme'
+
+/** Added in Omarchy 4.5 (rc2): flagged in the picker. */
+const NEW_IN_45 = new Set(['jade-horse', 'starship'])
 import type { ThemeSwitchOrigin } from '../themes/useTheme'
 
 const THEME_LABELS: Record<Theme, { label: string; hint: string }> = {
@@ -66,6 +71,39 @@ export default function ThemeToggle({
               <span className="text-sm font-bold">{labels[t].label}</span>
               <span className="mt-1 block text-xs leading-relaxed text-[var(--text-dim)]">
                 {labels[t].hint}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      <h3 className="mb-1 mt-6 text-sm font-bold">Omarchy themes</h3>
+      <p className="mb-3 text-xs text-[var(--text-dim)]">
+        All {Object.keys(OMARCHY_PALETTES).length} themes from Omarchy 4.5, built in, so you can use them on any system (Omarchy not required).
+      </p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {Object.entries(OMARCHY_PALETTES).map(([slug, c]) => {
+          const id = `palette:${slug}` as Theme
+          const active = theme === id
+          return (
+            <button
+              key={slug}
+              type="button"
+              onClick={(e) => onChange(id, { x: e.clientX, y: e.clientY })}
+              aria-pressed={active}
+              title={`${omarchySlugToLabel(slug)}${c.mode === 'light' ? ' (light)' : ''}`}
+              className={`flex flex-col gap-2 rounded-xl border p-2.5 text-left transition-[border-color,transform] duration-200 ${
+                active ? 'border-[var(--input-border-focus)] bg-[var(--input-bg)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] hover:scale-[1.02] hover:border-[var(--glass-border-inner)]'
+              }`}
+            >
+              <span className="flex h-8 w-full items-center gap-1 rounded-md px-1.5" style={{ background: c.background }}>
+                {[c.accent, c.foreground, c.red, c.green, c.blue, c.yellow].map((col, i) => (
+                  <span key={i} className="h-3.5 flex-1 rounded-sm" style={{ background: col }} />
+                ))}
+              </span>
+              <span className="flex items-center justify-between gap-2 text-xs font-medium">
+                <span className="truncate">{omarchySlugToLabel(slug)}</span>
+                {NEW_IN_45.has(slug) && <span className="rounded bg-[var(--accent-soft)] px-1 text-[10px] text-[var(--accent)]">new</span>}
               </span>
             </button>
           )
