@@ -7,6 +7,7 @@ history; entries are curated for readability.
 ## [Unreleased]
 
 ### Changed
+- Readable text and icons in every Omarchy palette: dim text and the menu icons are now derived from the main text colour (the palettes' own "dark foreground" was almost invisible on themes like Nord), and the pixel logo shades toward the text colour so it also works on light themes.
 - Pixel look: a blocky pixel wordmark in the top bar and on Home, and a faint scatter of pixels along the top of every page, both in the current theme's accent.
 - Sharper corners: the radius scale is now 1-4 px in Blarange and Monochrome (Omarchy themes were already square).
 - Calmer Blarange colours: neutral warm-black surfaces and borders instead of orange-tinted ones, orange kept for actions, focus and the active item, and a flat wordmark instead of the gradient with a glow. The Beta notice now follows the theme.
@@ -89,6 +90,7 @@ is still **postponed** (WebKitGTK on Linux stutters/crashes with NVIDIA + Waylan
   filter is retried off), and a file with no speech reports that instead of saving an empty .srt.
 
 ### Changed
+- Readable text and icons in every Omarchy palette: dim text and the menu icons are now derived from the main text colour (the palettes' own "dark foreground" was almost invisible on themes like Nord), and the pixel logo shades toward the text colour so it also works on light themes.
 - Pixel look: a blocky pixel wordmark in the top bar and on Home, and a faint scatter of pixels along the top of every page, both in the current theme's accent.
 - Sharper corners: the radius scale is now 1-4 px in Blarange and Monochrome (Omarchy themes were already square).
 - Calmer Blarange colours: neutral warm-black surfaces and borders instead of orange-tinted ones, orange kept for actions, focus and the active item, and a flat wordmark instead of the gradient with a glow. The Beta notice now follows the theme.
@@ -196,6 +198,7 @@ NVIDIA + Wayland); OPNduck stays on Electron.
   shows the install command when it's missing.
 
 ### Changed
+- Readable text and icons in every Omarchy palette: dim text and the menu icons are now derived from the main text colour (the palettes' own "dark foreground" was almost invisible on themes like Nord), and the pixel logo shades toward the text colour so it also works on light themes.
 - Pixel look: a blocky pixel wordmark in the top bar and on Home, and a faint scatter of pixels along the top of every page, both in the current theme's accent.
 - Sharper corners: the radius scale is now 1-4 px in Blarange and Monochrome (Omarchy themes were already square).
 - Calmer Blarange colours: neutral warm-black surfaces and borders instead of orange-tinted ones, orange kept for actions, focus and the active item, and a flat wordmark instead of the gradient with a glow. The Beta notice now follows the theme.
@@ -300,6 +303,7 @@ Hotfix. **Everyone on v0.3.0-Alpha should upgrade.**
 - A Content-Security-Policy was added to the renderer.
 
 ### Changed
+- Readable text and icons in every Omarchy palette: dim text and the menu icons are now derived from the main text colour (the palettes' own "dark foreground" was almost invisible on themes like Nord), and the pixel logo shades toward the text colour so it also works on light themes.
 - Pixel look: a blocky pixel wordmark in the top bar and on Home, and a faint scatter of pixels along the top of every page, both in the current theme's accent.
 - Sharper corners: the radius scale is now 1-4 px in Blarange and Monochrome (Omarchy themes were already square).
 - Calmer Blarange colours: neutral warm-black surfaces and borders instead of orange-tinted ones, orange kept for actions, focus and the active item, and a flat wordmark instead of the gradient with a glow. The Beta notice now follows the theme.
@@ -355,6 +359,7 @@ may be revisited for Windows (WebView2) or non-NVIDIA Linux.
 - Real SVG icons instead of emoji/text glyphs.
 
 ### Changed
+- Readable text and icons in every Omarchy palette: dim text and the menu icons are now derived from the main text colour (the palettes' own "dark foreground" was almost invisible on themes like Nord), and the pixel logo shades toward the text colour so it also works on light themes.
 - Pixel look: a blocky pixel wordmark in the top bar and on Home, and a faint scatter of pixels along the top of every page, both in the current theme's accent.
 - Sharper corners: the radius scale is now 1-4 px in Blarange and Monochrome (Omarchy themes were already square).
 - Calmer Blarange colours: neutral warm-black surfaces and borders instead of orange-tinted ones, orange kept for actions, focus and the active item, and a flat wordmark instead of the gradient with a glow. The Beta notice now follows the theme.
@@ -474,6 +479,7 @@ card dashboard. Download/convert/AI engines are not wired in yet (Alpha
 phase).
 
 ### Changed
+- Readable text and icons in every Omarchy palette: dim text and the menu icons are now derived from the main text colour (the palettes' own "dark foreground" was almost invisible on themes like Nord), and the pixel logo shades toward the text colour so it also works on light themes.
 - Pixel look: a blocky pixel wordmark in the top bar and on Home, and a faint scatter of pixels along the top of every page, both in the current theme's accent.
 - Sharper corners: the radius scale is now 1-4 px in Blarange and Monochrome (Omarchy themes were already square).
 - Calmer Blarange colours: neutral warm-black surfaces and borders instead of orange-tinted ones, orange kept for actions, focus and the active item, and a flat wordmark instead of the gradient with a glow. The Beta notice now follows the theme.

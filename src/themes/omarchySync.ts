@@ -52,7 +52,6 @@ function deriveOmarchyTokens(theme: OmarchyTheme): Record<string, string> {
   const darkerBackground = c.darker_background || darkBackground
   const lighterBackground = c.lighter_background || background
   const foreground = c.foreground || '#ede6d9'
-  const darkForeground = c.dark_foreground || foreground
   const isLight = c.mode === 'light'
 
   // Pick readable button text by measuring the accent itself, rather than
@@ -78,8 +77,8 @@ function deriveOmarchyTokens(theme: OmarchyTheme): Record<string, string> {
     '--btn-text': btnText,
 
     '--text': foreground,
-    '--text-dim': `color-mix(in srgb, ${darkForeground} 80%, ${background})`,
-    '--text-faint': `color-mix(in srgb, ${darkForeground} 55%, ${background})`,
+    '--text-dim': `color-mix(in srgb, ${foreground} 80%, ${background})`,
+    '--text-faint': `color-mix(in srgb, ${foreground} 60%, ${background})`,
 
     '--accent': accent,
     '--accent-strong': `color-mix(in srgb, ${accent} 85%, white)`,

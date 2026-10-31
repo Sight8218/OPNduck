@@ -18,7 +18,7 @@
 
 import { pixelText } from '../lib/pixels'
 
-const BANDS = [78, 62, 50, 40, 30, 22, 14] // % white mixed into the accent, top row to bottom row
+const BANDS = [78, 62, 50, 40, 30, 22, 14] // % of the text colour mixed into the accent, top row to bottom row
 
 /**
  * The OPNduck wordmark in blocky pixel letters. `banded` shades the rows from light to dark in
@@ -43,7 +43,7 @@ export default function PixelLogo({ cell = 3, banded = false, className = '' }: 
           y={c.y}
           width="1"
           height="1"
-          fill={banded ? `color-mix(in srgb, white ${BANDS[c.row]}%, var(--accent))` : 'var(--accent)'}
+          fill={banded ? `color-mix(in srgb, var(--text) ${BANDS[c.row]}%, var(--accent))` : 'var(--accent)'}
         />
       ))}
     </svg>
