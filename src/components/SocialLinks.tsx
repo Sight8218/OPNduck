@@ -7,7 +7,7 @@ import { SOCIALS } from '../lib/nav'
  */
 export default function SocialLinks({ spacing = 'gap-11' }: { spacing?: string }) {
   return (
-    <div className={`flex items-center ${spacing}`}>
+    <div className={`flex h-7 flex-wrap items-center overflow-hidden ${spacing}`}>
       {SOCIALS.map((s) => (
         <button
           key={s.url}
@@ -15,8 +15,7 @@ export default function SocialLinks({ spacing = 'gap-11' }: { spacing?: string }
           title={s.label}
           aria-label={`Open ${s.label}`}
           onClick={() => window.open(s.url, '_blank', 'noopener,noreferrer')}
-          className="rounded-md text-[var(--text-dim)] transition-all duration-150 hover:scale-110 hover:text-[var(--accent)]"
-          style={{ filter: 'drop-shadow(0 0 9px var(--card-glow))' }}
+          className="rounded-md text-[var(--text-dim)] transition-all duration-150 hover:text-[var(--accent)]"
         >
           {/* Recolored via mask-image + currentColor instead of a hardcoded
               white invert() — so these brand PNGs actually retint per-theme

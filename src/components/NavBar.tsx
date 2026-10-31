@@ -59,10 +59,10 @@ export default function NavBar() {
         <div
           role="presentation"
           onClick={openArcade}
-          className="titlebar-no-drag cursor-default select-none whitespace-nowrap px-2 text-center text-2xl font-extrabold tracking-widest"
+          className="titlebar-no-drag cursor-default select-none whitespace-nowrap px-2 text-center font-mono text-xl font-extrabold tracking-[0.12em]"
         >
           <span className="text-[var(--accent)]">OPN</span>
-          <span className="text-[0.92em] font-bold tracking-wider text-[var(--text)]">DUCK</span>
+          <span className="text-[var(--text)]">duck</span>
         </div>
 
         {/* Right: the menu cards, then OS window controls when in the shell */}
