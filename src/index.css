@@ -171,6 +171,10 @@ body {
 .nav-icon {
   transform-origin: 50% 60%;
 }
+/* The gear has to turn around its true centre or it wobbles. */
+.nav-icon-spin {
+  transform-origin: 50% 50%;
+}
 .group:hover .nav-icon-spin,
 .group:active .nav-icon-spin {
   animation: nav-spin 0.9s cubic-bezier(0.5, 0, 0.2, 1);
