@@ -37,6 +37,7 @@ export default function DevRendererTools() {
   const [tokens, setTokens] = useState<[string, string][]>([])
   const [storage, setStorage] = useState<[string, string][]>([])
   const [copied, setCopied] = useState(false)
+  const [outlines, setOutlines] = useState(() => document.documentElement.classList.contains('dev-outlines'))
 
   const readTokens = useCallback(() => {
     const cs = getComputedStyle(document.documentElement)
@@ -66,6 +67,23 @@ export default function DevRendererTools() {
         </div>
         <button type="button" className={btn} onClick={() => (setHud(!hud), setHudState(!hud))}>
           {hud ? 'On' : 'Off'}
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col">
+          <span className="text-sm text-[var(--text)]">Layout outlines</span>
+          <span className="text-xs text-[var(--text-dim)]">Draws a thin outline around every element, to spot overflow and spacing problems.</span>
+        </div>
+        <button
+          type="button"
+          className={btn}
+          onClick={() => {
+            document.documentElement.classList.toggle('dev-outlines', !outlines)
+            setOutlines(!outlines)
+          }}
+        >
+          {outlines ? 'On' : 'Off'}
         </button>
       </div>
 

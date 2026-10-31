@@ -504,3 +504,9 @@ body {
 [data-bg='flat'] .glass-strong {
   background: color-mix(in srgb, var(--text) 10%, var(--bg-solid));
 }
+
+/* Developer tools: outline every element. */
+.dev-outlines * {
+  outline: 1px solid rgba(255, 70, 70, 0.4);
+  outline-offset: -1px;
+}

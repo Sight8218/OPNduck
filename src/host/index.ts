@@ -451,6 +451,19 @@ export interface Host {
     testNotification(): Promise<boolean>
     /** Starts a simulated job (no real work) to try the UI; `fail` makes it error out. Resolves to its task id. */
     fakeJob(fail?: boolean): Promise<string>
+    /** Recent IPC calls: channel, duration, error (arguments are never recorded). */
+    ipc(): Promise<{ t: number; channel: string; ms: number; error: string | null }[]>
+    /** The saved settings (redacted) and where the file lives. */
+    settings(): Promise<{ path: string; json: string }>
+    showSettingsFile(): Promise<void>
+    /** Job start channels a raw request can be sent to. */
+    jobChannels(): Promise<string[]>
+    /** Starts a job from a raw request, with the same validation as the UI. Resolves to the task id. */
+    startJob(channel: string, req: unknown): Promise<string>
+    /** Creates a small sample file with ffmpeg and resolves to its path. */
+    makeTestMedia(kind: 'video' | 'audio' | 'image'): Promise<string>
+    /** Main-process event-loop delay since the last call, in ms. */
+    loopLag(): Promise<{ meanMs: number; p99Ms: number; maxMs: number }>
   }
   /** The local MCP server (Settings → MCP server). Desktop shell only. */
   mcp?: {

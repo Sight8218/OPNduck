@@ -9,6 +9,7 @@ history; entries are curated for readability.
 ## [0.5.1-Beta] - 2026-10-31
 
 ### Added
+- **More developer tools** (Settings, with dev mode on): IPC trace (channel and timing, slow calls highlighted), main-process event-loop lag, saved-settings viewer (redacted), raw job launcher, sample video/audio/image generator, and layout outlines.
 - **A secret for the curious**: something hides behind the OPNduck name. Once found, Settings gains a switch to keep it in the menu.
 - **Animated menu icons**: Settings spins, Plugins pulls back and plugs in with a spark, Library pulls a book out, Home hops. They play on hover/press and are off with reduced motion.
 - **MCP server** (Settings → System, off by default): any MCP-capable AI app (Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, LM Studio, ...) can start downloads, conversions, upscales, interpolation, subtitles, trims and audio AI, watch jobs and their logs, cancel jobs and pause the queue. Localhost only, token-protected, saves only to your download folder, jobs are tagged "via MCP". See `docs/MCP.md`.

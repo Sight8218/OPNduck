@@ -31,6 +31,28 @@ for (const level of ['log', 'info', 'warn', 'error']) {
     original(...args)
   }
 }
+// Every IPC call (channel, duration, ok/error; never the arguments) for Settings -> Developer tools.
+const ipcTrace = []
+const QUIET_CHANNELS = /^(dev:|tasks:list$|tasks:logs$|tasks:logWatch$|queue:state$|settings:get$|mcp:info$)/
+{
+  const registerHandler = ipcMain.handle.bind(ipcMain)
+  ipcMain.handle = (channel, listener) =>
+    registerHandler(channel, async (...args) => {
+      const t0 = performance.now()
+      let error = null
+      try {
+        return await listener(...args)
+      } catch (err) {
+        error = err instanceof Error ? err.message : String(err)
+        throw err
+      } finally {
+        if (!QUIET_CHANNELS.test(channel)) {
+          ipcTrace.push({ t: Date.now(), channel, ms: +(performance.now() - t0).toFixed(1), error })
+          if (ipcTrace.length > 300) ipcTrace.shift()
+        }
+      }
+    })
+}
 const path = require('node:path')
 const fs = require('node:fs')
 const os = require('node:os')
@@ -3275,6 +3297,46 @@ ipcMain.handle('dev:fakeJob', (_e, fail) => {
   }, 1000)
   broadcastTasks()
   return id
+})
+
+ipcMain.handle('dev:ipc', () => ipcTrace.slice(-200))
+ipcMain.handle('dev:settings', () => ({
+  path: redact(path.join(app.getPath('userData'), 'settings.json')),
+  json: JSON.stringify(JSON.parse(redact(JSON.stringify(getSettings()))), null, 2),
+}))
+ipcMain.handle('dev:showSettingsFile', () => shell.showItemInFolder(path.join(app.getPath('userData'), 'settings.json')))
+ipcMain.handle('dev:jobChannels', () => [...startHandlers.keys()])
+/** Starts any job from a raw request (goes through the same validation as the UI's own start call). */
+ipcMain.handle('dev:startJob', async (_e, channel, req) => {
+  const start = typeof channel === 'string' ? startHandlers.get(channel) : null
+  if (!start) throw new Error(`Unknown job channel: ${channel}`)
+  return start(null, req)
+})
+/** Makes small sample files with ffmpeg, to test jobs without hunting for media. */
+ipcMain.handle('dev:makeTestMedia', (_e, kind) => {
+  const dir = path.join(app.getPath('userData'), 'test-media')
+  fs.mkdirSync(dir, { recursive: true })
+  const specs = {
+    video: ['sample-video.mp4', ['-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=30:duration=10', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=10', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest']],
+    audio: ['sample-audio.mp3', ['-f', 'lavfi', '-i', 'sine=frequency=330:duration=10', '-c:a', 'libmp3lame']],
+    image: ['sample-image.png', ['-f', 'lavfi', '-i', 'testsrc2=size=480x270', '-frames:v', '1']],
+  }
+  const spec = Object.hasOwn(specs, kind) ? specs[kind] : null
+  if (!spec) return Promise.reject(new Error('Unknown sample kind'))
+  const out = path.join(dir, spec[0])
+  return new Promise((resolve, reject) => {
+    require('node:child_process').execFile('ffmpeg', ['-y', '-loglevel', 'error', ...spec[1], out], { timeout: 60000 }, (err) =>
+      err ? reject(new Error('ffmpeg could not make the sample file')) : resolve(out),
+    )
+  })
+})
+/** How long the main process's event loop was blocked recently (ms); high values mean UI jank from main-process work. */
+const loopDelay = require('node:perf_hooks').monitorEventLoopDelay({ resolution: 20 })
+loopDelay.enable()
+ipcMain.handle('dev:loopLag', () => {
+  const r = { meanMs: +(loopDelay.mean / 1e6).toFixed(1), p99Ms: +(loopDelay.percentile(99) / 1e6).toFixed(1), maxMs: +(loopDelay.max / 1e6).toFixed(1) }
+  loopDelay.reset()
+  return r
 })
 
 /* --- Trim: cut a section out of a video or audio file --- */
