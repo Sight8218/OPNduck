@@ -13,7 +13,7 @@
   function colorsFor(slug) {
     var p = PALETTES[slug] || PALETTES.blarange;
     var accent = p[1], bg = p[2], dark = p[3], light = p[4], fg = p[5], dim = p[6];
-    if (p[0] === 'light') dim = mix(fg, 70, bg);
+    dim = mix(fg, 80, bg);
     return {
       accent: accent,
       map: {
