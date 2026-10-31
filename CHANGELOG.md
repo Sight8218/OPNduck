@@ -4,7 +4,7 @@ All notable changes to OPNduck are documented in this file. Generated with
 [git-cliff](https://github.com/orhun/git-cliff) from Conventional Commit
 history; entries are curated for readability.
 
-## [Unreleased]
+## [0.5.3-Beta] - 2026-10-31
 
 ### Added
 - **OPNduck TUI** (beta): the tools in a terminal, about 100 MB of memory instead of about 680 MB. Tools, Queue, Library, Settings and Setup screens, forms for all eight tools with path completion, live progress, and all 26 themes. It shares settings and history with the desktop app. Run it with `npm run tui`, or unpack the new `opnduck-tui` tarball (needs Node.js 20 or newer). See `docs/TUI.md`. It is also packed as an npm package (`npm run tui:npm`) for the npm registry and GitHub Packages.
@@ -12,7 +12,7 @@ history; entries are curated for readability.
 
 ### Changed
 - Internal: the job code (downloads, conversion, trimming, upscaling, interpolation, subtitles, AI audio, the task queue and tool detection) now lives in Electron-free `electron/core/` modules, in preparation for a lightweight terminal version. The app behaves the same.
-- The developer-tool channels in the desktop shell now refuse to run unless Developer mode is on (they used to be always reachable from the app window).
+- The developer-tool channels in the desktop shell now refuse to run unless Developer mode is on. This is a guard inside the app, not a security boundary.
 - Switching back to Blarange or Monochrome clears the cached theme colours the startup screen uses.
 
 ## [0.5.2-Beta] - 2026-10-31

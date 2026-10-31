@@ -36,7 +36,8 @@
     },
     "files": [
       "dist/**/*",
-      "electron/**/*"
+      "electron/**/*",
+      "!electron/**/__pycache__"
     ],
     "extraMetadata": {
       "main": "electron/main.cjs"

@@ -4,7 +4,7 @@ OPNduck is a local-first, open-source media tool. It upscales images and video, 
 frames, downloads, converts, trims and transcribes, all on your own GPU/CPU. No subscription,
 no cloud; your files stay on your machine.
 
-This is **v0.5.2-Beta**, a visual follow-up to v0.5.1-Beta and the v0.5.0-Beta performance release: Home is a compact grid of tool tiles with one tool open at a time, there is a themed startup screen, a pixel look, sharper corners, plainer wording, faster engine checks and more developer tools. The v0.5.1-Beta release added control by any MCP-capable AI app (Settings → System, off by default) and animated menu icons. The v0.5.0-Beta release brought the performance work. Video upscaling now streams frames through the GPU
+This is **v0.5.3-Beta**, which adds the **OPNduck TUI** (the tools in a terminal, about 100 MB of memory) and a first-launch setup wizard. It follows v0.5.2-Beta, a visual follow-up to v0.5.1-Beta and the v0.5.0-Beta performance release: Home is a compact grid of tool tiles with one tool open at a time, there is a themed startup screen, a pixel look, sharper corners, plainer wording, faster engine checks and more developer tools. The v0.5.1-Beta release added control by any MCP-capable AI app (Settings → System, off by default) and animated menu icons. The v0.5.0-Beta release brought the performance work. Video upscaling now streams frames through the GPU
 (PyTorch, NVIDIA) with no temporary image files, about 1.4-3.6x faster than the classic engine in testing, and
 AI video jobs can encode on the GPU (NVENC). Long videos are processed in chunks so temp disk use stays small,
 and AI Audio and Subtitles keep their models loaded between files. New tools include a visual **trimmer**, a
@@ -132,7 +132,7 @@ wired in, as is Subtitles (faster-whisper); Beat Finder lands in a later update.
 
 ## 📝 Project Metadata & Licensing
 
-- **Project State**: `v0.5.2-Beta` (most engines wired in; Beat Finder still stubbed — expect bugs!)
+- **Project State**: `v0.5.3-Beta` (most engines wired in; Beat Finder still stubbed — expect bugs!)
 - **Original Developer**: Aaron
 - **Development Model**: Built with the architectural assistance of AI.
 - **License**: [GPL-3.0](./LICENSE) — free software. Copyright © 2026 Aaron Jonsson.
