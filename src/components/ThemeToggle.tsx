@@ -32,7 +32,7 @@ interface Swatches {
 
 /** Preview strips for the three built-in options (the Omarchy palettes read theirs from their own colors). */
 const MAIN_SWATCHES: Record<'blarange' | 'monochrome', Swatches> = {
-  blarange: { background: '#17130f', colors: ['#e1892f', '#f0a63b', '#ede6d9', '#a8998a', '#4a3b2b', '#6b5439'] },
+  blarange: { background: '#131110', colors: ['#e1892f', '#f0a63b', '#ece8e1', '#a29b90', '#3a3633', '#1b1917'] },
   monochrome: { background: '#141414', colors: ['#e8e8e8', '#ffffff', '#f4f4f4', '#9a9a9a', '#4a4a4a', '#6e6e6e'] },
 }
 

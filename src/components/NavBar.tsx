@@ -56,41 +56,13 @@ export default function NavBar() {
           </div>
         </div>
 
-        {/* Centered wordmark — reads visually as "OPNDUCK" with "DUCK" a touch
-            larger, carrying a visible gradient + soft glow. The gradient + clip
-            are applied to the inline spans so nothing renders as a rectangle.
-            Colors come from --accent/--accent-soft/--card-glow so the gradient
-            and glow retint per theme (e.g. black & white in Monochrome). */}
         <div
           role="presentation"
           onClick={openArcade}
-          className="titlebar-no-drag cursor-default select-none whitespace-nowrap px-2 text-center text-2xl font-extrabold tracking-wide"
-          style={{ filter: 'drop-shadow(0 0 14px var(--card-glow))' }}
+          className="titlebar-no-drag cursor-default select-none whitespace-nowrap px-2 text-center text-2xl font-extrabold tracking-widest"
         >
-          <span
-            className="tracking-widest"
-            style={{
-              background: 'linear-gradient(90deg, var(--accent-soft), var(--accent))',
-              WebkitBackgroundClip: 'text',
-              backgroundClip: 'text',
-              color: 'transparent',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            OPN
-          </span>
-          <span
-            className="text-[0.92em] font-bold tracking-wider"
-            style={{
-              background: 'linear-gradient(90deg, var(--accent), var(--accent-soft))',
-              WebkitBackgroundClip: 'text',
-              backgroundClip: 'text',
-              color: 'transparent',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            DUCK
-          </span>
+          <span className="text-[var(--accent)]">OPN</span>
+          <span className="text-[0.92em] font-bold tracking-wider text-[var(--text)]">DUCK</span>
         </div>
 
         {/* Right: the menu cards, then OS window controls when in the shell */}

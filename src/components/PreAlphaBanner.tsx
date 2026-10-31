@@ -17,8 +17,8 @@ export default function PreAlphaBanner() {
       <div
         className="flex max-w-3xl items-center gap-3 rounded-2xl border px-4 py-2.5 text-sm"
         style={{
-          background: 'rgba(255, 200, 60, 0.14)',
-          borderColor: 'rgba(255, 190, 40, 0.4)',
+          background: 'var(--glass-bg)',
+          borderColor: 'var(--glass-border)',
           color: 'var(--text)',
         }}
       >
@@ -29,7 +29,7 @@ export default function PreAlphaBanner() {
           <IconAlertTriangle size={18} />
         </span>
         <p className="leading-snug">
-          <strong className="font-bold text-amber-300">Beta:</strong>{' '}
+          <strong className="font-bold text-[var(--accent)]">Beta:</strong>{' '}
           <span className="text-[var(--text-dim)]">
             Expect bugs and missing features. Found one? Report it on{' '}
           </span>
@@ -37,7 +37,7 @@ export default function PreAlphaBanner() {
             href={GITHUB_URL}
             target="_blank"
             rel="noreferrer"
-            className="font-semibold text-amber-300 underline decoration-amber-300/40 underline-offset-2 hover:decoration-amber-300"
+            className="font-semibold text-[var(--accent)] underline decoration-[var(--accent)]/40 underline-offset-2 hover:decoration-[var(--accent)]"
           >
             GitHub
           </a>

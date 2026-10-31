@@ -38,36 +38,36 @@
        black, #ede6d9 cream text. Structured the same way as Monochrome
        (solid hex surfaces, 0 blur, no fluid blobs) — just orange instead
        of gray. */
-    --glass-bg: #171310;
-    --glass-bg-strong: #0f0c0a;
+    --glass-bg: #1b1917;
+    --glass-bg-strong: #131110;
     --glass-tint: transparent;
-    --glass-border: rgba(225, 137, 47, 0.18);
-    --glass-border-inner: rgba(225, 137, 47, 0.25);
+    --glass-border: rgba(237, 230, 217, 0.1);
+    --glass-border-inner: rgba(237, 230, 217, 0.16);
     --glass-shadow: 0 10px 26px -16px rgba(0, 0, 0, 0.85);
-    --card-glow: rgba(225, 137, 47, 0.45);
+    --card-glow: rgba(225, 137, 47, 0.22);
 
-    /* --- Interactive (solid darker inset) ------------------------------ */
-    --input-bg: #0f0c0a;
-    --input-bg-hover: #171310;
-    --input-border: rgba(225, 137, 47, 0.35);
+    /* --- Interactive ----------------------------------------------------- */
+    --input-bg: #121110;
+    --input-bg-hover: #1b1917;
+    --input-border: rgba(237, 230, 217, 0.16);
     --input-border-focus: #e1892f;
     --btn-bg: #e1892f;
     --btn-bg-hover: #f0a63b;
     --btn-text: #17130f;
 
-    /* --- Text (derived from the site's own text tiers) ------------------ */
-    --text: #ede6d9;
-    --text-dim: #a89a86;
-    --text-faint: #7d7364;
+    /* --- Text ------------------------------------------------------------- */
+    --text: #ece8e1;
+    --text-dim: #a29b90;
+    --text-faint: #767067;
 
-    /* --- Accent (the site's own brand orange) ---------------------------- */
+    /* --- Accent: orange, used for actions, focus and the active item ------ */
     --accent: #e1892f;
     --accent-strong: #f0a63b;
     --accent-soft: #d97a25;
 
-    /* --- Background — flat, no animated blobs, no film grain ------------ */
-    --bg-base: linear-gradient(180deg, #17130f 0%, #120f0c 60%, #0f0c0a 100%);
-    --bg-solid: #17130f;
+    /* --- Background: flat warm black ------------------------------------- */
+    --bg-base: #131110;
+    --bg-solid: #131110;
   }
 
   [data-theme='monochrome'] {
