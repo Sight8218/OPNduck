@@ -1,0 +1,22 @@
+{
+  "id": "headless-tool",
+  "name": "Headless Tool",
+  "version": "0.1.0",
+  "apiVersion": 1,
+  "author": "Your Name",
+  "description": "No card: adds one tool that MCP clients and the TUI can call. It reports the size of a file.",
+  "permissions": ["files:read", "tools"],
+  "backend": { "entry": "backend.cjs" },
+  "tools": [
+    {
+      "name": "file_size",
+      "description": "Return the size in bytes of an existing file.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "inputPath": { "type": "string", "description": "Absolute path to an existing file on this computer." } },
+        "required": ["inputPath"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

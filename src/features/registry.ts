@@ -34,16 +34,26 @@ export interface FeatureDefinition {
   enabled: boolean
   /** Renderless definition of the card component (RSC-safe). */
   render: ComponentType<{ feature: FeatureDefinition }>
-  /** Optional flag a future plugin loader flips to inject community cards. */
+  /** Set to "plugin" for cards injected by the plugin loader. */
   source: 'core' | 'plugin'
 }
 
+export type PluginPermission =
+  | 'jobs'
+  | 'files:read'
+  | 'files:write'
+  | 'network'
+  | 'exec'
+  | 'exec:any'
+  | 'settings'
+  | 'notify'
+  | 'hooks'
+  | 'tools'
+
 /**
- * A plugin's plugin.json — the on-disk, author-facing format. Locked down now
- * so plugin authors have a stable target to build against; the loader that
- * reads this from disk and turns it into a registered FeatureDefinition
- * is not built yet (see PLUGINS.md for why). `entry`'s
- * default export must match FeatureDefinition['render']'s signature exactly:
+ * A plugin's plugin.json, the on-disk, author-facing format (apiVersion 1; spec in PLUGINS.md).
+ * A v1 manifest (single top-level `entry`, no permissions) is read as `ui: { entry }` with no
+ * permissions. The `ui` entry's default export must match FeatureDefinition['render'] exactly:
  * `(props: { feature: FeatureDefinition }) => JSX.Element`.
  */
 export interface PluginManifest {
@@ -51,16 +61,32 @@ export interface PluginManifest {
   id: string
   name: string
   version: string
+  /** Plugin API version the plugin was written for. Missing = v1 manifest. */
+  apiVersion?: number
   author: string
   description: string
-  tagline: string
+  /** Card fields: required when the plugin has a `ui` entry. */
+  tagline?: string
   /** Emoji-free icon key, same convention as FeatureDefinition.icon. */
-  icon: string
+  icon?: string
   /** Optional CSS color (e.g. "rgba(120, 190, 255, 0.45)") for the hover glow. */
   accent?: string
-  scope: FeatureScope
-  /** Path to the entry file, relative to the plugin's own folder — e.g. "index.js". */
-  entry: string
+  scope?: FeatureScope
+  /** Source repository URL, so users can inspect the code. Required for store listing. */
+  repo?: string
+  permissions?: PluginPermission[]
+  /** Exact hostnames the plugin may contact; used with the `network` permission. */
+  network?: string[]
+  /** Card entry, path relative to the plugin's own folder — e.g. "index.js". */
+  ui?: { entry: string }
+  /** Backend entry (CommonJS, runs in a worker), path relative to the plugin's own folder. */
+  backend?: { entry: string }
+  /** MCP/TUI tool definitions, same shape as electron/mcp_tools.cjs TOOLS. */
+  tools?: { name: string; description: string; inputSchema: object }[]
+  commands?: { id: string; title: string }[]
+  settings?: Record<string, { type: 'string' | 'number' | 'boolean'; title?: string; default?: unknown; enum?: unknown[] }>
+  /** v1 only: replaced by `ui.entry`. */
+  entry?: string
 }
 
 /**

@@ -1,0 +1,19 @@
+{
+  "id": "convert-helper",
+  "name": "Convert Helper",
+  "version": "0.1.0",
+  "apiVersion": 1,
+  "author": "Your Name",
+  "description": "Pick a file and convert it to MP4 with one click, using a saved preset.",
+  "tagline": "One-click MP4",
+  "icon": "⇄",
+  "accent": "rgba(255, 160, 60, 0.45)",
+  "scope": "universal",
+  "permissions": ["jobs", "files:read", "settings", "notify", "hooks"],
+  "ui": { "entry": "ui.js" },
+  "backend": { "entry": "backend.cjs" },
+  "commands": [{ "id": "convert-helper.run", "title": "Convert Helper: convert a file to MP4" }],
+  "settings": {
+    "mode": { "type": "string", "enum": ["transcode", "remux"], "default": "transcode", "title": "Mode" }
+  }
+}

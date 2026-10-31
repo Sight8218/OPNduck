@@ -11,10 +11,7 @@
 //     classes (glass-btn, glass-input, ...) so your card matches whichever
 //     theme (Glass/Monochrome) the user has picked — don't hardcode colors.
 //
-// See PLUGINS.md at the repo root for the full manifest schema and current
-// loading status (this contract is locked; the loader that actually reads
-// plugin.json from disk and runs this file is not built yet; it waits
-// on the desktop-shell decision, see that doc for why).
+// See PLUGINS.md at the repo root for the full manifest schema, permissions and API.
 
 export default function HelloWorldCard({ feature }) {
   const { React } = window.OPNduck

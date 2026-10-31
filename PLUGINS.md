@@ -1,95 +1,225 @@
 # Writing an OPNduck plugin
 
-A plugin is a folder with two files: a `plugin.json` manifest and an entry
-script that exports a React component. The Home dashboard renders one card
-per registered plugin, using exactly the same mechanism the built-in
-Downloader/Converter/Upscaler cards use — see `src/features/registry.ts`.
+A plugin is a folder with a `plugin.json` manifest and up to two scripts:
 
-## Current status: manifest locked, loader not shipped yet
+- a **UI entry**: a React card that shows up on the Home grid (desktop app only), and/or
+- a **backend entry**: a Node script that runs in its own worker, can start jobs, read files,
+  call the network and register tools. It loads in the desktop app, the terminal app (TUI)
+  and the MCP server.
 
-**The manifest format and entry contract below are stable — build against
-them now.** What's *not* built yet is the part that reads `plugin.json` off
-disk at startup and turns it into a running card automatically. That loader
-is intentionally deferred until the desktop-shell question is settled (the Tauri
-migration is postponed, and Electron and Tauri load third-party code very
-differently, so building the real mechanism twice isn't worth it). Until then, a finished plugin gets included
-by opening a PR — see [Getting a plugin included today](#getting-a-plugin-included-today).
+Either part is optional. A plugin with only a `backend` and `tools` is a "headless" plugin: no
+card, but its tools show up for MCP clients and in the TUI.
+
+> **Status: spec v2 (apiVersion 1).** This document is the contract the loader is being built
+> against, step by step. Plugins written to it will keep working; fields marked *planned* arrive
+> with the store. Manifests from the old v1 format (single `entry`, no permissions) still load,
+> as a UI-only plugin with no permissions.
 
 ## Where plugins live
 
-Put your plugin's folder here, even before the loader exists — this is the
-path the eventual loader will scan, so anything already there just starts
-working once it ships:
+Installed plugins live in `<userData>/plugins/<plugin-id>/`:
 
-- Linux/macOS: `~/.local/share/opnduck/plugins/<your-plugin-id>/`
-- Windows: `%APPDATA%\opnduck\plugins\<your-plugin-id>\`
+- Linux: `~/.config/opnduck-desktop/plugins/<id>/`
+- macOS: `~/Library/Application Support/opnduck-desktop/plugins/<id>/`
+- Windows: `%APPDATA%\opnduck-desktop\plugins\<id>\`
+
+Which plugins are enabled, and which permissions you granted each, is stored next to them in
+`plugins.json`. Dropping a folder in by hand works; it is treated as **unverified**.
+
+## Trust: Verified and Unverified
+
+A plugin runs code on your computer. OPNduck splits plugins into two groups:
+
+- **Verified**: listed in the official plugin index with a pinned commit and checksum, after the
+  OPNduck maintainer reviewed it. One-click install; you still see its permissions.
+- **Unverified**: everything else (community store entries, drop-in folders, GitHub URLs).
+  Before install you get a warning: *this plugin is not verified, OPNduck takes no responsibility
+  for what it does, inspect its code on GitHub first*, plus the permission list, and you must
+  confirm.
+
+**Permissions limit what a well-behaved plugin can ask the host API to do. They are not a sandbox.**
+A backend script is Node code running with your user's privileges, so an unverified plugin should
+be treated like any program you downloaded. Read the code first.
 
 ## `plugin.json`
 
 ```json
 {
-  "id": "hello-world",
-  "name": "Hello World",
+  "id": "convert-helper",
+  "name": "Convert Helper",
   "version": "0.1.0",
+  "apiVersion": 1,
   "author": "Your Name",
-  "description": "One or two sentences shown on the card.",
+  "description": "One or two sentences shown on the card and in the store.",
   "tagline": "Short subtitle under the title",
   "icon": "★",
   "accent": "rgba(120, 190, 255, 0.45)",
   "scope": "universal",
-  "entry": "index.js"
+  "repo": "https://github.com/you/opnduck-convert-helper",
+  "permissions": ["jobs", "files:read", "settings", "notify"],
+  "ui": { "entry": "ui.js" },
+  "backend": { "entry": "backend.cjs" },
+  "tools": [],
+  "commands": [{ "id": "convert-helper.run", "title": "Convert Helper: run on a file" }],
+  "settings": {
+    "preset": { "type": "string", "enum": ["small", "fast"], "default": "small", "title": "Preset" }
+  }
 }
 ```
 
-| Field         | Required | Notes                                                                 |
-|---------------|----------|------------------------------------------------------------------------|
-| `id`          | yes      | Unique, kebab-case. Becomes the card's React key — don't reuse a core feature's id (`downloader`, `converter`, `upscaler`). |
-| `name`        | yes      | Display title.                                                        |
-| `version`     | yes      | SemVer.                                                                |
-| `author`      | yes      | Whatever you want credited.                                           |
-| `description` | yes      | Shown in the card body.                                               |
-| `tagline`     | yes      | Shown under the title, e.g. `"MP4 · MKV · WebM"`.                     |
-| `icon`        | yes      | A single emoji-free glyph — matches the style of the built-in cards' icons (`⇩`, `⇄`, `⇧`). |
-| `accent`      | no       | CSS color for the hover glow, e.g. `"rgba(120, 190, 255, 0.45)"`. Ignored in Monochrome theme by design — don't fight that. |
-| `scope`       | yes      | `"universal"` or `"desktop-exclusive"` — controls the badge shown on the card. |
-| `entry`       | yes      | Path to your entry file, relative to the plugin folder.               |
+| Field         | Required | Notes |
+|---------------|----------|-------|
+| `id`          | yes      | Unique, kebab-case, `a-z0-9-`, max 40 chars. Also the folder name. Must not reuse a core id (`downloader`, `converter`, `upscaler`, `interpolation`, `trimmer`, `audio-ai`, `subtitles`). |
+| `name`        | yes      | Display title. |
+| `version`     | yes      | SemVer. |
+| `apiVersion`  | v2       | Plugin API version this was written for. Currently `1`. Missing = a v1 manifest. |
+| `author`      | yes      | Credited name. |
+| `description` | yes      | Shown on the card and in the store. |
+| `tagline`     | UI only  | Under the title, e.g. `"MP4 · MKV · WebM"`. |
+| `icon`        | UI only  | One glyph, no emoji, in the style of the built-in cards (`⇩`, `⇄`, `⇧`). |
+| `accent`      | no       | CSS color for the hover glow. Ignored in Monochrome by design. |
+| `scope`      | UI only  | `"universal"` or `"desktop-exclusive"`, controls the badge. |
+| `repo`        | no*      | Source repository URL. *Required for store listing, so users can inspect the code.* |
+| `permissions` | no       | Array of names from the table below. Default `[]`: the plugin can render and nothing else. |
+| `network`     | with `network` perm | Array of exact hostnames the plugin may contact, e.g. `["api.github.com"]`. |
+| `ui`          | no       | `{ "entry": "ui.js" }`: path relative to the plugin folder. v1's top-level `entry` is read as `ui.entry`. |
+| `backend`     | no       | `{ "entry": "backend.cjs" }`: CommonJS file, path relative to the plugin folder. |
+| `tools`       | no       | MCP/TUI tool definitions, see [Tools](#tools). Needs the `tools` permission. |
+| `commands`    | no       | Entries for the command palette: `{ "id", "title" }`. Handled by `opnduck.commands.handle(id, fn)`. |
+| `settings`    | no       | Schema for the plugin's own settings: `{ key: { type: "string"|"number"|"boolean", title, default, enum? } }`. |
 
-## The entry file
+Entry paths may not leave the plugin folder (no `..`, no absolute paths, no symlinks out). A
+manifest that fails validation is listed as broken and never loaded.
 
-Default-export a component with this exact signature:
+## Permissions
+
+Declared in `permissions`, shown to the user before install, and enforced by the host API on
+every call. A call without the permission rejects with `PermissionError`.
+
+| Permission    | Lets the plugin |
+|---------------|-----------------|
+| `jobs`        | Start jobs through the task engine (`download`, `convert`, ...), list and cancel its own jobs. |
+| `files:read`  | Read files the user picked for it, and the download folder. |
+| `files:write` | Write files into the download folder or a folder the user picked. |
+| `network`     | `opnduck.net.fetch` to the hostnames listed in `network`. Nothing else. |
+| `exec`        | Run the binaries OPNduck already manages (`ffmpeg`, `yt-dlp`, ...) by name. `exec:any` runs any executable and is called out in red in the UI. |
+| `settings`    | Read and write the plugin's own settings namespace. |
+| `notify`      | Show desktop notifications. |
+| `hooks`       | Subscribe to events (`job:finished`, `job:failed`, `watch-folder:file`). |
+| `tools`       | Register the tools declared in `tools` for MCP clients and the TUI. |
+
+Raising the permission list in an update requires the user to approve again.
+
+## Backend API
+
+The backend entry exports `activate` and optionally `deactivate`:
+
+```js
+// backend.cjs
+exports.activate = async (opnduck) => {
+  opnduck.commands.handle('convert-helper.run', async ({ path }) => {
+    const id = await opnduck.jobs.start('convert', { inputPath: path, container: 'MP4', mode: 'transcode' })
+    return { id }
+  })
+}
+exports.deactivate = async () => {}
+```
+
+It runs in a `worker_threads` worker, one per plugin. If it throws or the worker dies, only that
+plugin is disabled and the error is logged; OPNduck keeps running.
+
+Everything on `opnduck` is async and permission-checked:
+
+```
+opnduck.id, opnduck.version                       plugin id and version (read-only)
+opnduck.log(...args)                              written to the plugin's log
+opnduck.jobs.start(channel, req) -> jobId         [jobs]   same channel names and request shapes as electron/mcp_tools.cjs
+opnduck.jobs.list() -> [{ id, status, progress, label, error }]   [jobs]  only this plugin's jobs
+opnduck.jobs.cancel(id)                           [jobs]
+opnduck.files.read(path) -> Buffer                [files:read]
+opnduck.files.write(path, data)                   [files:write]
+opnduck.files.pick({ save?, filters? }) -> path   [files:read | files:write]   opens a dialog; the picked path becomes allowed
+opnduck.exec.run(name, args, { cwd? }) -> { code, stdout, stderr }   [exec]
+opnduck.net.fetch(url, init) -> { status, headers, body }   [network]   host must be in manifest "network"
+opnduck.settings.get(key) / .set(key, value)      [settings]
+opnduck.notify({ title, body })                   [notify]
+opnduck.on(event, fn) -> unsubscribe              [hooks]
+opnduck.tools.handle(name, fn)                    [tools]  fn(args) -> result for a tool declared in the manifest
+opnduck.commands.handle(id, fn)                   command palette entry declared in the manifest
+opnduck.rpc.handle(name, fn)                      expose a function to this plugin's own UI
+```
+
+Paths are checked on every call: resolved, symlinks followed, and compared against the allowed
+folders. A path outside them rejects.
+
+## UI entry
+
+Default-export a component:
 
 ```js
 export default function MyCard({ feature }) {
-  // feature is the FeatureDefinition built from your plugin.json
+  const { React, api } = window.OPNduck
+  // ...
 }
 ```
 
-Three rules, and they're not optional:
+Rules:
 
-1. **No bundler assumed.** The loader will run your entry file as-is — plain
-   JS, no import of `react`, no JSX unless you transpile it yourself before
-   shipping. Use `React.createElement` directly (see the example) or ship
-   already-compiled output.
-2. **Use the host's React, not your own.** Read it off `window.OPNduck.React`.
-   Bundling your own copy of React means two React instances in one page,
-   which breaks hooks in ways that are miserable to debug.
-3. **Style with the app's CSS custom properties and utility classes**
-   (`--text`, `--text-dim`, `--input-bg`, `glass-btn`, `glass-input`, ...),
-   not hardcoded colors. That's what makes your card automatically match
-   whichever theme (Glass/Monochrome) the user has picked. Check
-   `src/index.css` and `src/themes/tokens.css` for what's available.
+1. **No bundler assumed.** The entry runs as-is: plain JS, no `import` of `react`, no JSX unless
+   you compile it yourself. Use `React.createElement` or ship compiled output.
+2. **Use the host's React** from `window.OPNduck.React`. A second copy of React breaks hooks.
+3. **Style with the app's CSS custom properties and classes** (`--text`, `--text-dim`,
+   `--input-bg`, `glass-btn`, `glass-input`, ...), not hardcoded colors, so the card follows the
+   user's theme. See `src/index.css` and `src/themes/tokens.css`.
 
-## Full example
+`window.OPNduck.api` offers the same namespaces as the backend that make sense in a card
+(`jobs`, `files.pick`, `settings`, `notify`), all going through the same permission checks, plus:
 
-See [`plugin-examples/hello-world/`](./plugin-examples/hello-world/) in this
-repo — a complete, minimal plugin.json + entry.js pair. Copy that folder as
-your starting point.
+```
+api.rpc.call(name, ...args)     call a function the backend registered with opnduck.rpc.handle
+```
 
-## Getting a plugin included today
+The UI never gets Node, Electron or the filesystem directly; every request goes to the host,
+which checks the plugin's permissions.
 
-Since the dynamic loader isn't live yet, the path to actually running your
-plugin right now is a pull request: open one adding your plugin under
-`plugin-examples/` (or, if you'd rather it ship as a real feature, propose
-folding it into `src/features/` directly). Once the loader lands,
-anything already following this manifest format should need little to no
-rework to load automatically from the plugins folder above.
+## Tools
+
+`tools` entries use the same shape as the built-in tools in `electron/mcp_tools.cjs`:
+
+```json
+{
+  "name": "convert_helper_run",
+  "description": "Convert a file with the Convert Helper preset.",
+  "inputSchema": {
+    "type": "object",
+    "properties": { "inputPath": { "type": "string", "description": "Absolute path to an existing file." } },
+    "required": ["inputPath"],
+    "additionalProperties": false
+  }
+}
+```
+
+Tool names are prefixed with the plugin id by the host (`<id>__<name>`) so two plugins can never
+shadow each other or a built-in. Register the handler with `opnduck.tools.handle(name, fn)`.
+
+## Safe mode
+
+*Settings → Safe mode* starts OPNduck with all plugins skipped. Use it if a plugin breaks
+startup.
+
+## Examples
+
+All three are complete and tiny; copy one as a starting point.
+
+- [`plugin-examples/hello-world/`](./plugin-examples/hello-world/): UI only, no permissions.
+- [`plugin-examples/convert-helper/`](./plugin-examples/convert-helper/): UI card + backend that
+  starts a real convert job.
+- [`plugin-examples/headless-tool/`](./plugin-examples/headless-tool/): backend only, one tool for
+  MCP and the TUI.
+
+## Publishing (planned)
+
+Plugins are published through the `opnduck-plugins` index repository: a pull request adds an
+entry with your repo, a pinned commit and the SHA256 of the archive. After review it is listed
+as Verified; entries that skip review appear under Community (unverified). Details land with the
+store.
