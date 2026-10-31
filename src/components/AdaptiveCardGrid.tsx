@@ -1,38 +1,18 @@
+import { useSearchParams } from 'react-router-dom'
 import { featureRegistry } from '../features/registry'
+import { FeatureIcon } from './featureIcons'
 
 /**
- * Picks the xl column count (2 or 3) that leaves the most-filled last row,
- * so e.g. 5 cards become a 3+2 grid instead of a lone card orphaned alone
- * on its own row after a full row of 4. Ties (an evenly-divisible count,
- * like 6) prefer the wider column count.
- */
-function bestColumnCount(n: number, max: number): number {
-  let best = 2
-  let bestFill = -1
-  for (let c = 2; c <= Math.min(n, max); c++) {
-    const remainder = n % c
-    const lastRowFill = remainder === 0 ? 1 : remainder / c
-    if (lastRowFill >= bestFill) {
-      bestFill = lastRowFill
-      best = c
-    }
-  }
-  return best
-}
-
-/**
- * Home dashboard grid.
- * Renders one card per enabled feature in the registry and adapts the column
- * count to how many cards are present — a single card spans wide, several
- * cards flow into 2–3 columns, picked to keep the last row as full as
- * possible. Cards re-flow automatically as features/plugins are added or
- * removed ("adaptive" by construction).
+ * Home launcher. Every enabled feature in the registry gets a small tile (icon, title,
+ * tagline); picking one opens just that tool's card underneath, so the page shows one set of
+ * controls at a time instead of eight. The open tool lives in the URL (`?tool=<id>`), so the
+ * command palette can link straight to it. Plugins show up as tiles automatically.
  */
 export default function AdaptiveCardGrid() {
+  const [params, setParams] = useSearchParams()
   const features = featureRegistry.filter((f) => f.enabled)
-  const count = features.length
 
-  if (count === 0) {
+  if (features.length === 0) {
     return (
       <div className="glass rounded-3xl p-8 text-center text-sm text-[var(--text-dim)]">
         No features installed yet. Install a tool or a community plugin to see cards here.
@@ -40,45 +20,45 @@ export default function AdaptiveCardGrid() {
     )
   }
 
-  // Adaptive column layout based on card count — capped at 3 columns so
-  // cards keep enough width for their controls (a 4th column was crowding
-  // titles into wrapping onto two lines).
-  const cols =
-    count === 1
-      ? 'grid-cols-1'
-      : bestColumnCount(count, 3) === 2
-        ? 'grid-cols-1 md:grid-cols-2'
-        : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
-
-  // Fill orphan slots instead of leaving holes: the last card stretches across
-  // whatever's left of an incomplete final row (at both the 2- and 3-col widths).
-  const xlCols = count === 1 ? 1 : bestColumnCount(count, 3)
-  const XL_SPAN = ['', 'xl:col-span-1', 'xl:col-span-2', 'xl:col-span-3']
-  const lastSpan = (() => {
-    if (count === 1) return ''
-    const xlRemainder = count % xlCols
-    const xl = XL_SPAN[xlRemainder === 0 ? 1 : xlCols - xlRemainder + 1]
-    const md = count % 2 === 1 ? 'md:col-span-2' : ''
-    return `${md} ${xl}`
-  })()
+  const openId = params.get('tool')
+  const open = features.find((f) => f.id === openId) ?? null
+  const choose = (id: string | null) => setParams(id ? { tool: id } : {}, { replace: true })
 
   return (
-    <div className={`grid items-stretch gap-5 ${cols}`}>
-      {features.map((feature, i) => {
-        const Card = feature.render
-        // A lone card gets extra breathing room (max-width so it doesn't stretch
-        // awkwardly full-bleed).
-        const wide = count === 1 ? 'xl:max-w-3xl xl:mx-auto' : i === count - 1 ? lastSpan : ''
-        return (
-          <div
-            key={feature.id}
-            className={`pop-in h-full ${wide}`}
-            style={{ ['--pop-delay' as string]: `${i * 60}ms` }}
-          >
-            <Card feature={feature} />
-          </div>
-        )
-      })}
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {features.map((f, i) => {
+          const active = f.id === open?.id
+          return (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => choose(active ? null : f.id)}
+              aria-pressed={active}
+              className={`glass pop-in flex items-center gap-3 rounded-2xl p-3 text-left transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 ${
+                active ? 'border-[var(--accent)] shadow-[0_0_0_1px_var(--accent)]' : ''
+              }`}
+              style={{ ['--pop-delay' as string]: `${i * 40}ms` }}
+            >
+              <span className="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+                <FeatureIcon name={f.icon} size={20} />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-bold leading-tight">{f.title}</span>
+                <span className="block truncate text-xs text-[var(--text-dim)]">{f.tagline}</span>
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {open ? (
+        <div key={open.id} className="pop-in mx-auto w-full max-w-3xl">
+          <open.render feature={open} />
+        </div>
+      ) : (
+        <p className="text-center text-sm text-[var(--text-dim)]">Pick a tool to get started.</p>
+      )}
     </div>
   )
 }

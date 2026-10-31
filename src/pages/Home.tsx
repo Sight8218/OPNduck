@@ -25,8 +25,8 @@ export default function Home() {
       <div className="mb-8">
         <h1 className="text-2xl font-extrabold sm:text-3xl">Welcome to OPNduck</h1>
         <p className="mt-1 text-sm text-[var(--text-dim)]">
-          Your local-first media processing workspace. Tools below are generated from your
-          installed features and plugins — installing one adds a card here automatically.
+          Your local-first media processing workspace. Pick a tool below — installed plugins
+          add their own tile automatically.
         </p>
       </div>
 

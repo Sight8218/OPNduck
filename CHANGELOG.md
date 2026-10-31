@@ -6,6 +6,9 @@ history; entries are curated for readability.
 
 ## [Unreleased]
 
+### Changed
+- Home is less crowded: a compact tile for each tool, and only the tool you pick opens below. The open tool is in the URL (`?tool=`), so the command palette now jumps straight to it.
+
 ### Performance
 - Engine checks (PyTorch, Demucs, Whisper) are remembered between launches and re-checked in the background, so the cards no longer wait about 2.5 s for a Python start. `nvidia-smi` is asked once per session instead of on every check.
 

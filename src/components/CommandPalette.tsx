@@ -95,9 +95,8 @@ export default function CommandPalette() {
       const to = item.action ? String(item.action()) : '/'
       navigate(to)
     } else {
-      // Feature entries (Downloader, Converter, ...) don't have their own
-      // route — they're cards on Home. Previously this did nothing at all.
-      navigate('/')
+      // Feature entries (Downloader, Converter, ...) open on Home via ?tool=<id>.
+      navigate(`/?tool=${item.id.replace(/^feature-/, '')}`)
     }
   }
 
