@@ -59,13 +59,17 @@ const os = require('node:os')
 const crypto = require('node:crypto')
 const { readOmarchyTheme, watchOmarchyTheme } = require('./omarchy.cjs')
 const settings = require('./core/settings.cjs')
-const { getSettings, setSettings, ytdlpBaseArgs, hasCookies } = settings
+const { getSettings, setSettings } = settings
 const { openLoginWindow, clearLogin, loginStatus, loginContents } = require('./login.cjs')
 const { createSubscriptionManager } = require('./subscriptions.cjs')
 const { createMcpServer } = require('./mcp.cjs')
 const platform = require('./platform_electron.cjs')
-settings.configure(platform)
-const tools = require('./core/tools.cjs').createTools(platform)
+const core = require('./core/index.cjs').createCore({
+  platform,
+  onFinished: (state, req) => notifyFinished(state, req),
+  registerStart: (channel, wrapped) => ipcMain.handle(channel, wrapped),
+})
+const { tools, engine, modules } = core
 const {
   ytdlpCommand, pythonCommand, demucsPython, whisperPython,
   venvNvidiaLibDirs, cachedEngineCheck, clearEngineCache, VENV_DIR, VENV_PYTHON,
@@ -295,9 +299,8 @@ ipcMain.handle('updates:openRelease', (_e, url) => {
 
 // --- end: downloader/spotify-youtube-match ---
 
-/* --- The task engine lives in core/tasks.cjs (no Electron); these are the IPC doors. --- */
+/* --- The task engine and the job modules live in core/ (no Electron); the rest of this file is the IPC doors. --- */
 // @category: downloader/task-orchestration-main-process
-const engine = require('./core/tasks.cjs').createTaskEngine({ platform, getSettings, onFinished: (state, req) => notifyFinished(state, req) })
 const {
   tasks, startHandlers, allPools, logWatched, logPending, TERMINAL, MAX_HISTORY,
   addTask, jobLog, defaultDownloadDir, broadcastTasks,
@@ -305,39 +308,17 @@ const {
   updateTask, setQueuePaused, applyQueueLimits, killTask, isCanceled,
   cancelTask, rerunTask, revealTask, removeTasks, clearFinished,
 } = engine
-/** Registers a job-start IPC handler through the engine's wrapper (see wrapStart). */
-function handleStart(channel, fn) {
-  ipcMain.handle(channel, engine.wrapStart(channel, fn))
-}
 ipcMain.handle('queue:state', () => ({ paused: engine.queuePaused }))
 ipcMain.handle('queue:setPaused', (_e, paused) => setQueuePaused(paused))
 // "Run next": a queued job jumps the line within its own queue.
 ipcMain.handle('tasks:runNext', (_e, id) => (typeof id === 'string' ? allPools.some((p) => p.prioritize(id)) : false))
 
-/* --- Job modules (core/*.cjs, no Electron) share one context: the platform, tools, engine and each other's helpers. --- */
-const ctx = { platform, tools, getSettings, ytdlpBaseArgs, hasCookies, ...tools, ...engine, ...engine.pools, handleStart }
-const common = require('./core/common.cjs').createCommon(ctx)
-Object.assign(ctx, common)
-const {
-  parseHttpUrl, assertAbsolutePath, probeMedia, mediaFrame,
-} = common
-const convertMod = require('./core/convert.cjs').createConvert(ctx)
-Object.assign(ctx, convertMod)
-const { FORMATS } = convertMod
-const trimMod = require('./core/trim.cjs').createTrim(ctx)
-Object.assign(ctx, trimMod)
-const audio_aiMod = require('./core/audio_ai.cjs').createAudioAi(ctx)
-Object.assign(ctx, audio_aiMod)
-const { demucsWorker } = audio_aiMod
-const subtitlesMod = require('./core/subtitles.cjs').createSubtitles(ctx)
-Object.assign(ctx, subtitlesMod)
-const { whisperWorker } = subtitlesMod
-const gpu_jobsMod = require('./core/gpu_jobs.cjs').createGpuJobs(ctx)
-Object.assign(ctx, gpu_jobsMod)
-const { torchEngineReady } = gpu_jobsMod
-const downloadMod = require('./core/download.cjs').createDownload(ctx)
-Object.assign(ctx, downloadMod)
-const { probePlaylist, probeInfo, probeEntries, validateDownloadRequest, classifyLink } = downloadMod
+const { parseHttpUrl, assertAbsolutePath, probeMedia, mediaFrame } = modules.common
+const { FORMATS } = modules.convert
+const { demucsWorker } = modules.audioAi
+const { whisperWorker } = modules.subtitles
+const { torchEngineReady } = modules.gpu
+const { probePlaylist, probeInfo, probeEntries, validateDownloadRequest, classifyLink } = modules.download
 
 ipcMain.handle('tasks:probe', (_e, req) => {
   req.url = String(req.url ?? '').trim()
