@@ -10,6 +10,7 @@ history; entries are curated for readability.
 - **Setup wizard**: on first launch (and from Settings, System, Open setup) a window lists the downloader, the fast video engine, Audio AI and Subtitles with their download sizes, marks what you already have, and installs the ones you tick one after another with live progress and a Cancel button. Tools that come from your package manager (ffmpeg, Real-ESRGAN, RIFE, LibreOffice) are listed with their install command when missing.
 
 ### Changed
+- Internal: the job code (downloads, conversion, trimming, upscaling, interpolation, subtitles, AI audio, the task queue and tool detection) now lives in Electron-free `electron/core/` modules, in preparation for a lightweight terminal version. The app behaves the same.
 - The developer-tool channels in the desktop shell now refuse to run unless Developer mode is on (they used to be always reachable from the app window).
 - Switching back to Blarange or Monochrome clears the cached theme colours the startup screen uses.
 

@@ -303,6 +303,7 @@ const {
   addTask, jobLog, defaultDownloadDir, broadcastTasks,
   scheduleHistorySave, saveHistory, loadHistory, markHistoryChanged, sanitizeBatch,
   updateTask, setQueuePaused, applyQueueLimits, killTask, isCanceled,
+  cancelTask, rerunTask, revealTask, removeTasks, clearFinished,
 } = engine
 /** Registers a job-start IPC handler through the engine's wrapper (see wrapStart). */
 function handleStart(channel, fn) {
@@ -399,70 +400,14 @@ ipcMain.handle('subs:setEnabled', (_e, id, enabled) => needSubs().setEnabled(Str
 ipcMain.handle('subs:checkNow', (_e, id) => needSubs().checkNow(id ? String(id) : undefined))
 
 /** Cancels a queued or running task; false if there is nothing to cancel. */
-function cancelTask(id) {
-  const entry = tasks.get(id)
-  if (!entry) return false
-  // Don't rewrite the outcome of a task that already finished.
-  if (!['queued', 'running'].includes(entry.state.status)) return false
-  killTask(entry)
-  updateTask(id, { status: 'canceled' })
-  return true
-}
 ipcMain.on('tasks:cancel', (_e, id) => {
   cancelTask(id)
 })
-
-ipcMain.handle('tasks:rerun', (_e, id, opts) => {
-  const entry = tasks.get(id)
-  const start = entry && startHandlers.get(entry.channel)
-  if (!start) return null
-  let req = entry.req
-  // Spotify matches: "find another video" retries the search without the video that was picked before.
-  if (opts?.anotherMatch === true && req?.matchedId) {
-    const { matchedId, ...rest } = req
-    req = { ...rest, matchExclude: [...(req.matchExclude ?? []), matchedId].slice(-20) }
-  }
-  return start(null, req)
-})
-ipcMain.handle('tasks:openFolder', (_e, id) => {
-  const entry = tasks.get(id)
-  if (!entry) return
-  if (entry.finalPath && fs.existsSync(entry.finalPath)) return platform.showInFolder(entry.finalPath)
-  // req comes from an imported file for some entries, so it may hold anything: openPath() would
-  // happily launch a file (script, .desktop, ...) with its default app. Only ever open a folder.
-  const dest = entry.req?.destination
-  let dir = defaultDownloadDir()
-  try {
-    if (typeof dest === 'string' && path.isAbsolute(dest) && fs.statSync(dest).isDirectory()) dir = dest
-  } catch {
-    /* missing or unreadable: fall back to the default folder */
-  }
-  platform.openPath(dir)
-})
+ipcMain.handle('tasks:rerun', (_e, id, opts) => rerunTask(id, opts))
+ipcMain.handle('tasks:openFolder', (_e, id) => revealTask(id))
 // Removes specific finished tasks from the history (running ones are never touched).
-ipcMain.handle('tasks:remove', (_e, ids) => {
-  if (!Array.isArray(ids)) return 0
-  let removed = 0
-  for (const id of ids.slice(0, 1000)) {
-    const t = typeof id === 'string' ? tasks.get(id) : null
-    if (t && TERMINAL.includes(t.state.status)) {
-      tasks.delete(id)
-      markHistoryChanged()
-      removed++
-    }
-  }
-  if (removed) {
-    saveHistory()
-    broadcastTasks()
-  }
-  return removed
-})
-ipcMain.handle('tasks:clearFinished', () => {
-  for (const [id, t] of tasks) if (TERMINAL.includes(t.state.status)) tasks.delete(id)
-  markHistoryChanged()
-  saveHistory()
-  broadcastTasks()
-})
+ipcMain.handle('tasks:remove', (_e, ids) => removeTasks(ids))
+ipcMain.handle('tasks:clearFinished', () => clearFinished())
 /* --- Library export / import ---
  * Export writes the finished tasks (with the requests needed to run them again) as JSON. Import
  * reads such a file back: every field is re-validated here — a hand-edited or hostile file must

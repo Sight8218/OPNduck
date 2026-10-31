@@ -339,7 +339,76 @@ function createTaskEngine({ platform, getSettings, onFinished }) {
     historyChanged = true
   }
 
+  /** Cancels a queued or running task. Returns false if there is no such task or it already finished. */
+  function cancelTask(id) {
+    const entry = tasks.get(id)
+    if (!entry) return false
+    // Don't rewrite the outcome of a task that already finished.
+    if (!['queued', 'running'].includes(entry.state.status)) return false
+    killTask(entry)
+    updateTask(id, { status: 'canceled' })
+    return true
+  }
+
+  /** Starts a finished task again from its saved request; returns the new task id (or null). */
+  function rerunTask(id, opts) {
+    const entry = tasks.get(id)
+    const start = entry && startHandlers.get(entry.channel)
+    if (!start) return null
+    let req = entry.req
+    // Spotify matches: "find another video" retries the search without the video that was picked before.
+    if (opts?.anotherMatch === true && req?.matchedId) {
+      const { matchedId, ...rest } = req
+      req = { ...rest, matchExclude: [...(req.matchExclude ?? []), matchedId].slice(-20) }
+    }
+    return start(null, req)
+  }
+
+  /** Shows a task's output in the file manager, or its folder when the file is gone. */
+  function revealTask(id) {
+    const entry = tasks.get(id)
+    if (!entry) return
+    if (entry.finalPath && fs.existsSync(entry.finalPath)) return platform.showInFolder(entry.finalPath)
+    // req comes from an imported file for some entries, so it may hold anything: openPath() would
+    // happily launch a file (script, .desktop, ...) with its default app. Only ever open a folder.
+    const dest = entry.req?.destination
+    let dir = defaultDownloadDir()
+    try {
+      if (typeof dest === 'string' && path.isAbsolute(dest) && fs.statSync(dest).isDirectory()) dir = dest
+    } catch {
+      /* missing or unreadable: fall back to the default folder */
+    }
+    platform.openPath(dir)
+  }
+
+  /** Removes specific finished tasks from the history (running ones are never touched). Returns how many. */
+  function removeTasks(ids) {
+    if (!Array.isArray(ids)) return 0
+    let removed = 0
+    for (const id of ids.slice(0, 1000)) {
+      const t = typeof id === 'string' ? tasks.get(id) : null
+      if (t && TERMINAL.includes(t.state.status)) {
+        tasks.delete(id)
+        markHistoryChanged()
+        removed++
+      }
+    }
+    if (removed) {
+      saveHistory()
+      broadcastTasks()
+    }
+    return removed
+  }
+
+  function clearFinished() {
+    for (const [id, t] of tasks) if (TERMINAL.includes(t.state.status)) tasks.delete(id)
+    markHistoryChanged()
+    saveHistory()
+    broadcastTasks()
+  }
+
   return {
+    cancelTask, rerunTask, revealTask, removeTasks, clearFinished,
     tasks, startHandlers, allPools, pools: { convertPool, gpuPool, whisperPool, downloadPool },
     logWatched, logPending, TERMINAL, MAX_HISTORY,
     addTask, appendLog, jobLog, attachLog, defaultDownloadDir, broadcastTasks,
