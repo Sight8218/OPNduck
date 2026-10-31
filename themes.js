@@ -38,8 +38,18 @@
   });
   TRIPLES['240,166,59'] = '#f0a63b';
   var RGB = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/gi;
+  // Omarchy-style flat look: every gradient becomes its first colour (radial glows vanish).
+  var GRAD = /(linear|radial)-gradient\((?:[^()]|\([^()]*\))*\)/gi;
+  var FIRST = /#[0-9a-f]{3,8}\b|rgba?\([^)]*\)/i;
+  function flatten(text) {
+    return text.replace(GRAD, function (g, kind) {
+      if (kind.toLowerCase() === 'radial') return 'linear-gradient(transparent,transparent)';
+      var c = FIRST.exec(g);
+      return c ? 'linear-gradient(' + c[0] + ',' + c[0] + ')' : g;
+    });
+  }
   function recolor(text) {
-    return text
+    return flatten(text)
       .replace(HEX, function (m) { return cur.map[m.toLowerCase()]; })
       .replace(RGB, function (m, r, g, b, a) {
         var hex = TRIPLES[r + ',' + g + ',' + b];
@@ -75,6 +85,7 @@
     return join(next);
   }
   function sweep() {
+    placeLogo();
     document.querySelectorAll('[style],[fill],[stroke],[stop-color]').forEach(function (el) {
       var rec = orig.get(el) || {};
       ATTRS.forEach(function (a) {
@@ -99,11 +110,71 @@
     for (var i = 0; i < list.length; i++) if (!list[i].target.closest || !list[i].target.closest('#oth-root')) return schedule();
   }).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ATTRS });
 
+
+  // ---- Omarchy-style chrome: square, flat, a pixel logo and a scatter of pixels ----
+  var GLYPHS = {
+    O: ['01110','10001','10001','10001','10001','10001','01110'],
+    P: ['11110','10001','10001','11110','10000','10000','10000'],
+    N: ['10001','11001','10101','10101','10011','10001','10001'],
+    D: ['11110','10001','10001','10001','10001','10001','11110'],
+    U: ['10001','10001','10001','10001','10001','10001','01110'],
+    C: ['01110','10001','10000','10000','10000','10001','01110'],
+    K: ['10001','10010','10100','11000','10100','10010','10001']
+  };
+  var BANDS = [78, 62, 50, 40, 30, 22, 14]; // % of white mixed into the accent, top to bottom
+  function logoSvg() {
+    var cell = 8, x = 0, rects = '';
+    'OPNDUCK'.split('').forEach(function (ch) {
+      GLYPHS[ch].forEach(function (row, r) {
+        row.split('').forEach(function (b, c) {
+          if (b === '1') rects += '<rect x="' + (x + c) * cell + '" y="' + r * cell + '" width="' + cell + '" height="' + cell + '" style="fill:color-mix(in srgb,white ' + BANDS[r] + '%,var(--oth-accent))"/>';
+        });
+      });
+      x += 6;
+    });
+    return '<svg class="oth-logo" viewBox="0 0 ' + (x - 1) * cell + ' ' + 7 * cell + '" role="img" aria-label="OPNduck" shape-rendering="crispEdges">' + rects + '</svg>';
+  }
+  function pixelField() {
+    var seed = 7, rnd = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    var out = '', size = 12;
+    for (var i = 0; i < 260; i++) {
+      var x = Math.floor(rnd() * 107), y = Math.floor(rnd() * 54);
+      var edge = Math.abs(x - 53) / 53; // thicker toward the sides
+      if (rnd() > 0.02 + edge * edge * 0.85) continue;
+      out += '<rect x="' + x * size + '" y="' + y * size + '" width="' + size + '" height="' + size + '" opacity="' + (0.06 + rnd() * 0.16).toFixed(2) + '"/>';
+    }
+    return '<svg class="oth-pixels" viewBox="0 0 1284 648" preserveAspectRatio="xMidYMin slice" aria-hidden="true">' + out + '</svg>';
+  }
+  function chrome() {
+    var st = document.createElement('style');
+    st.setAttribute('data-theme-skip', '');
+    st.textContent =
+      '*,*::before,*::after{border-radius:0!important;box-shadow:none!important;text-shadow:none!important}' +
+      '.oth-logo{display:block;width:min(100%,360px);height:auto;margin:0 0 28px}' +
+      '.oth-pixels{position:absolute;top:0;left:0;width:100%;height:min(760px,100vh);pointer-events:none;z-index:1;fill:var(--oth-accent);' +
+      '-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}';
+    document.head.appendChild(st);
+    document.body.style.position = 'relative';
+    var holder = document.createElement('div');
+    holder.id = 'oth-pixels-holder';
+    holder.innerHTML = pixelField();
+    document.body.insertBefore(holder, document.body.firstChild);
+  }
+  function placeLogo() {
+    var h = document.querySelector('[data-hero-title]');
+    if (!h || h.parentElement.querySelector('.oth-logo')) return;
+    var wrap = document.createElement('div');
+    wrap.innerHTML = logoSvg();
+    h.parentElement.insertBefore(wrap.firstChild, h.parentElement.firstChild);
+  }
+
   function setTheme(slug) {
     cur = colorsFor(slug);
+    HEX.lastIndex = 0;
     try { localStorage.setItem(KEY, slug); } catch (e) {}
     sweep();
     document.documentElement.style.colorScheme = PALETTES[slug][0];
+    document.documentElement.style.setProperty('--oth-accent', PALETTES[slug][1]);
     document.querySelectorAll('.oth-item').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.slug === slug ? 'true' : 'false'); });
   }
 
@@ -126,6 +197,7 @@
       '</style>' +
       '<div id="oth-panel"><h4>Try a theme</h4><div id="oth-grid"></div></div>' +
       '<button id="oth-btn" type="button" aria-expanded="false"><i></i>Theme</button>';
+    chrome();
     document.body.appendChild(root);
     var grid = root.querySelector('#oth-grid');
     ORDER.forEach(function (slug) {
@@ -141,7 +213,7 @@
     };
     document.addEventListener('mousedown', function (e) { if (!root.contains(e.target)) root.classList.remove('open'); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') root.classList.remove('open'); });
-    var saved = 'blarange';
+    var saved = 'gruvbox';
     try { saved = localStorage.getItem(KEY) || saved; } catch (e) {}
     if (!PALETTES[saved]) saved = 'blarange';
     setTheme(saved);
