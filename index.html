@@ -53,46 +53,66 @@
         color: var(--text, #ede6d9);
         transition: opacity 0.4s ease, visibility 0.4s;
       }
+      .splash-duck {
+        width: 84px;
+        height: 84px;
+        color: var(--accent, #e1892f);
+        animation: splash-bob 1.4s ease-in-out infinite;
+        transform-origin: 50% 90%;
+      }
+      .splash-duck .eye { fill: var(--bg-solid, #0f0c0a); }
+      .splash-waves {
+        width: 168px;
+        height: 14px;
+        margin-top: -32px;
+        overflow: hidden;
+        color: var(--accent, #e1892f);
+      }
+      .splash-waves svg {
+        display: block;
+        width: 336px;
+        height: 14px;
+        animation: splash-drift 1.6s linear infinite;
+      }
       .splash-word {
         font-family: 'JetBrains Mono', ui-monospace, monospace;
-        font-size: 26px;
+        font-size: 24px;
         font-weight: 800;
         letter-spacing: 0.12em;
+        display: flex;
       }
-      .splash-word b {
-        color: var(--accent, #e1892f);
-        font-weight: 800;
+      .splash-word span {
+        display: inline-block;
+        animation: splash-pop 1.8s cubic-bezier(0.3, 1.4, 0.5, 1) infinite;
+        animation-delay: calc(var(--i) * 70ms);
       }
-      .splash-track {
-        position: relative;
-        width: 160px;
-        height: 2px;
-        overflow: hidden;
-        background: color-mix(in srgb, var(--accent, #e1892f) 18%, transparent);
+      .splash-word .o { color: var(--accent, #e1892f); }
+      @keyframes splash-bob {
+        0%, 100% { transform: translateY(0) rotate(-3deg); }
+        50% { transform: translateY(-7px) rotate(3deg); }
       }
-      .splash-track::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        width: 40%;
-        background: var(--accent, #e1892f);
-        animation: splash-run 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      @keyframes splash-drift {
+        to { transform: translateX(-168px); }
       }
-      @keyframes splash-run {
-        from { transform: translateX(-100%); }
-        to { transform: translateX(250%); }
+      @keyframes splash-pop {
+        0%, 55%, 100% { transform: translateY(0); }
+        20% { transform: translateY(-7px); }
       }
       @media (prefers-reduced-motion: reduce) {
-        .splash-track::after { animation: none; width: 100%; opacity: 0.5; }
+        .splash-duck, .splash-waves svg, .splash-word span { animation: none; }
       }
     </style>
   </head>
   <body>
     <!-- Splash Screen shown before React mounts -->
     <div id="startup-splash">
-      <div class="splash-word"><b>OPN</b>duck</div>
-      <div class="splash-track"></div>
-    </div>
+      <svg class="splash-duck" viewBox="0 0 64 64" aria-hidden="true">
+        <path fill="currentColor" d="M10 38c0-8 7-13 15-13h4c-2-9 3-17 12-17 8 0 13 6 13 13 0 3-1 5-2 7l8 3-8 4c-1 8-8 14-18 14H26C16 49 10 45 10 38z"/>
+        <path fill="currentColor" opacity=".55" d="M24 38c0 5 5 8 11 8 7 0 12-3 13-8-5 2-10 2-14 1-4-1-7-3-10-1z"/>
+        <circle class="eye" cx="45" cy="17" r="2.4"/>
+      </svg>
+      <div class="splash-waves"><svg viewBox="0 0 336 14" aria-hidden="true"><path d="M0 7 q10.5 -8 21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0 t21 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.7"/></svg></div>
+      <div class="splash-word" aria-label="OPNduck"><span class="o" style="--i:0">O</span><span class="o" style="--i:1">P</span><span class="o" style="--i:2">N</span><span style="--i:3">d</span><span style="--i:4">u</span><span style="--i:5">c</span><span style="--i:6">k</span></div>
     </div>
 
     <div id="root"></div>

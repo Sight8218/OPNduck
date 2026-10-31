@@ -7,7 +7,7 @@ history; entries are curated for readability.
 ## [Unreleased]
 
 ### Changed
-- New startup screen: a plain wordmark and a thin sweeping line in the colours of your chosen theme (including Omarchy and palette themes), instead of the old fixed orange gradient bar.
+- New startup screen: a duck bobbing on moving waves with the wordmark hopping in, all in the colours of your chosen theme (including Omarchy and palette themes), replacing the old fixed orange gradient bar.
 - Home is less crowded: a compact tile for each tool, and only the tool you pick opens below. The open tool is in the URL (`?tool=`), so the command palette now jumps straight to it.
 
 ### Performance
