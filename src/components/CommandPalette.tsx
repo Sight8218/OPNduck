@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { featureRegistry } from '../features/registry'
+import { useFeatures } from '../features/useFeatures'
 import { host } from '../host'
 import { matchesBinding } from '../lib/keybinds'
 import { detectSmartKind } from '../lib/paletteDetect'
@@ -60,6 +60,7 @@ export default function CommandPalette() {
   // Live-detects a pasted URL or media file path so the palette can swap to a
   // quick-action panel instead of the normal search list. Desktop-only since
   // neither download nor convert can do anything in the browser preview.
+  const registered = useFeatures()
   const smartKind = useMemo(() => (host.isDesktop ? detectSmartKind(query) : null), [query])
 
   const items = useMemo<PaletteItem[]>(() => {
@@ -69,7 +70,7 @@ export default function CommandPalette() {
       { id: 'route-/plugins', label: 'Plugins', type: 'route', action: () => '/plugins' },
       { id: 'route-/settings', label: 'Settings', type: 'route', action: () => '/settings' },
     ]
-    const features: PaletteItem[] = featureRegistry.map((f) => ({
+    const features: PaletteItem[] = registered.map((f) => ({
       id: `feature-${f.id}`,
       label: f.title,
       hint: f.tagline,
@@ -84,7 +85,7 @@ export default function CommandPalette() {
         (i.hint ?? '').toLowerCase().includes(q) ||
         i.id.toLowerCase().includes(q),
     )
-  }, [query])
+  }, [query, registered])
 
   // Keep the highlighted index valid whenever the filtered list shrinks.
   const safeActive = Math.min(active, Math.max(0, items.length - 1))

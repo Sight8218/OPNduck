@@ -1,7 +1,7 @@
 // UI half of the Convert Helper example. Plain JS, host React, theme classes only.
 
-export default function ConvertHelperCard({ feature }) {
-  const { React, api } = window.OPNduck
+export default function ConvertHelperCard({ feature, api }) {
+  const { React } = window.OPNduck
   const [status, setStatus] = React.useState('')
 
   async function pickAndConvert() {

@@ -527,3 +527,52 @@ test('host: a manifest whose backend entry is a symlink out of the folder never 
   assert.equal(s.status, 'crashed')
   assert.match(s.lastError, /leaves the plugin folder/)
 })
+
+/* ------------------------------------------------- assets for opnduck-plugin:// */
+
+test('readAsset serves a running plugin\'s UI files and nothing else', async () => {
+  const card = { manifest: { id: 'card', name: 'Card', version: '1.0.0', apiVersion: 1, author: 'A', description: 'D', tagline: 't', icon: '★', scope: 'universal', ui: { entry: 'ui.js' }, backend: { entry: 'backend.cjs' } }, files: { 'ui.js': 'export default () => null', 'backend.cjs': 'exports.activate = async () => {}', 'style.css': 'a{}', 'run.sh': 'echo' } }
+  const { host, pluginsDir, root } = makeHost({ card })
+  fs.mkdirSync(path.join(pluginsDir, 'card', 'lib'))
+  fs.writeFileSync(path.join(pluginsDir, 'card', 'lib', 'a.js'), 'x')
+  fs.writeFileSync(path.join(root, 'secret.js'), 'secret')
+  fs.symlinkSync(path.join(root, 'secret.js'), path.join(pluginsDir, 'card', 'leak.js'))
+  await host.init()
+  assert.throws(() => host.readAsset('card', 'ui.js'), /No such plugin UI/) // not enabled yet
+  await host.enable('card', [])
+  assert.deepEqual([host.readAsset('card', 'ui.js').type, host.readAsset('card', 'ui.js').data.toString()], ['text/javascript', 'export default () => null'])
+  assert.equal(host.readAsset('card', 'style.css').type, 'text/css')
+  assert.equal(host.readAsset('card', 'lib/a.js').data.toString(), 'x')
+  for (const bad of ['backend.cjs', 'run.sh', '../secret.js', 'leak.js', 'nope.js', '', '/etc/passwd', 'lib/../ui.js', 'plugin.json/..']) assert.throws(() => host.readAsset('card', bad), undefined, bad)
+  assert.throws(() => host.readAsset('missing', 'ui.js'), /No such plugin UI/)
+  await host.disable('card')
+  assert.throws(() => host.readAsset('card', 'ui.js'), /No such plugin UI/)
+  await host.shutdown()
+})
+
+test('host: onChange fires on enable, disable, crash and init', async () => {
+  const bad = { manifest: valid({ id: 'bad' }), files: { 'backend.cjs': 'exports.activate = async () => { throw new Error("x") }' } }
+  let n = 0
+  const { host } = makeHost({ bad }, { onChange: () => void n++ })
+  await host.init()
+  const afterInit = n
+  assert.ok(afterInit >= 1)
+  await host.enable('bad', [])
+  assert.ok(n > afterInit)
+  const afterEnable = n
+  await host.disable('bad')
+  assert.ok(n > afterEnable)
+})
+
+test('host: safe mode can be a function that is asked on every init', async () => {
+  let safe = false
+  const { host } = makeHost({ demo: toolPlugin() }, { safeMode: () => safe })
+  await host.init()
+  await host.enable('demo', ['tools', 'files:read', 'hooks'])
+  assert.equal(host.list()[0].status, 'running')
+  safe = true
+  assert.equal((await host.init())[0].status, 'safe-mode')
+  safe = false
+  assert.equal((await host.init())[0].status, 'running')
+  await host.shutdown()
+})

@@ -25,6 +25,7 @@
 
 import { detectElectronHost } from './electron'
 import type { OmarchyTheme } from '../themes/omarchySync'
+import type { PluginManifest, PluginPermission } from '../features/registry'
 
 export interface HostWindowControls {
   minimize(): void
@@ -153,6 +154,8 @@ export interface AppSettings {
   runInTray: boolean
   /** Local MCP server, so tools like Claude Code can start and watch jobs. */
   mcpServer: boolean
+  /** Start with every plugin skipped (applies on the next start). */
+  pluginsSafeMode: boolean
   cookies: {
     mode: 'none' | 'browser' | 'file' | 'login'
     browser: string
@@ -385,6 +388,40 @@ export interface ToolStatus {
   gpu?: boolean
 }
 
+export type PluginStatus = 'broken' | 'disabled' | 'needs-approval' | 'safe-mode' | 'starting' | 'running' | 'crashed'
+
+/** One plugin as the host reports it: manifest, why it can't load (if so), and what the user has approved. */
+export interface PluginSummary {
+  id: string
+  name: string
+  manifest: PluginManifest | null
+  errors: string[]
+  status: PluginStatus
+  enabled: boolean
+  approved: PluginPermission[]
+  /** Permissions the manifest asks for that the user has not been shown yet (new since the last approval). */
+  pendingApproval: PluginPermission[]
+  verified: boolean
+  source: string
+  lastError: string
+}
+
+export interface HostPlugins {
+  list(): Promise<PluginSummary[]>
+  /** Turns a plugin on with the permissions the user approved (a subset of what it asks for). */
+  enable(id: string, approved: PluginPermission[]): Promise<PluginSummary>
+  disable(id: string): Promise<PluginSummary>
+  /** Stops the plugin and deletes its folder. */
+  remove(id: string): Promise<void>
+  /** Re-reads the plugins folder. */
+  rescan(): Promise<PluginSummary[]>
+  openFolder(): Promise<void>
+  /** A plugin card's call into the host. Only the card-safe part of the plugin API answers. */
+  call(id: string, method: string, args: unknown[]): Promise<unknown>
+  /** Fires when any plugin's status changes. Returns an unsubscribe function. */
+  onChanged(listener: () => void): () => void
+}
+
 export interface Host {
   readonly platformName: string
   readonly isDesktop: boolean
@@ -464,6 +501,8 @@ export interface Host {
     /** Main-process event-loop delay since the last call, in ms. */
     loopLag(): Promise<{ meanMs: number; p99Ms: number; maxMs: number }>
   }
+  /** Installed plugins (see PLUGINS.md and electron/core/plugins.cjs). Desktop shell only. */
+  plugins?: HostPlugins
   /** The local MCP server (Settings → MCP server). Desktop shell only. */
   mcp?: {
     info(): Promise<McpInfo>
@@ -478,7 +517,7 @@ export interface Host {
   /** Main-process settings (proxy, login cookies). Desktop shell only. */
   settings?: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   /** Auto-download new uploads from a channel/playlist (checked while the app is open). Desktop shell only. */
   subscriptions?: {

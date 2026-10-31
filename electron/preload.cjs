@@ -40,6 +40,20 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   checkRealesrgan: () => ipcRenderer.invoke('system:checkRealesrgan'),
   checkRife: () => ipcRenderer.invoke('system:checkRife'),
   checkFasterWhisper: () => ipcRenderer.invoke('system:checkFasterWhisper'),
+  plugins: {
+    list: () => ipcRenderer.invoke('plugins:list'),
+    enable: (id, approved) => ipcRenderer.invoke('plugins:enable', id, approved),
+    disable: (id) => ipcRenderer.invoke('plugins:disable', id),
+    remove: (id) => ipcRenderer.invoke('plugins:remove', id),
+    rescan: () => ipcRenderer.invoke('plugins:rescan'),
+    openFolder: () => ipcRenderer.invoke('plugins:openFolder'),
+    call: (id, method, args) => ipcRenderer.invoke('plugins:call', id, method, args),
+    onChanged: (listener) => {
+      const handler = () => listener()
+      ipcRenderer.on('plugins:changed', handler)
+      return () => ipcRenderer.removeListener('plugins:changed', handler)
+    },
+  },
   mcp: {
     info: () => ipcRenderer.invoke('mcp:info'),
     resetToken: () => ipcRenderer.invoke('mcp:resetToken'),

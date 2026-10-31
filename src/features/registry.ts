@@ -99,8 +99,39 @@ export interface PluginManifest {
  */
 export const featureRegistry: FeatureDefinition[] = []
 
+// A fresh array on every change, so React can subscribe to the registry (see useFeatures.ts).
+let snapshot: FeatureDefinition[] = []
+const listeners = new Set<() => void>()
+function changed(): void {
+  snapshot = [...featureRegistry]
+  listeners.forEach((l) => l())
+}
+
 export function registerFeatures(defs: FeatureDefinition[]): void {
+  let added = false
   for (const d of defs) {
-    if (!featureRegistry.some((f) => f.id === d.id)) featureRegistry.push(d)
+    if (!featureRegistry.some((f) => f.id === d.id)) {
+      featureRegistry.push(d)
+      added = true
+    }
   }
+  if (added) changed()
+}
+
+/** Removes a plugin's card (core cards can't be removed). Returns whether anything was removed. */
+export function unregisterFeature(id: string): boolean {
+  const i = featureRegistry.findIndex((f) => f.id === id && f.source === 'plugin')
+  if (i < 0) return false
+  featureRegistry.splice(i, 1)
+  changed()
+  return true
+}
+
+export function subscribeFeatures(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
+
+export function getFeatureSnapshot(): FeatureDefinition[] {
+  return snapshot
 }

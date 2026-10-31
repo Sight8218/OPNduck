@@ -37,6 +37,7 @@ import type {
   TrimRequest,
   MediaInfo,
   McpInfo,
+  HostPlugins,
 } from './index'
 import type { OmarchyTheme } from '../themes/omarchySync'
 
@@ -63,6 +64,7 @@ interface ElectronBridge {
   checkDemucs(): Promise<ToolStatus>
   dev: NonNullable<Host['dev']>
   mcp: { info(): Promise<McpInfo>; resetToken(): Promise<McpInfo> }
+  plugins: HostPlugins
   queue: {
     state(): Promise<{ paused: boolean }>
     setPaused(paused: boolean): Promise<void>
@@ -200,6 +202,7 @@ export function detectElectronHost(): Host | null {
     cancelInstall: () => bridge.cancelInstall(),
     dev: bridge.dev,
     mcp: { info: () => bridge.mcp.info(), resetToken: () => bridge.mcp.resetToken() },
+    plugins: bridge.plugins,
     queue: {
       state: () => bridge.queue.state(),
       setPaused: (paused) => bridge.queue.setPaused(paused),

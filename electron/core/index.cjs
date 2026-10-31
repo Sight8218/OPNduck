@@ -25,10 +25,10 @@
  * @param {(state: object, req: object) => void} [deps.onFinished]  called when a task reaches a final state
  * @param {(channel: string, wrapped: Function) => void} [deps.registerStart]  expose a start function (e.g. over IPC)
  * @param {(opts: object) => Promise<string|null>} [deps.pickPath]  the shell's file dialog, for plugins
- * @param {boolean} [deps.safeMode]  start with every plugin skipped
+ * @param {boolean} [deps.safeMode]  force every plugin off (default: the pluginsSafeMode setting)
  * @param {string} [deps.pluginWorkerFile]  full path of plugin_worker.cjs when it cannot be found next to this file (bundled builds)
  */
-function createCore({ platform, onFinished = () => {}, registerStart, pickPath, safeMode = false, pluginWorkerFile }) {
+function createCore({ platform, onFinished = () => {}, registerStart, pickPath, safeMode, pluginWorkerFile }) {
   const settings = require('./settings.cjs')
   settings.configure(platform)
   const { getSettings, ytdlpBaseArgs, hasCookies } = settings
@@ -88,7 +88,15 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
 
   const core = { platform, settings, tools, engine, modules, ctx, startJob, shutdown }
   // Not started here: the shell calls `core.plugins.init()` once it is ready (after its windows and dialogs exist).
-  plugins = core.plugins = require('./plugins.cjs').createPluginHost({ core, platform, pickPath, safeMode, workerFile: pluginWorkerFile })
+  plugins = core.plugins = require('./plugins.cjs').createPluginHost({
+    core,
+    platform,
+    pickPath,
+    safeMode: safeMode ?? (() => getSettings().pluginsSafeMode === true),
+    onChange: () => platform.emit('plugins:changed', null),
+    workerFile: pluginWorkerFile,
+    log: (line) => process.stderr.write(`${line}\n`),
+  })
   return core
 }
 

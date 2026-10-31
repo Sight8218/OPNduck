@@ -11,6 +11,7 @@ import PerfHud from './components/PerfHud'
 import UpdatePrompt from './components/UpdatePrompt'
 import VersionFooter from './components/VersionFooter'
 import { registerCoreFeatures } from './features/modules'
+import { startPluginLoader } from './features/pluginLoader'
 import { DevModeProvider } from './lib/devMode'
 import { NavProvider } from './lib/navContext'
 import { ReduceMotionProvider } from './lib/motionPrefs'
@@ -21,6 +22,7 @@ import { useBackgroundSync } from './lib/backgroundPref'
 
 // Register core adaptive cards once at startup.
 registerCoreFeatures()
+startPluginLoader() // desktop only: shows the cards of enabled plugins next to the core ones
 
 function hideSplash() {
   const splash = document.getElementById('startup-splash')

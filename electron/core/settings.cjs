@@ -58,6 +58,8 @@ const DEFAULTS = {
   tuiTheme: 'blarange',
   /** Local MCP server so tools like Claude Code can start and watch jobs (see mcp.cjs). Off by default. */
   mcpServer: false,
+  /** Start with every plugin skipped (applies on the next start). */
+  pluginsSafeMode: false,
   cookies: {
     /** 'none' | 'browser' (read from an installed browser) | 'file' (Netscape cookies.txt) |
      *  'login' (cookies saved from OPNduck's own sign-in window, see login.cjs). */
@@ -103,6 +105,7 @@ function validate(next) {
   if (typeof next.notifyOnFinish !== 'boolean' || typeof next.runInTray !== 'boolean') throw new Error('Invalid notification setting')
   if (!['auto', 'cpu'].includes(next.videoEncoder)) throw new Error('Invalid video encoder')
   if (typeof next.mcpServer !== 'boolean') throw new Error('Invalid MCP server setting')
+  if (typeof next.pluginsSafeMode !== 'boolean') throw new Error('Invalid plugin safe mode setting')
   if (typeof next.tuiTheme !== 'string' || !/^[a-z0-9-]{1,40}$/.test(next.tuiTheme)) throw new Error('Invalid terminal theme')
   const c = next.cookies
   if (!c || !['none', 'browser', 'file', 'login'].includes(c.mode)) throw new Error('Invalid cookie source')
@@ -161,6 +164,7 @@ function setSettings(patch) {
     maxConversions: patch.maxConversions !== undefined ? patch.maxConversions : current.maxConversions,
     videoEncoder: patch.videoEncoder !== undefined ? patch.videoEncoder : current.videoEncoder,
     mcpServer: patch.mcpServer !== undefined ? patch.mcpServer : current.mcpServer,
+    pluginsSafeMode: patch.pluginsSafeMode !== undefined ? patch.pluginsSafeMode : current.pluginsSafeMode,
     tuiTheme: patch.tuiTheme !== undefined ? patch.tuiTheme : current.tuiTheme,
     cookies: { ...current.cookies, ...(patch.cookies && typeof patch.cookies === 'object' ? patch.cookies : {}) },
   }

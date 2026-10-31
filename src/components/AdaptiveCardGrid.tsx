@@ -1,5 +1,5 @@
 import { useSearchParams } from 'react-router-dom'
-import { featureRegistry } from '../features/registry'
+import { useFeatures } from '../features/useFeatures'
 import { FeatureIcon } from './featureIcons'
 
 /**
@@ -10,7 +10,7 @@ import { FeatureIcon } from './featureIcons'
  */
 export default function AdaptiveCardGrid() {
   const [params, setParams] = useSearchParams()
-  const features = featureRegistry.filter((f) => f.enabled)
+  const features = useFeatures().filter((f) => f.enabled)
 
   if (features.length === 0) {
     return (

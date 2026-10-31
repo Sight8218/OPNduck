@@ -18,7 +18,7 @@
 
 // OPNDUCK_TRACE=1 prints a startup timeline (ms since process start); scripts/perf-check uses it.
 const trace = process.env.OPNDUCK_TRACE ? (label) => console.log(`[trace] ${label} ${Math.round(process.uptime() * 1000)}ms`) : () => {}
-const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage, protocol } = require('electron')
 
 // The last few hundred lines of main-process and renderer console output, for Settings -> Developer tools.
 const appLog = []
@@ -68,6 +68,7 @@ const core = require('./core/index.cjs').createCore({
   platform,
   onFinished: (state, req) => notifyFinished(state, req),
   registerStart: (channel, wrapped) => ipcMain.handle(channel, wrapped),
+  pickPath: pickPluginPath,
 })
 const { tools, engine, modules } = core
 const {
@@ -166,6 +167,38 @@ ipcMain.on('window:maximize', (e) => {
   else w.maximize()
 })
 ipcMain.on('window:close', (e) => BrowserWindow.fromWebContents(e.sender)?.close())
+
+/* --- Plugins (host: core/plugins.cjs; spec: PLUGINS.md) --- */
+// A plugin card's script, styles and images are served from its own folder by this scheme. The scheme must be
+// registered before the app is ready; the handler (below, in whenReady) only serves files of running plugins.
+protocol.registerSchemesAsPrivileged([{ scheme: 'opnduck-plugin', privileges: { standard: true, secure: true, corsEnabled: true } }])
+
+/** The file dialog behind `files.pick`: whatever the user picks becomes readable/writable for that plugin only. */
+async function pickPluginPath({ save, directory, filters, plugin }) {
+  const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+  const cleanFilters = (Array.isArray(filters) ? filters : [])
+    .filter((f) => f && typeof f.name === 'string' && Array.isArray(f.extensions) && f.extensions.every((x) => typeof x === 'string' && /^[A-Za-z0-9]{1,10}$/.test(x)))
+    .map((f) => ({ name: f.name.slice(0, 60), extensions: f.extensions }))
+  const title = `${String(plugin).slice(0, 60)}: ${save ? 'choose where to save' : directory ? 'choose a folder' : 'choose a file'}`
+  if (save) {
+    const res = await dialog.showSaveDialog(win ?? undefined, { title, filters: cleanFilters })
+    return res.canceled || !res.filePath ? null : res.filePath
+  }
+  const res = await dialog.showOpenDialog(win ?? undefined, { title, filters: cleanFilters, properties: [directory ? 'openDirectory' : 'openFile'] })
+  return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
+}
+
+ipcMain.handle('plugins:list', () => core.plugins.list())
+ipcMain.handle('plugins:enable', (_e, id, approved) => core.plugins.enable(String(id), approved))
+ipcMain.handle('plugins:disable', (_e, id) => core.plugins.disable(String(id)))
+ipcMain.handle('plugins:remove', (_e, id) => core.plugins.remove(String(id)))
+ipcMain.handle('plugins:rescan', () => core.plugins.init())
+// A card's calls: only the card-safe part of the plugin API is reachable from here (see UI_METHODS in plugins.cjs).
+ipcMain.handle('plugins:call', (_e, id, method, args) => core.plugins.callFromUi(String(id), String(method), Array.isArray(args) ? args : []))
+ipcMain.handle('plugins:openFolder', () => {
+  fs.mkdirSync(core.plugins.dir, { recursive: true })
+  platform.openPath(core.plugins.dir)
+})
 
 /* --- Native dialogs --- */
 ipcMain.handle('dialog:pickFile', async (e, opts) => {
@@ -945,6 +978,7 @@ function pollWatchFolder() {
     }
     seen.add(key)
     changed = true
+    core.plugins.emit('watch-folder:file', { name })
     const mode = FORMATS[w.container].kind === 'video' ? 'remux' : 'transcode'
     start(null, { inputPath: full, container: w.container, mode, destination: path.join(w.path, 'converted') }).catch(() => {
       /* a file that can't be converted shows up as a failed job if it got that far */
@@ -983,7 +1017,17 @@ app.whenReady().then(() => {
   startSubscriptions()
   trace('subscriptions started')
   void applyMcp()
+  protocol.handle('opnduck-plugin', (req) => {
+    try {
+      const url = new URL(req.url)
+      const { data, type } = core.plugins.readAsset(url.hostname, decodeURIComponent(url.pathname).replace(/^\//, ''))
+      return new Response(data, { headers: { 'content-type': type, 'access-control-allow-origin': '*', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
+    } catch {
+      return new Response('Not found', { status: 404 })
+    }
+  })
   createWindow()
+  void core.plugins.init() // after the window exists: a plugin's activate() must never delay startup
   applyTray()
   trace('window created')
   // Warm the engine checks once the window is up, so the cards don't wait on a Python start.
@@ -1000,6 +1044,7 @@ app.whenReady().then(() => {
 app.on('before-quit', () => {
   subscriptions?.stop()
   void mcp?.stop()
+  void core.plugins.shutdown()
 })
 
 // Don't orphan ffmpeg/soffice/python on exit, and don't lose a result that finished inside

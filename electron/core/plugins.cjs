@@ -32,7 +32,7 @@ const { Worker } = require('node:worker_threads')
 const { buildStartRequest } = require('../mcp_tools.cjs')
 
 const API_VERSION = 1
-const CORE_IDS = ['downloader', 'converter', 'upscaler', 'interpolation', 'trimmer', 'audio-ai', 'subtitles']
+const CORE_IDS = ['downloader', 'converter', 'image-upscaler', 'video-upscaler', 'frame-interpolation', 'subtitles', 'audio-ai', 'trim', 'upscaler', 'interpolation', 'trimmer']
 const PERMISSIONS = ['jobs', 'files:read', 'files:write', 'network', 'exec', 'exec:any', 'settings', 'notify', 'hooks', 'tools']
 const EVENTS = ['job:finished', 'job:failed', 'watch-folder:file']
 const SCOPES = ['universal', 'desktop-exclusive']
@@ -40,6 +40,8 @@ const MAX_FILE_BYTES = 64 * 1024 * 1024
 const MAX_FETCH_BYTES = 16 * 1024 * 1024
 const MAX_EXEC_OUTPUT = 8 * 1024 * 1024
 const MAX_ACTIVE_JOBS = 10
+const MAX_ASSET_BYTES = 8 * 1024 * 1024
+const ASSET_TYPES = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2' }
 const TOOL_TIMEOUT_MS = 10 * 60 * 1000
 const ACTIVATE_TIMEOUT_MS = 10 * 1000
 
@@ -576,17 +578,26 @@ function createApi(ctx) {
  * @param {object} deps.core         createCore() result (needs startJob, engine, tools); may be null in tests that never use jobs
  * @param {object} deps.platform     see core/platform.cjs
  * @param {string} [deps.pluginsDir] default `<userData>/plugins`
- * @param {boolean} [deps.safeMode]  skip every plugin
+ * @param {boolean | (() => boolean)} [deps.safeMode]  skip every plugin (a function is asked on every init)
+ * @param {() => void} [deps.onChange]  called after a plugin's status or state changes, so a UI can refresh
  * @param {(opts) => Promise<string|null>} [deps.pickPath]  the shell's file/folder dialog
  * @param {string} [deps.workerFile] override for tests / bundled builds
  * @param {(line: string) => void} [deps.log]
  */
-function createPluginHost({ core, platform, pluginsDir, safeMode = false, pickPath, fetchImpl, workerFile, log = () => {} }) {
+function createPluginHost({ core, platform, pluginsDir, safeMode = false, onChange = () => {}, pickPath, fetchImpl, workerFile, log = () => {} }) {
   const dir = pluginsDir ?? path.join(platform.paths.userData, 'plugins')
   const stateFile = path.join(dir, 'plugins.json')
   let state = loadState(stateFile)
   const runtime = new Map() // id -> { entry, status, worker, ...per-plugin runtime }
   const persist = () => saveState(stateFile, state)
+  const inSafeMode = () => (typeof safeMode === 'function' ? safeMode() : safeMode)
+  const changed = () => {
+    try {
+      onChange()
+    } catch {
+      /* a UI that cannot refresh must not break the host */
+    }
+  }
   const entryState = (id) => (state.plugins[id] ??= { enabled: false, approved: [], asked: [], version: '', verified: false, source: 'local', settings: {}, lastError: '' })
 
   const missingApproval = (manifest, st) => manifest.permissions.filter((p) => !st.asked.includes(p))
@@ -613,6 +624,7 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, pickPa
     st.enabled = false // a plugin that fails is switched off; the user re-enables it on purpose
     st.lastError = String(reason).slice(0, 500)
     persist()
+    changed()
   }
 
   function invoke(rec, kind, name, args, timeoutMs = TOOL_TIMEOUT_MS) {
@@ -724,7 +736,7 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, pickPa
     const { manifest } = rec.entry
     if (!manifest) return void (rec.status = 'broken')
     const st = entryState(manifest.id)
-    if (safeMode) return void (rec.status = 'safe-mode')
+    if (inSafeMode()) return void (rec.status = 'safe-mode')
     if (!st.enabled) return void (rec.status = rec.status === 'crashed' ? 'crashed' : 'disabled')
     if (missingApproval(manifest, st).length) return void (rec.status = 'needs-approval')
     if (st.version !== manifest.version) {
@@ -770,6 +782,7 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, pickPa
   }
 
   return {
+    dir,
     /** Scans the plugins folder and starts every enabled, approved plugin. */
     async init() {
       await Promise.all([...runtime.values()].map((rec) => stopRuntime(rec))) // init() twice must not orphan workers
@@ -779,6 +792,7 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, pickPa
       for (const entry of scanned) runtime.set(entry.id, newRuntime(entry))
       for (const id of Object.keys(state.plugins)) if (!runtime.has(id)) delete state.plugins[id] // folder is gone
       await Promise.all([...runtime.values()].map(reconcile))
+      changed()
       return this.list()
     },
     list: () => [...runtime.values()].map(summary),
@@ -795,6 +809,7 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, pickPa
       Object.assign(st, { enabled: true, approved: [...new Set(approved)], asked: [...manifest.permissions], version: manifest.version, lastError: '' })
       persist()
       await reconcile(rec)
+      changed()
       return summary(rec)
     },
     async disable(id) {
@@ -803,6 +818,7 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, pickPa
       rec.status = 'disabled'
       if (state.plugins[id]) state.plugins[id].enabled = false
       persist()
+      changed()
       return summary(rec)
     },
     /** Stops a plugin and deletes its folder and state. Refuses symlinked folders. */
@@ -816,6 +832,24 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, pickPa
       runtime.delete(id)
       delete state.plugins[id]
       persist()
+      changed()
+    },
+
+    /**
+     * A file a running plugin's card may load (its UI script, styles, images), for the opnduck-plugin://
+     * protocol. Only extensions in ASSET_TYPES, only inside the plugin folder (symlinks followed), never
+     * the backend entry, at most 8 MB.
+     */
+    readAsset(id, rel) {
+      const rec = runtime.get(id)
+      if (!rec || rec.status !== 'running' || !rec.entry.manifest.ui) throw new Error('No such plugin UI')
+      const type = ASSET_TYPES[path.extname(String(rel)).toLowerCase()]
+      if (!type) throw new Error('File type not served')
+      const full = resolveEntry(rec.entry.dir, rel)
+      const { backend } = rec.entry.manifest
+      if (backend && full === resolveEntry(rec.entry.dir, backend.entry)) throw new Error('Not served')
+      if (fs.statSync(full).size > MAX_ASSET_BYTES) throw new Error('File is too large')
+      return { data: fs.readFileSync(full), type }
     },
 
     /** A plugin card's call from the renderer. Only the UI subset of the API is reachable. */

@@ -10,9 +10,10 @@ A plugin is a folder with a `plugin.json` manifest and up to two scripts:
 Either part is optional. A plugin with only a `backend` and `tools` is a "headless" plugin: no
 card, but its tools show up for MCP clients and in the TUI.
 
-> **Status: spec v2 (apiVersion 1).** This document is the contract the loader is being built
-> against, step by step. Plugins written to it will keep working; fields marked *planned* arrive
-> with the store. Manifests from the old v1 format (single `entry`, no permissions) still load,
+> **Status: spec v2 (apiVersion 1).** The host (permissions, backends, tools) and the desktop loader
+> (cards on the Home grid) work today. The in-app plugins page and the store are still being built;
+> until then, enable a plugin by dropping its folder in and approving it from the plugins page when
+> it lands. Fields marked *planned* arrive with the store. Manifests from the old v1 format (single `entry`, no permissions) still load,
 > as a UI-only plugin with no permissions.
 
 ## Where plugins live
@@ -69,7 +70,7 @@ be treated like any program you downloaded. Read the code first.
 
 | Field         | Required | Notes |
 |---------------|----------|-------|
-| `id`          | yes      | Unique, kebab-case, `a-z0-9-`, max 40 chars. Also the folder name. Must not reuse a core id (`downloader`, `converter`, `upscaler`, `interpolation`, `trimmer`, `audio-ai`, `subtitles`). |
+| `id`          | yes      | Unique, kebab-case, `a-z0-9-`, max 40 chars. Also the folder name. Must not reuse a core id (`downloader`, `converter`, `image-upscaler`, `video-upscaler`, `frame-interpolation`, `subtitles`, `audio-ai`, `trim`). |
 | `name`        | yes      | Display title. |
 | `version`     | yes      | SemVer. |
 | `apiVersion`  | v2       | Plugin API version this was written for. Currently `1`. Missing = a v1 manifest. |
@@ -160,30 +161,38 @@ switched off and logged; it never takes OPNduck down.
 Default-export a component:
 
 ```js
-export default function MyCard({ feature }) {
-  const { React, api } = window.OPNduck
+export default function MyCard({ feature, api }) {
+  const { React } = window.OPNduck
   // ...
 }
 ```
 
+`feature` is the card's definition; `api` is the card-safe host API, already bound to your plugin.
+
 Rules:
 
-1. **No bundler assumed.** The entry runs as-is: plain JS, no `import` of `react`, no JSX unless
-   you compile it yourself. Use `React.createElement` or ship compiled output.
+1. **No bundler assumed.** The entry runs as-is as an ES module: plain JS, no `import` of `react`,
+   no JSX unless you compile it yourself. Use `React.createElement` or ship compiled output.
 2. **Use the host's React** from `window.OPNduck.React`. A second copy of React breaks hooks.
 3. **Style with the app's CSS custom properties and classes** (`--text`, `--text-dim`,
    `--input-bg`, `glass-btn`, `glass-input`, ...), not hardcoded colors, so the card follows the
    user's theme. See `src/index.css` and `src/themes/tokens.css`.
 
-`window.OPNduck.api` offers the same namespaces as the backend that make sense in a card
+The `api` prop offers the namespaces of the backend API that make sense in a card
 (`jobs`, `files.pick`, `settings`, `notify`), all going through the same permission checks, plus:
 
 ```
 api.rpc.call(name, arg)         call a function the backend registered with opnduck.rpc.handle
 ```
 
-The UI never gets Node, Electron or the filesystem directly; every request goes to the host,
-which checks the plugin's permissions.
+**A card is not isolated from the app.** Its script runs inside OPNduck's own window, so code in a
+card can reach everything the app's UI can (including the bridge the app itself uses), not just
+`api`. The permission checks protect the `api` and the backend; they cannot hold back a card
+that goes around them. Treat an unverified card like an unverified backend: read it first.
+
+The script and its styles/images are served from the plugin's folder over `opnduck-plugin://<id>/`
+(only while the plugin is enabled, only inside its folder, never the backend file). Export a
+default component from the entry; it is loaded as an ES module.
 
 ## Tools
 

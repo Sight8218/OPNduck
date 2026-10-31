@@ -23,6 +23,15 @@ const FEATURE_ICONS: Record<string, Icon> = {
 }
 
 export function FeatureIcon({ name, size = 22 }: { name: string; size?: number }) {
-  const Glyph = FEATURE_ICONS[name] ?? IconTransform
-  return <Glyph size={size} stroke={1.75} aria-hidden="true" />
+  const Glyph = FEATURE_ICONS[name]
+  // A plugin's icon is a single glyph character from its manifest, not a key.
+  if (!Glyph && [...name].length <= 2) {
+    return (
+      <span aria-hidden="true" className="inline-flex items-center justify-center leading-none" style={{ width: size, height: size, fontSize: size * 0.9 }}>
+        {name}
+      </span>
+    )
+  }
+  const Fallback = Glyph ?? IconTransform
+  return <Fallback size={size} stroke={1.75} aria-hidden="true" />
 }
