@@ -239,4 +239,4 @@ function buildStartRequest(name, args) {
   return { channel: tool.channel, req }
 }
 
-module.exports = { TOOLS, publicTools, buildStartRequest }
+module.exports = { TOOLS, DEFAULTS, publicTools, buildStartRequest }

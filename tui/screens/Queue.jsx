@@ -15,12 +15,12 @@ function ordered(tasks) {
 const clip = (text, n) => (text.length > n ? text.slice(0, Math.max(1, n - 1)) + '…' : text)
 
 /** The job list with live progress, and the keys that act on the selected job. */
-export default function Queue({ theme, core }) {
+export default function Queue({ theme, core, note = '' }) {
   const { engine } = core
   const { cols } = useTerminalSize()
   const [sel, setSel] = useState(0)
   const [showLog, setShowLog] = useState(false)
-  const [msg, setMsg] = useState('')
+  const [msg, setMsg] = useState(note)
   const rows = ordered(engine.tasks)
   const cur = rows[Math.min(sel, Math.max(0, rows.length - 1))]
   const paused = engine.queuePaused

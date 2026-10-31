@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Box, Text, useApp, useInput } from 'ink'
 import Header from './ui/Header.jsx'
 import Home from './screens/Home.jsx'
 import Queue from './screens/Queue.jsx'
+import Form from './screens/Form.jsx'
 import { useCoreEvents } from './hooks.js'
 
 const SCREENS = [
@@ -12,6 +13,7 @@ const SCREENS = [
 
 const KEYS = {
   home: '↑↓ move   enter open   tab queue   q quit',
+  form: '↑↓ field   ←→ change   tab complete path   enter next / start   esc back',
   queue: '↑↓ move  p pause  c cancel  n next  r again  d remove  x clear  l log  o folder  q quit',
 }
 
@@ -20,6 +22,9 @@ export default function App({ core, theme, start = 'home' }) {
   const { exit } = useApp()
   const [screen, setScreen] = useState(start)
   const [note, setNote] = useState('')
+  const [tool, setTool] = useState(null)
+  const [typing, setTyping] = useState(false)
+  const onTyping = useCallback((v) => setTyping(v), [])
   const [confirmQuit, setConfirmQuit] = useState(false)
   useCoreEvents(core.platform)
   const running = [...core.engine.tasks.values()].filter((t) => t.state.status === 'running').length
@@ -32,6 +37,8 @@ export default function App({ core, theme, start = 'home' }) {
     setTimeout(() => process.exit(0), 200).unref()
   }
   useInput((input, key) => {
+    if (key.ctrl && input === 'c') return quit()
+    if (typing) return // a text field is focused: keys belong to the form
     if (key.tab) {
       setScreen((s) => SCREENS[(SCREENS.findIndex((x) => x.id === s) + 1) % SCREENS.length].id)
       return
@@ -46,16 +53,26 @@ export default function App({ core, theme, start = 'home' }) {
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      <Header theme={theme} screen={screen} screens={SCREENS} running={running} />
+      <Header theme={theme} screen={screen === 'form' ? 'home' : screen} screens={SCREENS} running={running} />
       <Box marginTop={1} flexDirection="column">
-        {screen === 'home' ? (
+        {screen === 'form' ? (
+          <Form
+            key={tool.id}
+            theme={theme}
+            core={core}
+            toolId={tool.id}
+            onTyping={onTyping}
+            onBack={() => setScreen('home')}
+            onStarted={(msg) => (setNote(msg), setScreen('queue'))}
+          />
+        ) : screen === 'home' ? (
           <Home
             theme={theme}
             note={note}
-            onOpen={(tool) => setNote(`${tool.title}: its own screen arrives in the next step. For now start it with --start ${tool.channel} '<json>' and watch it on the Queue tab.`)}
+            onOpen={(t) => (setTool(t), setScreen('form'))}
           />
         ) : (
-          <Queue theme={theme} core={core} />
+          <Queue theme={theme} core={core} note={note} />
         )}
       </Box>
       <Box marginTop={1}>
