@@ -24,7 +24,7 @@ export default function NavBar() {
   // In text/icon modes the left cluster sits closer together so the strip
   // doesn't feel sparse on the left; hybrid keeps the airy spacing.
   const divider = navDisplay === 'hybrid' ? 'mx-7' : navDisplay === 'text' ? 'mx-4' : 'mx-3'
-  const socials = navDisplay === 'hybrid' ? 'gap-11' : navDisplay === 'text' ? 'gap-5' : 'gap-4'
+  const socials = navDisplay === 'hybrid' ? 'gap-[clamp(0.5rem,3vw,2.75rem)]' : navDisplay === 'text' ? 'gap-[clamp(0.5rem,1.5vw,1.25rem)]' : 'gap-[clamp(0.5rem,1.2vw,1rem)]'
 
   return (
     <header className="titlebar-drag sticky top-0 z-40 glass glass-strong overflow-hidden">
@@ -59,10 +59,10 @@ export default function NavBar() {
         <div
           role="presentation"
           onClick={openArcade}
-          className="titlebar-no-drag cursor-default select-none whitespace-nowrap px-2 text-center font-mono text-xl font-extrabold tracking-[0.12em]"
+          className="titlebar-no-drag cursor-default select-none whitespace-nowrap px-2 text-center font-mono text-xl font-extrabold tracking-[0.12em] text-[var(--accent)]"
+          style={{ textShadow: '0 0 14px color-mix(in srgb, var(--accent) 45%, transparent)' }}
         >
-          <span className="text-[var(--accent)]">OPN</span>
-          <span className="text-[var(--text)]">duck</span>
+          OPNduck
         </div>
 
         {/* Right: the menu cards, then OS window controls when in the shell */}
