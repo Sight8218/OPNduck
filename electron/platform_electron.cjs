@@ -52,6 +52,16 @@ module.exports = {
     note.show()
     return true
   },
+  /** Overall job progress on the taskbar/dock icon: 0..1, or -1 to clear. */
+  setProgress(value) {
+    for (const win of windows()) {
+      try {
+        win.setProgressBar(value)
+      } catch {
+        /* no taskbar integration here */
+      }
+    }
+  },
   isFocused: () => windows().some((w) => w.isVisible() && w.isFocused()),
   openPath: (p) => shell.openPath(p),
   showInFolder: (p) => shell.showItemInFolder(p),

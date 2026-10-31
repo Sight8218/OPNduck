@@ -25,6 +25,7 @@
  *   version, isPackaged                      the app's version and whether it runs from a package
  *   emit(channel, payload)                   push an event to every UI (windows, or the TUI)
  *   canNotify() / notify({ title, body, actions, onAction, onClick })
+ *   setProgress(value)                       overall job progress 0..1 (or -1) for a taskbar icon; optional
  *   isFocused()                              true while the user is looking at the app
  *   openPath(p) / showInFolder(p) / openExternal(url)
  */
