@@ -1,0 +1,4 @@
+893a773e87380b74275dc7a7fc2105595d5d11e5f1c6c1fc7e3a216fb76389d5  OPNduck-0.5.2-beta.AppImage
+79af403cbcfbf0e6a63efcf58a5789299e6791e0848a2fbd3aa4a57eb1714f18  OPNduck.0.5.2-beta.exe
+fcc0bf8fc4ef5d12d8f48c69b68dd69e4abcf2115548146a384bf02cb5ea0ab8  OPNduck.Setup.0.5.2-beta.exe
+eb3c8dd9af1ddfa8702cf5d3b6ab2a10a15bffc770e307957af5d5005dfd795a  opnduck-desktop-0.5.2-beta.pacman

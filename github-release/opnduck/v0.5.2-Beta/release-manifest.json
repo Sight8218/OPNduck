@@ -1,0 +1,46 @@
+{
+  "project": "opnduck-desktop",
+  "version": "0.5.2-Beta",
+  "manifest_version_field": "0.5.2-beta",
+  "release_type": "beta (pre-release)",
+  "tag": "v0.5.2-Beta (not created)",
+  "branch": "main",
+  "commit": "release-prep commit on top of 1076edf (see git log)",
+  "base_tag": "v0.5.1-Beta",
+  "last_pushed_commit": "1076edf (not verified against remote)",
+  "mode": "manual",
+  "stages": {
+    "discovery": "complete", "version": "complete", "changelog": "complete", "docs": "complete",
+    "build": "complete", "package": "complete", "checksum": "complete", "scan": "complete",
+    "validation": "complete",
+    "publication": "not performed (manual mode; awaiting main session)"
+  },
+  "platforms": ["linux", "windows"],
+  "architectures": ["x64"],
+  "checksums": {
+    "OPNduck-0.5.2-beta.AppImage": "893a773e87380b74275dc7a7fc2105595d5d11e5f1c6c1fc7e3a216fb76389d5",
+    "OPNduck.0.5.2-beta.exe": "79af403cbcfbf0e6a63efcf58a5789299e6791e0848a2fbd3aa4a57eb1714f18",
+    "OPNduck.Setup.0.5.2-beta.exe": "fcc0bf8fc4ef5d12d8f48c69b68dd69e4abcf2115548146a384bf02cb5ea0ab8",
+    "opnduck-desktop-0.5.2-beta.pacman": "eb3c8dd9af1ddfa8702cf5d3b6ab2a10a15bffc770e307957af5d5005dfd795a"
+  },
+  "tests": {
+    "lint": "0 errors (warnings only)",
+    "typecheck": "clean",
+    "build": "ok (npm run dist)",
+    "asar": "MCP files present in linux app.asar",
+    "smoke_test": "not run"
+  },
+  "secret_scan": {
+    "gitleaks": "no leaks (commits since v0.5.1-Beta, and working tree)",
+    "trufflehog": "0 verified/unverified since v0.5.1-Beta"
+  },
+  "packaging": {
+    "appimage": "built", "pacman": "built",
+    "nsis": "built (wine, untested on real Windows)",
+    "portable": "built (wine, untested on real Windows)",
+    "aur": "PKGBUILD/.SRCINFO synced to 0.5.2beta/_tag v0.5.2-Beta, sha256sums=SKIP; run updpkgsums after the tag is pushed; not published (deferred)",
+    "signing": "not implemented (deferred)"
+  },
+  "documentation_changes": ["CHANGELOG.md", "README.md", "package.json", "package-lock.json", "packaging/aur/PKGBUILD", "packaging/aur/.SRCINFO"],
+  "publication": { "github_release": "not published" }
+}

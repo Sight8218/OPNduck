@@ -1,0 +1,12 @@
+{
+  "note": "DRAFT ONLY - not sent.",
+  "project": "OPNduck",
+  "version": "v0.5.2-Beta",
+  "content": "**OPNduck v0.5.2-Beta** 🦆\n\n**New**\n• Home is now a compact grid of tool tiles - one tool open at a time\n• New themed startup screen with a bobbing duck\n• Pixel look: pixel wordmark and pixel scatter behind pages\n• Calmer Blarange colours, sharper corners, plainer wording\n• Readable text and icons in every Omarchy palette\n• Faster engine-check cards, more developer tools\n\nBeta: expect bugs. Windows installers untested on real Windows. Tauri still postponed (WebKitGTK stutters/crashes with NVIDIA + Wayland).",
+  "embeds": [
+    {
+      "title": "OPNduck v0.5.2-Beta",
+      "url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.5.2-Beta"
+    }
+  ]
+}

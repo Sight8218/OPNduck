@@ -2,8 +2,8 @@
 # Builds OPNduck from the tagged source and runs it on Arch's own `electron` package, so the
 # package is a few MB instead of bundling a second copy of Chromium.
 pkgname=opnduck
-_tag=v0.5.1-Beta
-pkgver=0.5.1beta
+_tag=v0.5.2-Beta
+pkgver=0.5.2beta
 pkgrel=1
 pkgdesc='Local-first, open-source media suite: downloader, converter, upscalers, subtitles, AI audio'
 arch=('x86_64')
@@ -18,7 +18,7 @@ optdepends=(
   'rife-ncnn-vulkan: frame interpolation'
 )
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/$_tag.tar.gz")
-sha256sums=('7ef9749e003dc798d44c5e72f67ce4a6f2e0b3c0329eb6ed646acd4c329c4028')
+sha256sums=('SKIP') # run `updpkgsums` after the v0.5.2-Beta tag is pushed
 
 build() {
   cd "OPNduck-${_tag#v}"

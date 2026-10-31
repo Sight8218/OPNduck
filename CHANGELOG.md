@@ -6,15 +6,21 @@ history; entries are curated for readability.
 
 ## [Unreleased]
 
-### Changed
-- Readable text and icons in every Omarchy palette: dim text and the menu icons are now derived from the main text colour (the palettes' own "dark foreground" was almost invisible on themes like Nord), and the pixel logo shades toward the text colour so it also works on light themes.
-- Pixel look: a blocky pixel wordmark in the top bar and on Home, and a faint scatter of pixels along the top of every page, both in the current theme's accent.
-- Sharper corners: the radius scale is now 1-4 px in Blarange and Monochrome (Omarchy themes were already square).
-- Calmer Blarange colours: neutral warm-black surfaces and borders instead of orange-tinted ones, orange kept for actions, focus and the active item, and a flat wordmark instead of the gradient with a glow. The Beta notice now follows the theme.
-- Plainer wording and less filler across the app: Home is a short "Tools" page, tool cards no longer carry a Desktop/Universal badge, shorter Settings and theme text, a clearer Download button, and the Settings category panel no longer overlaps the page.
+## [0.5.2-Beta] - 2026-10-31
 
-- New startup screen: a duck bobbing on moving waves with the wordmark hopping in, all in the colours of your chosen theme (including Omarchy and palette themes), replacing the old fixed orange gradient bar.
-- Home is less crowded: a compact tile for each tool, and only the tool you pick opens below. The open tool is in the URL (`?tool=`), so the command palette now jumps straight to it.
+A visual and tidying release. Home is a compact grid of tool tiles, there is a themed startup screen, corners are sharper and the wording is plainer. The Tauri migration is still **postponed** (WebKitGTK on Linux stutters/crashes with NVIDIA + Wayland); OPNduck stays on Electron.
+
+### Added
+- **New startup screen**: a duck bobbing on moving waves with the wordmark hopping in, all in the colours of your chosen theme (including Omarchy and palette themes), replacing the old fixed orange gradient bar.
+- **Pixel look**: a blocky pixel wordmark in the top bar and on Home, and a faint scatter of pixels along the top of every page, both in the current theme's accent.
+- **More developer tools** (Settings, with dev mode on): IPC trace (channel and timing, slow calls highlighted), main-process event-loop lag, saved-settings viewer (redacted), raw job launcher, sample video/audio/image generator, and layout outlines.
+
+### Changed
+- **Home is less crowded**: a compact tile for each tool, and only the tool you pick opens below. The open tool is in the URL (`?tool=`), so the command palette now jumps straight to it.
+- **Calmer Blarange colours**: neutral warm-black surfaces and borders instead of orange-tinted ones, orange kept for actions, focus and the active item, and a flat wordmark instead of the gradient with a glow. The Beta notice now follows the theme.
+- **Sharper corners**: the radius scale is now 1-4 px in Blarange and Monochrome (Omarchy themes were already square).
+- **Plainer wording and less filler** across the app: Home is a short "Tools" page, tool cards no longer carry a Desktop/Universal badge, shorter Settings and theme text, a clearer Download button, and the Settings category panel no longer overlaps the page.
+- **Readable text and icons in every Omarchy palette**: dim text and the menu icons are now derived from the main text colour (the palettes' own "dark foreground" was almost invisible on themes like Nord), and the pixel logo shades toward the text colour so it also works on light themes.
 
 ### Performance
 - Engine checks (PyTorch, Demucs, Whisper) are remembered between launches and re-checked in the background, so the cards no longer wait about 2.5 s for a Python start. `nvidia-smi` is asked once per session instead of on every check.
@@ -22,7 +28,6 @@ history; entries are curated for readability.
 ## [0.5.1-Beta] - 2026-10-31
 
 ### Added
-- **More developer tools** (Settings, with dev mode on): IPC trace (channel and timing, slow calls highlighted), main-process event-loop lag, saved-settings viewer (redacted), raw job launcher, sample video/audio/image generator, and layout outlines.
 - **A secret for the curious**: something hides behind the OPNduck name. Once found, Settings gains a switch to keep it in the menu.
 - **Animated menu icons**: Settings spins, Plugins pulls back and plugs in with a spark, Library pulls a book out, Home hops. They play on hover/press and are off with reduced motion.
 - **MCP server** (Settings → System, off by default): any MCP-capable AI app (Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, LM Studio, ...) can start downloads, conversions, upscales, interpolation, subtitles, trims and audio AI, watch jobs and their logs, cancel jobs and pause the queue. Localhost only, token-protected, saves only to your download folder, jobs are tagged "via MCP". See `docs/MCP.md`.
