@@ -1,17 +1,26 @@
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
+import { playWam } from '../lib/sfx'
 import { version } from '../../package.json'
 
 interface Spec {
   label: string
-  value: string
+  value: ReactNode
 }
 
-function cpuInfo(): string {
+function cpuInfo(): ReactNode {
   const nav = navigator as Navigator & { deviceMemory?: number; hardwareConcurrency?: number }
-  const parts: string[] = []
+  const parts: ReactNode[] = []
   if (nav.hardwareConcurrency) parts.push(`${nav.hardwareConcurrency} logical CPUs`)
-  if (nav.deviceMemory) parts.push(`${nav.deviceMemory} GB RAM`)
-  return parts.join(', ') || 'Detected by the desktop shell'
+  // Easter egg: double-click the RAM text.
+  if (nav.deviceMemory) {
+    parts.push(
+      <span key="ram" onDoubleClick={() => void playWam()} className="cursor-default select-none">
+        {nav.deviceMemory} GB RAM
+      </span>,
+    )
+  }
+  if (!parts.length) return 'Detected by the desktop shell'
+  return parts.flatMap((p, i) => (i ? [', ', p] : [p]))
 }
 
 function gpuInfo(): string {
