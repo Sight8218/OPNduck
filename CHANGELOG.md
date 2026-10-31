@@ -31,6 +31,11 @@ history; entries are curated for readability.
   match faster-whisper; audio is now decoded with ffmpeg. Songs no longer come out empty (the speech
   filter is retried off), and a file with no speech reports that instead of saving an empty .srt.
 
+### Security
+
+- Updated Electron to 44.10.0 and refreshed dependencies; `npm audit` now reports 0 vulnerabilities (Electron, undici
+  and fast-uri advisories).
+
 ### Performance
 
 - **Watch folder:** Settings → Watch folder converts new media files dropped into a chosen folder (checked every 10
