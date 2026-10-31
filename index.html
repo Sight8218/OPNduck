@@ -12,6 +12,20 @@
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OPNduck</title>
+    <script>
+      /* Apply the saved theme before first paint so the splash (and the flash-free
+         background) match it. Mirrors applyTheme() in src/themes/theme.ts; live Omarchy and
+         palette colours are cached by omarchySync.ts. */
+      try {
+        var t = localStorage.getItem('opnduck.theme') || 'blarange';
+        var el = document.documentElement;
+        el.setAttribute('data-theme', t === 'blarange' || t === 'monochrome' ? t : 'omarchy');
+        if (t !== 'blarange' && t !== 'monochrome') {
+          var c = JSON.parse(localStorage.getItem('opnduck.themeTokens') || '{}');
+          for (var k in c) el.style.setProperty(k, c[k]);
+        }
+      } catch (e) {}
+    </script>
     <style>
       /* Prevent the white/transparent startup flash at the root level.
          Matches Blarange's --bg-solid (#17130f); the theme's own --bg-base
@@ -19,70 +33,66 @@
       html, body {
         margin: 0;
         padding: 0;
-        background-color: #17130f;
+        background-color: var(--bg-solid, #17130f);
         width: 100%;
         height: 100%;
       }
 
-      /* Static Splash Loading Screen — scoped to itself so it never locks
-         page scroll once React mounts and hides it. */
+      /* Startup splash. It uses the theme's own tokens, so it matches whichever theme was
+         chosen; the script below applies the saved theme before first paint. */
       #startup-splash {
         position: fixed;
         inset: 0;
-        width: 100%;
-        height: 100%;
-        background-color: #0f0c0a;
+        z-index: 99999;
         display: flex;
         flex-direction: column;
-        justify-content: center;
         align-items: center;
-        z-index: 99999;
+        justify-content: center;
+        gap: 18px;
+        background: var(--bg-solid, #0f0c0a);
+        color: var(--text, #ede6d9);
         transition: opacity 0.4s ease, visibility 0.4s;
       }
-
-      .splash-logo {
+      .splash-word {
         font-family: 'JetBrains Mono', ui-monospace, monospace;
-        font-size: 28px;
+        font-size: 26px;
         font-weight: 800;
-        letter-spacing: 3px;
-        background: linear-gradient(90deg, #f0a63b, #e1892f, #d97a25);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 24px;
+        letter-spacing: 0.12em;
       }
-
-      .splash-loader-bar {
-        width: 240px;
-        height: 4px;
-        background: rgba(225, 137, 47, 0.12);
-        border-radius: 4px;
+      .splash-word b {
+        color: var(--accent, #e1892f);
+        font-weight: 800;
+      }
+      .splash-track {
+        position: relative;
+        width: 160px;
+        height: 2px;
         overflow: hidden;
-        border: 1px solid rgba(225, 137, 47, 0.18);
+        background: color-mix(in srgb, var(--accent, #e1892f) 18%, transparent);
       }
-
-      .splash-progress {
-        width: 60%;
-        height: 100%;
-        background: linear-gradient(90deg, #e1892f, #f0a63b);
-        border-radius: 4px;
-        animation: loading-animation 1.6s infinite ease-in-out;
+      .splash-track::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        width: 40%;
+        background: var(--accent, #e1892f);
+        animation: splash-run 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
       }
-
-      @keyframes loading-animation {
-        0% { transform: translateX(-100%); }
-        50% { transform: translateX(100%); }
-        100% { transform: translateX(-100%); }
+      @keyframes splash-run {
+        from { transform: translateX(-100%); }
+        to { transform: translateX(250%); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .splash-track::after { animation: none; width: 100%; opacity: 0.5; }
       }
     </style>
   </head>
   <body>
     <!-- Splash Screen shown before React mounts -->
     <div id="startup-splash">
-      <div class="splash-logo">OPNDUCK</div>
-      <div class="splash-loader-bar">
-        <div class="splash-progress"></div>
-      </div>
+      <div class="splash-word"><b>OPN</b>duck</div>
+      <div class="splash-track"></div>
+    </div>
     </div>
 
     <div id="root"></div>

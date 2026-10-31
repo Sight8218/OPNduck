@@ -114,6 +114,12 @@ export function applyOmarchyTokens(theme: OmarchyTheme): void {
   const tokens = deriveOmarchyTokens(theme)
   const root = document.documentElement.style
   for (const key of TOKEN_KEYS) root.setProperty(key, tokens[key])
+  // Remembered so index.html can paint the startup splash in these colours next launch.
+  try {
+    localStorage.setItem('opnduck.themeTokens', JSON.stringify({ '--bg-solid': tokens['--bg-solid'], '--accent': tokens['--accent'], '--text': tokens['--text'] }))
+  } catch {
+    /* storage unavailable: the splash falls back to the default colours */
+  }
 }
 
 /** Removes any inline Omarchy tokens so the static Blarange/Monochrome CSS
