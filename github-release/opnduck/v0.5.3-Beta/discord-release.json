@@ -1,0 +1,12 @@
+{
+  "note": "DRAFT ONLY - not sent.",
+  "project": "OPNduck",
+  "version": "v0.5.3-Beta",
+  "content": "**OPNduck v0.5.3-Beta** 🦆\n\n**New**\n• OPNduck TUI: the tools in a terminal, ~100 MB of memory, 26 themes, shares settings with the desktop app\n• First-launch setup wizard for the downloader, video engine, Audio AI and Subtitles\n• Developer-tool channels now require Developer mode\n\nBeta: expect bugs. Windows installers untested on real Windows. Tauri still postponed (WebKitGTK stutters/crashes with NVIDIA + Wayland).",
+  "embeds": [
+    {
+      "title": "OPNduck v0.5.3-Beta",
+      "url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.5.3-Beta"
+    }
+  ]
+}
