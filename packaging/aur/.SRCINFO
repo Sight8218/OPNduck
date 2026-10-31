@@ -14,6 +14,6 @@ pkgbase = opnduck
 	optdepends = realesrgan-ncnn-vulkan: image and video upscaling
 	optdepends = rife-ncnn-vulkan: frame interpolation
 	source = opnduck-0.5.2beta.tar.gz::https://github.com/Sight8218/OPNduck/archive/refs/tags/v0.5.2-Beta.tar.gz
-	sha256sums = SKIP
+	sha256sums = 70f64915234c89903b7eb08a8d3128940dfe1b8eb554edb05023b46d1d3552a7
 
 pkgname = opnduck

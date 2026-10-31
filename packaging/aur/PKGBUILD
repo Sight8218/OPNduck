@@ -18,7 +18,7 @@ optdepends=(
   'rife-ncnn-vulkan: frame interpolation'
 )
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/$_tag.tar.gz")
-sha256sums=('SKIP') # run `updpkgsums` after the v0.5.2-Beta tag is pushed
+sha256sums=('70f64915234c89903b7eb08a8d3128940dfe1b8eb554edb05023b46d1d3552a7')
 
 build() {
   cd "OPNduck-${_tag#v}"
