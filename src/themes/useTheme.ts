@@ -100,7 +100,7 @@ export function useTheme() {
     setTheme: switchTheme,
     /** null until an Omarchy host resolves a theme, or if there isn't one —
      *  ThemeToggle only shows the "Synced with Omarchy" option when set. */
-    omarchy: omarchyTheme ? { label: omarchySlugToLabel(omarchyTheme.slug) } : null,
+    omarchy: omarchyTheme ? { label: omarchySlugToLabel(omarchyTheme.slug), slug: omarchyTheme.slug } : null,
   }
 }
 
