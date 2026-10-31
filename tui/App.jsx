@@ -4,21 +4,32 @@ import Header from './ui/Header.jsx'
 import Home from './screens/Home.jsx'
 import Queue from './screens/Queue.jsx'
 import Form from './screens/Form.jsx'
+import Library from './screens/Library.jsx'
+import Settings from './screens/Settings.jsx'
+import Setup from './screens/Setup.jsx'
+import { makeTheme } from './theme.js'
 import { useCoreEvents } from './hooks.js'
 
 const SCREENS = [
   { id: 'home', label: 'Tools' },
   { id: 'queue', label: 'Queue' },
+  { id: 'library', label: 'Library' },
+  { id: 'settings', label: 'Settings' },
+  { id: 'setup', label: 'Setup' },
 ]
 
 const KEYS = {
   home: '↑↓ move   enter open   tab queue   q quit',
+  library: '↑↓ move  o folder  r again  d remove  x clear history  tab next  q quit',
+  settings: '↑↓ move   ←→ change   enter edit (proxy)   tab next   q quit',
+  setup: '↑↓ move   space tick   i install ticked   r recheck   tab next   q quit',
   form: '↑↓ field   ←→ change   tab complete path   enter next / start   esc back',
   queue: '↑↓ move  p pause  c cancel  n next  r again  d remove  x clear  l log  o folder  q quit',
 }
 
 /** The screen router and the keys that work everywhere (tab, 1-2, q). */
-export default function App({ core, theme, start = 'home' }) {
+export default function App({ core, theme: initialTheme, start = 'home' }) {
+  const [theme, setTheme] = useState(initialTheme)
   const { exit } = useApp()
   const [screen, setScreen] = useState(start)
   const [note, setNote] = useState('')
@@ -43,8 +54,8 @@ export default function App({ core, theme, start = 'home' }) {
       setScreen((s) => SCREENS[(SCREENS.findIndex((x) => x.id === s) + 1) % SCREENS.length].id)
       return
     }
-    if (input === '1') return setScreen('home')
-    if (input === '2') return setScreen('queue')
+    const n = Number(input)
+    if (Number.isInteger(n) && n >= 1 && n <= SCREENS.length) return setScreen(SCREENS[n - 1].id)
     if (input === 'q' || (key.ctrl && input === 'c')) {
       if (running + waiting > 0 && !confirmQuit) return setConfirmQuit(true)
       quit()
@@ -71,6 +82,12 @@ export default function App({ core, theme, start = 'home' }) {
             note={note}
             onOpen={(t) => (setTool(t), setScreen('form'))}
           />
+        ) : screen === 'library' ? (
+          <Library theme={theme} core={core} />
+        ) : screen === 'settings' ? (
+          <Settings core={core} theme={theme} themeName={theme.name} onTheme={(name) => setTheme(makeTheme(name))} onTyping={onTyping} />
+        ) : screen === 'setup' ? (
+          <Setup theme={theme} core={core} onTyping={onTyping} />
         ) : (
           <Queue theme={theme} core={core} note={note} />
         )}

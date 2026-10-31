@@ -24,6 +24,8 @@ AI Audio needs a Python venv with `torch`, `demucs` and `soundfile`; OPNduck can
 
 ---
 
+**Terminal version:** `npm run tui` runs the same tools in a terminal (about 100 MB of memory); see [docs/TUI.md](docs/TUI.md).
+
 ## 🎨 Design System
 
 OPNduck uses a flat, solid look: no blur, no translucency. (Earlier builds used a

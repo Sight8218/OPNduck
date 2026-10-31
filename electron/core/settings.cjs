@@ -54,6 +54,8 @@ const DEFAULTS = {
   maxConversions: 2,
   /** Encoder for AI video jobs: 'auto' = GPU (NVENC) when it works, 'cpu' = x264. */
   videoEncoder: 'auto',
+  /** Colours of the terminal app (a theme name such as 'blarange' or 'nord'). */
+  tuiTheme: 'blarange',
   /** Local MCP server so tools like Claude Code can start and watch jobs (see mcp.cjs). Off by default. */
   mcpServer: false,
   cookies: {
@@ -101,6 +103,7 @@ function validate(next) {
   if (typeof next.notifyOnFinish !== 'boolean' || typeof next.runInTray !== 'boolean') throw new Error('Invalid notification setting')
   if (!['auto', 'cpu'].includes(next.videoEncoder)) throw new Error('Invalid video encoder')
   if (typeof next.mcpServer !== 'boolean') throw new Error('Invalid MCP server setting')
+  if (typeof next.tuiTheme !== 'string' || !/^[a-z0-9-]{1,40}$/.test(next.tuiTheme)) throw new Error('Invalid terminal theme')
   const c = next.cookies
   if (!c || !['none', 'browser', 'file', 'login'].includes(c.mode)) throw new Error('Invalid cookie source')
   if (!COOKIE_BROWSERS.includes(c.browser)) throw new Error('Unsupported browser for cookies')
@@ -158,6 +161,7 @@ function setSettings(patch) {
     maxConversions: patch.maxConversions !== undefined ? patch.maxConversions : current.maxConversions,
     videoEncoder: patch.videoEncoder !== undefined ? patch.videoEncoder : current.videoEncoder,
     mcpServer: patch.mcpServer !== undefined ? patch.mcpServer : current.mcpServer,
+    tuiTheme: patch.tuiTheme !== undefined ? patch.tuiTheme : current.tuiTheme,
     cookies: { ...current.cookies, ...(patch.cookies && typeof patch.cookies === 'object' ? patch.cookies : {}) },
   }
   validate(next)

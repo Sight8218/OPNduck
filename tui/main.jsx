@@ -54,7 +54,7 @@ for (let i = 0; i < args.length; i++) {
   }
 }
 
-const theme = makeTheme(flag('--theme') ?? process.env.OPNDUCK_THEME ?? 'blarange')
+const theme = makeTheme(flag('--theme') ?? process.env.OPNDUCK_THEME ?? core.settings.getSettings().tuiTheme)
 const start = flag('--screen') === 'queue' || args.includes('--start') ? 'queue' : 'home'
 const app = render(<App core={core} theme={theme} start={start} />)
 await app.waitUntilExit()
