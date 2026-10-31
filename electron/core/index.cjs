@@ -35,7 +35,8 @@ function createCore({ platform, onFinished = () => {}, registerStart }) {
 
   /** Registers a job-start function through the engine's wrapper (see wrapStart). */
   function handleStart(channel, fn) {
-    registerStart?.(channel, engine.wrapStart(channel, fn))
+    const wrapped = engine.wrapStart(channel, fn) // registers it in engine.startHandlers
+    registerStart?.(channel, wrapped)
   }
 
   // Job modules share one context: the platform, tools, engine and each other's helpers.
@@ -62,7 +63,17 @@ function createCore({ platform, onFinished = () => {}, registerStart }) {
     return start(null, req)
   }
 
-  return { platform, settings, tools, engine, modules, ctx, startJob }
+  /** Stops everything cleanly: kills queued/running jobs' processes, saves history, stops the model workers. */
+  function shutdown() {
+    modules.subtitles.whisperWorker.stop()
+    modules.audioAi.demucsWorker.stop()
+    for (const entry of engine.tasks.values()) {
+      if (entry.state.status === 'queued' || entry.state.status === 'running') engine.killTask(entry)
+    }
+    engine.saveHistory()
+  }
+
+  return { platform, settings, tools, engine, modules, ctx, startJob, shutdown }
 }
 
 module.exports = { createCore }

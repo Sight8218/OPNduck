@@ -47,3 +47,4 @@ sidecar/__pycache__
 *.sln
 *.sw?github-release/*/*/assets/
 .dev-session.pid
+dist-tui

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.5.2-beta",
   "type": "module",
-  "description": "OPNduck — a local-first, open-source media processing suite. Beta: downloader, converter, upscalers, subscriptions, AI audio and subtitles, plus the GUI, settings, and design system. Linux-first, Windows-parallel.",
+  "description": "OPNduck \u2014 a local-first, open-source media processing suite. Beta: downloader, converter, upscalers, subscriptions, AI audio and subtitles, plus the GUI, settings, and design system. Linux-first, Windows-parallel.",
   "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/Sight8218/OPNduck",
   "author": {
@@ -22,7 +22,9 @@
     "dist:linux": "npm run build && electron-builder --linux AppImage pacman",
     "dist:win": "npm run build && electron-builder --win nsis portable",
     "perf": "node scripts/perf-check.mjs",
-    "dist": "npm run build && electron-builder --linux AppImage pacman --win nsis portable"
+    "dist": "npm run build && electron-builder --linux AppImage pacman --win nsis portable",
+    "tui:build": "node scripts/build-tui.mjs",
+    "tui": "node scripts/build-tui.mjs && node dist-tui/opnduck-tui.mjs"
   },
   "build": {
     "appId": "dev.opnduck.desktop",
@@ -70,7 +72,9 @@
     "@vitejs/plugin-react": "^6.1.2",
     "electron": "^45.2.0",
     "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2",
     "framer-motion": "^14.1.0",
+    "ink": "^8.0.0",
     "oxlint": "^1.87.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
