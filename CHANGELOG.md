@@ -6,6 +6,10 @@ history; entries are curated for readability.
 
 ## [Unreleased]
 
+### Changed
+- The developer-tool channels in the desktop shell now refuse to run unless Developer mode is on (they used to be always reachable from the app window).
+- Switching back to Blarange or Monochrome clears the cached theme colours the startup screen uses.
+
 ## [0.5.2-Beta] - 2026-10-31
 
 A visual and tidying release. Home is a compact grid of tool tiles, there is a themed startup screen, corners are sharper and the wording is plainer. The Tauri migration is still **postponed** (WebKitGTK on Linux stutters/crashes with NVIDIA + Wayland); OPNduck stays on Electron.

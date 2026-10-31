@@ -434,6 +434,8 @@ export interface Host {
   }
   /** Developer utilities (Settings, dev mode on). Desktop shell only. */
   dev?: {
+    /** Tells the desktop shell whether Developer mode is on; its dev:* channels refuse to run while it is off. */
+    setEnabled(on: boolean): Promise<void>
     info(): Promise<Record<string, Record<string, string | number | boolean>>>
     metrics(): Promise<{ pid: number; type: string; cpu: number; memMB: number }[]>
     logs(): Promise<{ t: number; level: string; text: string }[]>

@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     },
   },
   dev: {
+    setEnabled: (on) => ipcRenderer.invoke('dev:setEnabled', on),
     info: () => ipcRenderer.invoke('dev:info'),
     metrics: () => ipcRenderer.invoke('dev:metrics'),
     logs: () => ipcRenderer.invoke('dev:logs'),

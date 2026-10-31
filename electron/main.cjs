@@ -3283,20 +3283,32 @@ async function collectDevInfo() {
   }
 }
 
-ipcMain.handle('dev:info', async () => {
+/** The renderer reports Developer mode here; the dev:* channels refuse to run while it is off. */
+let devEnabled = false
+ipcMain.handle('dev:setEnabled', (_e, on) => {
+  devEnabled = on === true
+})
+function devHandle(channel, fn) {
+  ipcMain.handle(channel, (e, ...args) => {
+    if (!devEnabled) throw new Error('Developer mode is off')
+    return fn(e, ...args)
+  })
+}
+
+devHandle('dev:info', async () => {
   const info = await collectDevInfo()
   info.tools.pytorchEngine = (await torchEngineReady()) ? 'CUDA available' : 'not available'
   return info
 })
 /** Per-process CPU and memory of the whole app (browser, GPU, renderer, utility). */
-ipcMain.handle('dev:metrics', () =>
+devHandle('dev:metrics', () =>
   app.getAppMetrics().map((m) => ({ pid: m.pid, type: m.type, cpu: +m.cpu.percentCPUUsage.toFixed(1), memMB: Math.round((m.memory.workingSetSize || 0) / 1024) })),
 )
-ipcMain.handle('dev:logs', () => appLog.slice(-300).map((l) => ({ t: l.t, level: l.level, text: redact(l.text) })))
-ipcMain.handle('dev:tasks', () =>
+devHandle('dev:logs', () => appLog.slice(-300).map((l) => ({ t: l.t, level: l.level, text: redact(l.text) })))
+devHandle('dev:tasks', () =>
   JSON.parse(redact(JSON.stringify([...tasks.values()].map((t) => ({ channel: t.channel, state: t.state, req: t.req, finalPath: t.finalPath ?? null }))))),
 )
-ipcMain.handle('dev:diagnostics', async () => {
+devHandle('dev:diagnostics', async () => {
   const report = {
     generatedAt: new Date().toISOString(),
     ...(await collectDevInfo()),
@@ -3306,16 +3318,16 @@ ipcMain.handle('dev:diagnostics', async () => {
   }
   return JSON.stringify(report, null, 2)
 })
-ipcMain.handle('dev:openUserData', () => shell.openPath(app.getPath('userData')))
-ipcMain.handle('dev:toggleDevTools', (e) => e.sender.toggleDevTools())
-ipcMain.handle('dev:reloadUI', (e) => e.sender.reloadIgnoringCache())
-ipcMain.handle('dev:testNotification', () => {
+devHandle('dev:openUserData', () => shell.openPath(app.getPath('userData')))
+devHandle('dev:toggleDevTools', (e) => e.sender.toggleDevTools())
+devHandle('dev:reloadUI', (e) => e.sender.reloadIgnoringCache())
+devHandle('dev:testNotification', () => {
   if (!Notification.isSupported()) return false
   new Notification({ title: 'OPNduck: test notification', body: 'If you can read this, notifications work.' }).show()
   return true
 })
 /** A fake job that ticks to 100% over ~12 s (or fails at 60%), to try out the UI without real work. */
-ipcMain.handle('dev:fakeJob', (_e, fail) => {
+devHandle('dev:fakeJob', (_e, fail) => {
   const id = crypto.randomUUID()
   addTask(id, {
     state: { id, kind: 'convert', status: 'running', progress: 0, label: fail ? 'Dev test job (will fail)' : 'Dev test job', format: 'TEST', quality: 'simulated', sizeBytes: null, sizeIsEstimate: false, thumbnailUrl: null, experimentalMatch: null },
@@ -3340,22 +3352,22 @@ ipcMain.handle('dev:fakeJob', (_e, fail) => {
   return id
 })
 
-ipcMain.handle('dev:clearEngineCache', () => clearEngineCache())
-ipcMain.handle('dev:ipc', () => ipcTrace.slice(-200))
-ipcMain.handle('dev:settings', () => ({
+devHandle('dev:clearEngineCache', () => clearEngineCache())
+devHandle('dev:ipc', () => ipcTrace.slice(-200))
+devHandle('dev:settings', () => ({
   path: redact(path.join(app.getPath('userData'), 'settings.json')),
   json: JSON.stringify(JSON.parse(redact(JSON.stringify(getSettings()))), null, 2),
 }))
-ipcMain.handle('dev:showSettingsFile', () => shell.showItemInFolder(path.join(app.getPath('userData'), 'settings.json')))
-ipcMain.handle('dev:jobChannels', () => [...startHandlers.keys()])
+devHandle('dev:showSettingsFile', () => shell.showItemInFolder(path.join(app.getPath('userData'), 'settings.json')))
+devHandle('dev:jobChannels', () => [...startHandlers.keys()])
 /** Starts any job from a raw request (goes through the same validation as the UI's own start call). */
-ipcMain.handle('dev:startJob', async (_e, channel, req) => {
+devHandle('dev:startJob', async (_e, channel, req) => {
   const start = typeof channel === 'string' ? startHandlers.get(channel) : null
   if (!start) throw new Error(`Unknown job channel: ${channel}`)
   return start(null, req)
 })
 /** Makes small sample files with ffmpeg, to test jobs without hunting for media. */
-ipcMain.handle('dev:makeTestMedia', (_e, kind) => {
+devHandle('dev:makeTestMedia', (_e, kind) => {
   const dir = path.join(app.getPath('userData'), 'test-media')
   fs.mkdirSync(dir, { recursive: true })
   const specs = {
@@ -3375,7 +3387,7 @@ ipcMain.handle('dev:makeTestMedia', (_e, kind) => {
 /** How long the main process's event loop was blocked recently (ms); high values mean UI jank from main-process work. */
 const loopDelay = require('node:perf_hooks').monitorEventLoopDelay({ resolution: 20 })
 loopDelay.enable()
-ipcMain.handle('dev:loopLag', () => {
+devHandle('dev:loopLag', () => {
   const r = { meanMs: +(loopDelay.mean / 1e6).toFixed(1), p99Ms: +(loopDelay.percentile(99) / 1e6).toFixed(1), maxMs: +(loopDelay.max / 1e6).toFixed(1) }
   loopDelay.reset()
   return r

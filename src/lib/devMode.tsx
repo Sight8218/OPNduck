@@ -17,6 +17,7 @@
  */
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { host } from '../host'
 import { matchesBinding } from './keybinds'
 
 const STORAGE_KEY = 'opnduck.devmode'
@@ -39,6 +40,11 @@ function readStored(): boolean {
 
 export function DevModeProvider({ children }: { children: ReactNode }) {
   const [devMode, setDevMode] = useState<boolean>(readStored)
+
+  // The desktop shell only answers dev:* calls while this is on.
+  useEffect(() => {
+    void host.dev?.setEnabled(devMode)
+  }, [devMode])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

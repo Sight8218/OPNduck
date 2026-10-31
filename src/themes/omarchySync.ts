@@ -120,6 +120,11 @@ export function clearOmarchyTokens(): void {
   if (typeof document === 'undefined') return
   const root = document.documentElement.style
   for (const key of TOKEN_KEYS) root.removeProperty(key)
+  try {
+    localStorage.removeItem('opnduck.themeTokens')
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 /** Title-cases an Omarchy slug for display, e.g. "osaka-jade" -> "Osaka Jade". */
