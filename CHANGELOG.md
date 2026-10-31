@@ -59,6 +59,12 @@ history; entries are curated for readability.
   the new **Jade Horse** and **Starship**), plus **Osaka Jade**, which rc2 dropped but stays here as a swatch picker. They work on any system, not just where Omarchy is
   installed, share the Omarchy look and keep your choice between launches. "Synced with Omarchy" still follows your live
   theme and picks up new Omarchy themes automatically.
+- **Dev launcher (`npm run desktop:dev`):** only one dev session at a time. Starting it again stops the previous one
+  (Vite and Electron) instead of piling up windows, frontend edits hot-reload, backend edits (`electron/*.cjs`, `.py`)
+  restart the app automatically, and closing the app stops everything it started. Normal launches are also
+  single-instance now: opening OPNduck again just brings the open window forward.
+- **Developer tools additions:** a performance overlay (FPS, JS heap, DOM nodes), a theme token viewer with color
+  chips and Copy as CSS, a local-storage editor, and window-size presets.
 - **More developer utilities** (Settings → Developer tools, with dev mode on, Ctrl+Shift+D): system and tool versions
   (OPNduck, Electron, Chromium, GPU, yt-dlp, ffmpeg, upscalers, Python, PyTorch), live per-process CPU and memory, an
   app log viewer with level filters, a raw tasks inspector, buttons for DevTools, reload, the data folder and a test

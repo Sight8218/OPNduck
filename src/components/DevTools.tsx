@@ -1,4 +1,5 @@
 import DevDesktopTools from './DevDesktopTools'
+import DevRendererTools from './DevRendererTools'
 import { useState } from 'react'
 
 /**
@@ -99,6 +100,7 @@ export default function DevTools() {
           </button>
         </div>
       </div>
+      <DevRendererTools />
       <DevDesktopTools />
     </div>
   )

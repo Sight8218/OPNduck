@@ -97,7 +97,7 @@ function deriveOmarchyTokens(theme: OmarchyTheme): Record<string, string> {
   }
 }
 
-const TOKEN_KEYS = [
+export const TOKEN_KEYS = [
   '--glass-bg', '--glass-bg-strong', '--glass-tint',
   '--glass-border', '--glass-border-inner', '--glass-shadow', '--card-glow',
   '--input-bg', '--input-bg-hover', '--input-border', '--input-border-focus',
