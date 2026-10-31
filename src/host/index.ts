@@ -423,9 +423,6 @@ export interface Host {
     check(): Promise<UpdateCheck>
     openRelease(url: string): Promise<void>
   }
-  /** Present only on hosts that can see the OS-level Omarchy theme (Electron
-   *  on Linux); undefined everywhere else, including a non-Omarchy Linux
-   *  desktop that just happens to run Electron. */
   /** Developer utilities (Settings, dev mode on). Desktop shell only. */
   dev?: {
     info(): Promise<Record<string, Record<string, string | number | boolean>>>
@@ -482,6 +479,9 @@ export interface Host {
     /** Tries to read the signed-in-only Watch Later list with the current cookie source. */
     test(): Promise<{ ok: boolean; message: string }>
   }
+  /** Present only on hosts that can see the OS-level Omarchy theme (Electron
+   *  on Linux); undefined everywhere else, including a non-Omarchy Linux
+   *  desktop that just happens to run Electron. */
   omarchy?: {
     /** Current Omarchy theme, or null if Omarchy isn't installed/detected. */
     get(): Promise<OmarchyTheme | null>

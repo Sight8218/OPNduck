@@ -114,8 +114,9 @@ watch(path.join(root, 'electron'), { recursive: true }, (_event, file) => {
     restarting = true
     const old = electron
     old.kill('SIGTERM')
-    for (let i = 0; i < 40 && old.exitCode === null; i++) await sleep(100)
-    if (old.exitCode === null) old.kill('SIGKILL')
+    const gone = () => old.exitCode !== null || old.signalCode !== null // a signal-killed child keeps exitCode null
+    for (let i = 0; i < 40 && !gone(); i++) await sleep(100)
+    if (!gone()) old.kill('SIGKILL')
     restarting = false
     startElectron()
   }, 400)
