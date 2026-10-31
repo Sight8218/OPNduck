@@ -6,6 +6,7 @@ import NotificationsCard from '../components/NotificationsCard'
 import McpCard from '../components/McpCard'
 import QueueCard from '../components/QueueCard'
 import WatchFolderCard from '../components/WatchFolderCard'
+import SetupCard from '../components/SetupCard'
 import HardwareAllocation from '../components/HardwareAllocation'
 import InfoCard from '../components/InfoCard'
 import KeybindsCard from '../components/KeybindsCard'
@@ -151,6 +152,7 @@ export default function Settings() {
             className="scroll-mt-24 flex flex-col gap-6"
           >
             <CategoryLabel label="System" />
+            <SetupCard />
             <HardwareAllocation />
             {host.settings && <GpuPerformanceCard />}
             {host.settings && <NotificationsCard />}

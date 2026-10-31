@@ -6,6 +6,7 @@ import NavBar from './components/NavBar'
 import PageTransition from './components/PageTransition'
 import PreAlphaBanner from './components/PreAlphaBanner'
 import NoticeHost from './components/NoticeHost'
+import SetupWizard from './components/SetupWizard'
 import PerfHud from './components/PerfHud'
 import UpdatePrompt from './components/UpdatePrompt'
 import VersionFooter from './components/VersionFooter'
@@ -93,6 +94,7 @@ export default function App() {
             <CommandPalette />
             <UpdatePrompt />
             <NoticeHost />
+            <SetupWizard />
             <PerfHud />
           </NavProvider>
         </ReduceMotionProvider>
