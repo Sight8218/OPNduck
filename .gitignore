@@ -45,6 +45,10 @@ sidecar/__pycache__
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?github-release/*/*/assets/
+*.sw?
+
+# Release assets (binaries); checksums are force-added
+github-release/*/*/assets/
+__pycache__/
 .dev-session.pid
 dist-tui
