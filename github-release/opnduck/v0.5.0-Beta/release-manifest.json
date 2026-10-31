@@ -1,0 +1,66 @@
+{
+  "project": "opnduck-desktop",
+  "version": "0.5.0-Beta",
+  "manifest_version_field": "0.5.0-beta",
+  "release_type": "beta (pre-release)",
+  "tag": "v0.5.0-Beta (not created)",
+  "branch": "main",
+  "commit": "release-prep commit on top of ebfe6a9 (see git log)",
+  "base_tag": "v0.4.0-Beta",
+  "last_pushed_commit": "b0cb00f",
+  "mode": "manual",
+  "stages": {
+    "discovery": "complete",
+    "version": "complete",
+    "changelog": "complete",
+    "docs": "complete",
+    "build": "complete",
+    "package": "complete",
+    "checksum": "complete",
+    "scan": "complete",
+    "validation": "complete",
+    "publication": "not performed (manual mode; awaiting user confirmation)"
+  },
+  "platforms": [
+    "linux",
+    "windows"
+  ],
+  "architectures": [
+    "x64"
+  ],
+  "checksums": {
+    "OPNduck-0.5.0-beta.AppImage": "695cd7a8a27f53eb46dba4d0f077be7ce7b36c6d1e465e3303d09614cdddc819",
+    "OPNduck.0.5.0-beta.exe": "8d6573e32ec6988475071126ce8648984e3ab4d47c0af1070b8c5e7e6e6e174d",
+    "opnduck-desktop-0.5.0-beta.pacman": "3f27b556c7ebda8e4cfb354730e073459f8fb362d35035250018d181b618eec7",
+    "OPNduck.Setup.0.5.0-beta.exe": "84f54ef2ccfd7e7e21de7ac41d14378ba4a104bb708a87c68777fcc0eaca4ac7"
+  },
+  "tests": {
+    "lint": "0 errors (warnings only)",
+    "typecheck": "clean",
+    "build": "ok (npm run dist)",
+    "asar": "electron/*.cjs + demucs_separate.py, torch_upscale.py, whisper_subtitles.py present in linux app.asar",
+    "smoke_test": "not run (no display session this run)"
+  },
+  "secret_scan": {
+    "gitleaks": "no leaks (186 commits, and working tree)",
+    "trufflehog": "0 verified/unverified since v0.4.0-Beta"
+  },
+  "packaging": {
+    "appimage": "built",
+    "pacman": "built",
+    "nsis": "built (wine, untested on real Windows)",
+    "portable": "built (wine, untested on real Windows)",
+    "aur": "PKGBUILD synced to 0.5.0beta/_tag v0.5.0-Beta, sha256sums=SKIP until tag exists; not published (deferred)",
+    "signing": "not implemented (deferred)"
+  },
+  "documentation_changes": [
+    "CHANGELOG.md",
+    "README.md",
+    "package.json",
+    "package-lock.json",
+    "packaging/aur/PKGBUILD"
+  ],
+  "publication": {
+    "github_release": "not published"
+  }
+}

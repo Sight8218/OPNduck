@@ -6,6 +6,13 @@ history; entries are curated for readability.
 
 ## [Unreleased]
 
+## [0.5.0-Beta] - 2026-10-31
+
+The performance release. Video upscaling now streams frames straight through the GPU (PyTorch) with no temporary
+image files, AI video jobs encode on the GPU (NVENC), and long videos run in bounded-size chunks. It also adds a
+trimmer, a watch folder, queue controls, live logs, all Omarchy 4.5 themes and developer tools. The Tauri migration
+is still **postponed** (WebKitGTK on Linux stutters/crashes with NVIDIA + Wayland); OPNduck stays on Electron.
+
 ### Added
 
 - **One-click installs:** missing Python tools can be installed from the card itself. AI Audio sets up
@@ -19,32 +26,6 @@ history; entries are curated for readability.
 - `packaging/aur/PKGBUILD` for an Arch package that runs on the system `electron`.
 - A "How many" limit for channel and search links in the command-palette download panel, and a notice
   when some files of a batch couldn't be started.
-
-### Fixed
-
-- **Progress bars no longer jump backwards.** A download's video and audio streams each restarted the bar from
-  0%; progress is now weighted by stream size, never moves backwards while a job runs, and every bar eases
-  toward the reported value instead of snapping.
-- **Frame Interpolation** failed with "only rife-v4 model support custom numframe" on installs whose RIFE
-  defaults to an older model; it now uses `rife-v4.6`.
-- Subtitles failed with "unexpected keyword argument 'metadata_errors'" when the system PyAV didn't
-  match faster-whisper; audio is now decoded with ffmpeg. Songs no longer come out empty (the speech
-  filter is retried off), and a file with no speech reports that instead of saving an empty .srt.
-
-### Changed
-
-- **Electron 45.2.0** (Chromium 156, Node 24.22). Release notes for 45.0–45.2 reviewed: nothing in OPNduck uses the
-  removed sandbox preload globals, the changed ASAR `fs.open` behaviour, or the deprecated `safeStorage`. New in
-  OPNduck from it: the taskbar/dock icon shows the overall progress of running jobs (`setProgressBar`, now working on
-  Linux launchers too), the "job finished" notification has a **Show in folder** button, and the window remembers its
-  position, size and maximized state between launches (not visible on tiling window managers, which set the size).
-
-### Security
-
-- Updated Electron to 44.10.0 and refreshed dependencies; `npm audit` now reports 0 vulnerabilities (Electron, undici
-  and fast-uri advisories).
-
-### Performance
 
 - **Watch folder:** Settings → Watch folder converts new media files dropped into a chosen folder (checked every 10
   seconds; files still being copied are left alone; results go to a `converted` subfolder; each file is handled once).
@@ -75,6 +56,33 @@ history; entries are curated for readability.
   when you close the window so jobs and subscription checks continue.
 - **Download extras:** a checkbox embeds cover art and tags (title, artist) into MP3, MP4 and MKV files (FLAC gets
   tags only). Subtitles can be **translated to English** (new checkbox on the Subtitles card; output `name.en.srt`).
+
+### Fixed
+
+- **Progress bars no longer jump backwards.** A download's video and audio streams each restarted the bar from
+  0%; progress is now weighted by stream size, never moves backwards while a job runs, and every bar eases
+  toward the reported value instead of snapping.
+- **Frame Interpolation** failed with "only rife-v4 model support custom numframe" on installs whose RIFE
+  defaults to an older model; it now uses `rife-v4.6`.
+- Subtitles failed with "unexpected keyword argument 'metadata_errors'" when the system PyAV didn't
+  match faster-whisper; audio is now decoded with ffmpeg. Songs no longer come out empty (the speech
+  filter is retried off), and a file with no speech reports that instead of saving an empty .srt.
+
+### Changed
+
+- **Electron 45.2.0** (Chromium 156, Node 24.22). Release notes for 45.0–45.2 reviewed: nothing in OPNduck uses the
+  removed sandbox preload globals, the changed ASAR `fs.open` behaviour, or the deprecated `safeStorage`. New in
+  OPNduck from it: the taskbar/dock icon shows the overall progress of running jobs (`setProgressBar`, now working on
+  Linux launchers too), the "job finished" notification has a **Show in folder** button, and the window remembers its
+  position, size and maximized state between launches (not visible on tiling window managers, which set the size).
+
+### Security
+
+- Updated Electron to 44.10.0 and refreshed dependencies; `npm audit` now reports 0 vulnerabilities (Electron, undici
+  and fast-uri advisories).
+
+### Performance
+
 - **Faster video upscaling engine (PyTorch, NVIDIA):** frames now stream ffmpeg → GPU → ffmpeg through pipes with
   no temporary image files at all. End to end on an RTX 3080 it was about 1.4–1.8× faster than the classic engine
   at 2× and 2.3–3.6× faster at 4× (output quality matches: SSIM 0.993). Settings → GPU jobs picks Auto or Classic
@@ -109,6 +117,12 @@ history; entries are curated for readability.
   GPUs, and a job that fails right away on the fast setting retries once on the conservative one.
 - The Library no longer re-sends and re-renders hundreds of finished rows on every progress tick, and
   long histories load 60 at a time. Stale temp folders from interrupted jobs are cleaned at startup.
+
+### Known issues
+
+- Windows installers are built from Linux via wine and are still untested on real Windows.
+- The PyTorch upscaling engine, NVENC and GPU subtitles need an NVIDIA GPU; other GPUs use the classic engine.
+- No AUR publication and no artifact signing yet (deferred).
 
 ## [0.4.0-Beta] - 2026-10-18
 

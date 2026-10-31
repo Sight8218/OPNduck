@@ -1,0 +1,12 @@
+{
+  "note": "DRAFT ONLY - not sent.",
+  "project": "OPNduck",
+  "version": "v0.5.0-Beta",
+  "content": "**OPNduck v0.5.0-Beta** 🦆 - the performance release!\n\n**New**\n• PyTorch streaming upscaler (NVIDIA): ~1.4-3.6x faster than the classic engine, no temp image files\n• GPU video encoding (NVENC) with automatic x264 fallback\n• Long videos processed in chunks - small temp disk use\n• AI Audio / Subtitles keep models loaded; GPU subtitles; one-click installs\n• Visual trimmer, watch folder, queue controls, live logs\n• All 23 Omarchy 4.5 themes built in, Electron 45, developer tools\n\nBeta: expect bugs. Windows installers untested on real Windows. Tauri still postponed (WebKitGTK stutters/crashes with NVIDIA + Wayland).",
+  "embeds": [
+    {
+      "title": "OPNduck v0.5.0-Beta",
+      "url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.5.0-Beta"
+    }
+  ]
+}

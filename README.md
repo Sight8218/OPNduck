@@ -5,16 +5,18 @@ upscaling, motion frame-interpolation, media downloads, conversions, and transcr
 directly to your local GPU/CPU at zero cost — no subscriptions, no cloud, no spying. All
 your media stays on your machine.
 
-This is **v0.4.0-Beta**, the first Beta. It ships a much more capable Downloader (8K, subtitles,
-dubbed audio tracks, whole channels and lists, sign-in for private content, Smart mode),
-**Subscriptions** that auto-download new uploads while OPNduck is open, an **AI Audio** card
-(Demucs: remove vocals, extract vocals, isolate a voice, echo and noise cleanup), Subtitles
-(faster-whisper), Library management (search, filters, sorting, batch groups, JSON export/import),
-a noticeably faster UI, and job queues, on top of the multi-format Converter, AI upscalers, frame
-interpolation, theming, settings and the adaptive card dashboard. Beat Finder is still not wired in.
+This is **v0.5.0-Beta**, the performance release. Video upscaling now streams frames through the GPU
+(PyTorch, NVIDIA) with no temporary image files, about 1.4-3.6x faster than the classic engine in testing, and
+AI video jobs can encode on the GPU (NVENC). Long videos are processed in chunks so temp disk use stays small,
+and AI Audio and Subtitles keep their models loaded between files. New tools include a visual **trimmer**, a
+**watch folder**, queue controls (pause, run next, parallel limits), **live logs** on every task, one-click
+installs for missing Python tools, GPU subtitles, all 23 Omarchy 4.5 themes as built-in palettes, and
+developer tools. It builds on the v0.4.0 Downloader (8K, subtitles, channels and lists, sign-in, Smart mode),
+Subscriptions, AI Audio (Demucs), Subtitles (faster-whisper), Library management, the multi-format Converter,
+AI upscalers, frame interpolation, theming and the adaptive card dashboard. Beat Finder is still not wired in.
 The Tauri migration is **postponed** (see Desktop Shell below); OPNduck ships on Electron.
-AI Audio needs a Python venv with `torch`, `demucs` and `soundfile`; that install is large
-(about 5.5 GB including the CUDA libraries).
+AI Audio needs a Python venv with `torch`, `demucs` and `soundfile`; OPNduck can install them for you
+(the install is large, about 5.5 GB including the CUDA libraries).
 
 <p align="center">
   <img src="docs/screenshots/home.png" alt="OPNduck home screen — Downloader, Converter and AI upscaler cards in the Blarange theme" width="49%" />
@@ -129,7 +131,7 @@ wired in, as is Subtitles (faster-whisper); Beat Finder lands in a later update.
 
 ## 📝 Project Metadata & Licensing
 
-- **Project State**: `v0.4.0-Beta` (most engines wired in; Beat Finder still stubbed — expect bugs!)
+- **Project State**: `v0.5.0-Beta` (most engines wired in; Beat Finder still stubbed — expect bugs!)
 - **Original Developer**: Aaron
 - **Development Model**: Built with the architectural assistance of AI.
 - **License**: [GPL-3.0](./LICENSE) — free software. Copyright © 2026 Aaron Jonsson.
