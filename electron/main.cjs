@@ -22,10 +22,11 @@ const { app, BrowserWindow, ipcMain, dialog, shell, Notification, Tray, Menu, na
 
 // The last few hundred lines of main-process and renderer console output, for Settings -> Developer tools.
 const appLog = []
+const { format: formatLog } = require('node:util')
 for (const level of ['log', 'info', 'warn', 'error']) {
   const original = console[level].bind(console)
   console[level] = (...args) => {
-    appLog.push({ t: Date.now(), level, text: require('node:util').format(...args).slice(0, 500) })
+    appLog.push({ t: Date.now(), level, text: formatLog(...args).slice(0, 500) })
     if (appLog.length > 500) appLog.shift()
     original(...args)
   }
@@ -3095,33 +3096,38 @@ handleStart('tasks:startSubtitles', (_e, req) => {
 // @category: dev/dev-tools-main
 /** Makes text safe to paste in a bug report: home folder -> ~, credentials inside URLs hidden. */
 function redact(text) {
-  return String(text).split(os.homedir()).join('~').replace(/(\w+:\/\/)[^/\s@]+@/g, '$1***@')
+  const home = os.homedir()
+  // JSON text escapes backslashes, so a Windows home path needs its escaped form replaced too.
+  return String(text).split(home.replace(/\\/g, '\\\\')).join('~').split(home).join('~').replace(/(\w+:\/\/)[^/\s@]+@/g, '$1***@')
 }
 
-/** First line of a command's output, or null if it can't run. */
+/** First line of a command's output, or null if it can't run. Async so a hung tool can't freeze the UI. */
 function commandLine(cmd, args, timeout = 5000) {
-  try {
-    const r = require('node:child_process').spawnSync(cmd, args, { timeout, encoding: 'utf8' })
-    if (r.error || r.status !== 0) return null
-    return (r.stdout || r.stderr || '').split('\n')[0].trim() || null
-  } catch {
-    return null
-  }
+  return new Promise((resolve) => {
+    require('node:child_process').execFile(cmd, args, { timeout, encoding: 'utf8' }, (err, stdout, stderr) => {
+      if (err) return resolve(null)
+      resolve((stdout || stderr || '').split('\n')[0].trim() || null)
+    })
+  })
 }
 
 /** True if the program can be started at all (some tools exit non-zero on -h, so the exit code doesn't matter). */
 function commandExists(cmd) {
-  try {
-    const r = require('node:child_process').spawnSync(cmd, ['-h'], { timeout: 5000 })
-    return !r.error
-  } catch {
-    return false
-  }
+  return new Promise((resolve) => {
+    require('node:child_process').execFile(cmd, ['-h'], { timeout: 5000 }, (err) => resolve(!(err && (typeof err.code === 'string' || err.killed))))
+  })
 }
 
-function collectDevInfo() {
+async function collectDevInfo() {
   const mem = process.getSystemMemoryInfo?.() ?? {}
-  const gpu = commandLine('nvidia-smi', ['--query-gpu=name,driver_version,memory.total', '--format=csv,noheader'])
+  const [gpu, ytdlp, ffmpegLine, hasEsrgan, hasRife, py] = await Promise.all([
+    commandLine('nvidia-smi', ['--query-gpu=name,driver_version,memory.total', '--format=csv,noheader']),
+    commandLine(ytdlpCommand(), ['--version']),
+    commandLine('ffmpeg', ['-version']),
+    commandExists('realesrgan-ncnn-vulkan'),
+    commandExists('rife-ncnn-vulkan'),
+    commandLine(pythonCommand(), ['--version']),
+  ])
   return {
     app: { version: app.getVersion(), packaged: app.isPackaged, userData: redact(app.getPath('userData')), uptimeSec: Math.round(process.uptime()) },
     runtime: { electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node, v8: process.versions.v8 },
@@ -3134,11 +3140,11 @@ function collectDevInfo() {
       gpu: gpu ?? 'no NVIDIA GPU detected',
     },
     tools: {
-      'yt-dlp': commandLine(ytdlpCommand(), ['--version']) ?? 'not found',
-      ffmpeg: commandLine('ffmpeg', ['-version'])?.replace(/^ffmpeg version /, '').split(' ')[0] ?? 'not found',
-      realesrgan: commandExists('realesrgan-ncnn-vulkan') ? 'found' : 'not found',
-      rife: commandExists('rife-ncnn-vulkan') ? 'found' : 'not found',
-      python: commandLine(pythonCommand(), ['--version']) ?? 'not found',
+      'yt-dlp': ytdlp ?? 'not found',
+      ffmpeg: ffmpegLine?.replace(/^ffmpeg version /, '').split(' ')[0] ?? 'not found',
+      realesrgan: hasEsrgan ? 'found' : 'not found',
+      rife: hasRife ? 'found' : 'not found',
+      python: py ?? 'not found',
       venv: fs.existsSync(VENV_PYTHON) ? redact(VENV_DIR) : 'not created',
       'GPU Whisper libs': venvNvidiaLibDirs().length ? 'installed' : 'not installed',
     },
@@ -3147,7 +3153,7 @@ function collectDevInfo() {
 }
 
 ipcMain.handle('dev:info', async () => {
-  const info = collectDevInfo()
+  const info = await collectDevInfo()
   info.tools.pytorchEngine = (await torchEngineReady()) ? 'CUDA available' : 'not available'
   return info
 })
@@ -3162,7 +3168,7 @@ ipcMain.handle('dev:tasks', () =>
 ipcMain.handle('dev:diagnostics', async () => {
   const report = {
     generatedAt: new Date().toISOString(),
-    ...collectDevInfo(),
+    ...(await collectDevInfo()),
     settings: JSON.parse(redact(JSON.stringify(getSettings()))),
     recentTasks: [...tasks.values()].slice(-15).map((t) => ({ kind: t.state.kind, status: t.state.status, format: t.state.format, error: t.state.error ?? null })),
     log: appLog.slice(-150).map((l) => `${new Date(l.t).toISOString()} ${l.level} ${redact(l.text)}`),
