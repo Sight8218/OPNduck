@@ -167,7 +167,72 @@ body {
   animation-delay: var(--pop-delay, 0ms);
 }
 
+/* Menu icon animations: played while the menu card is hovered (or pressed). */
+.nav-icon {
+  transform-origin: 50% 60%;
+}
+.group:hover .nav-icon-spin,
+.group:active .nav-icon-spin {
+  animation: nav-spin 0.9s cubic-bezier(0.5, 0, 0.2, 1);
+}
+.group:hover .nav-icon-hop,
+.group:active .nav-icon-hop {
+  animation: nav-hop 0.5s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+.group:hover .nav-icon-books,
+.group:active .nav-icon-books {
+  animation: nav-books 0.6s ease-in-out;
+}
+.group:hover .nav-icon-plug,
+.group:active .nav-icon-plug {
+  animation: nav-plug 0.55s ease-out;
+}
+.nav-spark {
+  opacity: 0;
+}
+.group:hover .nav-spark,
+.group:active .nav-spark {
+  animation: nav-spark 0.55s ease-out;
+}
+@keyframes nav-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* Home: crouch, jump, land. */
+@keyframes nav-hop {
+  0% { transform: translateY(0) scale(1, 1); }
+  20% { transform: translateY(1px) scale(1.12, 0.88); }
+  55% { transform: translateY(-5px) scale(0.94, 1.08); }
+  80% { transform: translateY(0) scale(1.08, 0.92); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+/* Library: a book is pulled out, tipped, and slid back in. */
+@keyframes nav-books {
+  0% { transform: translateY(0) rotate(0); }
+  35% { transform: translateY(-4px) rotate(-10deg); }
+  65% { transform: translateY(-4px) rotate(8deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+/* Plugins: pulled back, then pushed into the socket. */
+@keyframes nav-plug {
+  0% { transform: translate(0, 0); }
+  30% { transform: translate(-3px, 3px); }
+  60% { transform: translate(1px, -1px); }
+  100% { transform: translate(0, 0); }
+}
+/* ...and the contact sparks, timed to the moment it seats. */
+@keyframes nav-spark {
+  0%, 50% { opacity: 0; transform: scale(0.4); }
+  62% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .nav-icon,
+  .nav-spark {
+    animation: none !important;
+  }
   .theme-card-active {
     animation: none;
   }

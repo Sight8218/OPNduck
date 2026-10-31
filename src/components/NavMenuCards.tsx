@@ -2,6 +2,9 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { NAV_ITEMS } from '../lib/nav'
 import { useNavDisplay } from '../lib/navContext'
+import NavIcon, { type NavIconEffect } from './NavIcon'
+
+const EFFECTS: Record<string, NavIconEffect> = { '/': 'hop', '/library': 'books', '/plugins': 'plug', '/settings': 'spin' }
 
 /**
  * The four menu cards (Home · Library · Plugins · Settings) with a single
@@ -46,14 +49,7 @@ export default function NavMenuCards({ layoutId = 'nav-active' }: { layoutId?: s
               />
             )}
             <span className="relative z-10 flex items-center gap-2">
-              {showIcon && (
-                <Icon
-                  size={20}
-                  stroke={1.6}
-                  aria-hidden="true"
-                  className="transition-transform duration-200 ease-out group-hover:scale-[1.15] group-active:scale-90"
-                />
-              )}
+              {showIcon && <NavIcon icon={Icon} effect={EFFECTS[item.to] ?? 'hop'} />}
               {showLabel && <span className={labelResponsive}>{item.label}</span>}
             </span>
           </NavLink>
