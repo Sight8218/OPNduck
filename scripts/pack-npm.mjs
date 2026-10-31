@@ -24,8 +24,8 @@ Full guide: https://github.com/Sight8218/OPNduck/blob/main/docs/TUI.md
 `
 
 const variants = [
-  { dir: 'opnduck-tui', name: 'opnduck-tui', publishConfig: { access: 'public' } },
-  { dir: 'sight8218-opnduck-tui', name: '@sight8218/opnduck-tui', publishConfig: { registry: 'https://npm.pkg.github.com', access: 'public' } },
+  { dir: 'opnduck-tui', name: 'opnduck-tui', publishConfig: { access: 'public', tag: 'latest' } },
+  { dir: 'sight8218-opnduck-tui', name: '@sight8218/opnduck-tui', publishConfig: { registry: 'https://npm.pkg.github.com', access: 'public', tag: 'latest' } },
 ]
 
 rmSync('release-build/npm', { recursive: true, force: true })
