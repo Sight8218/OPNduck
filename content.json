@@ -1,6 +1,8 @@
 {
   "_note": "Edited via the OPNduck dev panel (open any page with ?dev or press Ctrl+Shift+D). Export from the panel and commit this file to publish.",
-  "github": { "repo": "Sight8218/OPNduck" },
+  "github": {
+    "repo": "Sight8218/OPNduck"
+  },
   "hero": {
     "eyebrow": "FREE · OPEN SOURCE · RUNS ON YOUR HARDWARE",
     "title": "Your GPU already does this.\nStop paying monthly for it.",
@@ -15,28 +17,61 @@
     {
       "img": "assets/settings.png",
       "title": "Settings",
-      "caption": "Global configuration: Glass or Monochrome UI modes, menu-icon style, motion & density, and keybinds — kept separate from the workspace."
+      "caption": "Global configuration: three main themes plus 24 Omarchy palettes, menu-icon style, motion and density, keybinds, job queue, GPU performance, notifications and more."
     }
   ],
   "roadmap": {
     "shipped": [
-      "App shell & navigation",
-      "Settings (themes, keybinds)",
-      "Glass / Monochrome UI modes",
-      "Video/audio downloader, incl. YouTube playlists (yt-dlp)",
-      "Format converter: video, audio, image, documents",
-      "AI image/video upscaling and frame interpolation (needs Real-ESRGAN / RIFE installed)",
-      "Subtitles generator (faster-whisper) and AI Audio: remove vocals, isolate a voice (Demucs)",
-      "Subscriptions: auto-download new uploads from channels and playlists",
-      "Sign-in for private videos, 8K and subtitles, channel/search/Watch Later downloads",
-      "Library: search, filters, groups, export and import"
+      "Video downloader (yt-dlp) with playlists, subtitles, login cookies and subscriptions",
+      "Converter for media, images and documents",
+      "AI upscaler (image + video) and frame interpolation",
+      "Subtitles with Whisper, AI audio (vocal removal, voice isolation)",
+      "Trimmer with a visual editor",
+      "Job queue, watch folder, notifications and tray",
+      "Faster GPU engine: PyTorch streaming + NVENC",
+      "MCP server so AI apps can drive OPNduck",
+      "Library with search, filters, groups, export and import",
+      "Themes: Blarange, Monochrome, Osaka Jade + 24 Omarchy palettes"
     ],
     "planned": [
-      { "name": "Migrate from Electron to Tauri", "postponed": true, "note": "Postponed: the Linux webview used by Tauri (WebKitGTK) stutters and can crash on NVIDIA + Wayland, so OPNduck stays on Electron until that is fixed upstream." },
-      { "name": "macOS build", "inProgress": false }
+      {
+        "name": "Migrate from Electron to Tauri",
+        "postponed": true,
+        "note": "Postponed: the Linux webview used by Tauri (WebKitGTK) stutters and can crash on NVIDIA + Wayland, so OPNduck stays on Electron until that is fixed upstream."
+      },
+      {
+        "name": "Windows code signing",
+        "inProgress": false
+      },
+      {
+        "name": "AUR package listing",
+        "inProgress": true
+      },
+      {
+        "name": "macOS build",
+        "inProgress": false
+      }
     ]
   },
   "blog": [
+    {
+      "slug": "v0-5-1-beta",
+      "title": "v0.5.1 Beta — AI apps can drive OPNduck",
+      "date": "2026-10-31",
+      "author": "Ducky",
+      "tag": "RELEASE",
+      "excerpt": "An optional local MCP server lets Claude Code, Codex, Gemini CLI, Cursor and other AI apps start and watch OPNduck jobs. Plus animated menu icons and a few things to find.",
+      "body": "A new optional MCP server (off by default, Settings → System) lets any MCP-capable AI app start downloads, conversions, upscales, trims and subtitles, watch progress and cancel jobs. It only listens on your own computer, needs a private token, and saves only to your download folder.\nThe menu icons now animate: the gear spins, the plug sparks, the books get pulled out, the house hops.\nThere is also something hiding for the curious."
+    },
+    {
+      "slug": "v0-5-0-beta",
+      "title": "v0.5.0 Beta — the performance update",
+      "date": "2026-10-31",
+      "author": "Ducky",
+      "tag": "RELEASE",
+      "excerpt": "A faster GPU video engine (PyTorch streaming + NVENC), a trimmer with a visual editor, queue controls, watch folder, notifications, live logs on every card, Electron 45 and 24 new Omarchy palettes.",
+      "body": "Video upscaling can now stream frames straight through the GPU and encode with NVENC: 1.4x to 3.6x faster end to end in my tests, depending on scale.\nLong videos are processed in chunks so temp disk use stays small.\nNew: trimmer with a visual editor, pause/resume queue, parallel job limits, watch folder, finish notifications and tray mode, live logs on every card and a progress bar that only moves forward.\nThe Tauri migration is postponed: WebKitGTK stutters and crashes on NVIDIA + Wayland, so OPNduck stays on Electron for now."
+    },
     {
       "slug": "v0-2-0-pre-alpha",
       "title": "v0.2.0 Pre-Alpha — the shell rebuild",
@@ -48,11 +83,21 @@
     }
   ],
   "downloads": {
-    "version": "v0.4.0-Beta",
-    "releaseUrl": "https://github.com/Sight8218/OPNduck/releases/tag/v0.4.0-Beta",
+    "version": "v0.5.1-Beta",
+    "releaseUrl": "https://github.com/Sight8218/OPNduck/releases/tag/v0.5.1-Beta",
     "links": [
-      { "platform": "Windows", "url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.4.0-Beta" },
-      { "platform": "Linux", "url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.4.0-Beta" }
+      {
+        "platform": "Windows",
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.5.1-Beta/OPNduck.Setup.0.5.1-beta.exe"
+      },
+      {
+        "platform": "Linux",
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.5.1-Beta/OPNduck-0.5.1-beta.AppImage"
+      },
+      {
+        "platform": "Arch Linux",
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.5.1-Beta/opnduck-desktop-0.5.1-beta.pacman"
+      }
     ]
   }
 }

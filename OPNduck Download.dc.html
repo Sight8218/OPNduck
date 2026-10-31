@@ -47,9 +47,9 @@
 
   <!-- HERO -->
   <div style="padding:70px 48px 40px; max-width:960px; margin:0 auto; text-align:left;">
-    <span data-dl-version style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1.5px; color:#e1892f; background:rgba(225,137,47,0.12); border:1px solid rgba(225,137,47,0.35); border-radius:5px; padding:5px 10px;">V0.2.1-ALPHA</span>
+    <span data-dl-version style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1.5px; color:#e1892f; background:rgba(225,137,47,0.12); border:1px solid rgba(225,137,47,0.35); border-radius:5px; padding:5px 10px;">V0.5.1-BETA</span>
     <h1 style="font-family:'JetBrains Mono',monospace; font-size:38px; font-weight:700; margin:20px 0 16px; letter-spacing:-0.3px;">Download &amp; build</h1>
-    <p style="font-size:16px; line-height:1.65; color:#a89a86; margin:0; max-width:600px; text-wrap:pretty;">No auto-updater, no download counter to impress you with. It's alpha — here's how to get it running today, and what to expect if you do.</p>
+    <p style="font-size:16px; line-height:1.65; color:#a89a86; margin:0; max-width:600px; text-wrap:pretty;">Installers (Windows, Linux AppImage, Arch package) are unsigned for now, there's no auto-updater, no download counter to impress you with. It's beta — here's how to get it running today, and what to expect if you do.</p>
   </div>
 
   <!-- GET THE RELEASE -->
@@ -58,7 +58,7 @@
     <div style="background:linear-gradient(155deg,#211a13,#171310); border:1px solid rgba(225,137,47,0.25); border-radius:14px; padding:30px;">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:20px;">
         <div>
-          <div style="font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; color:#ede6d9;" data-dl-version-title>V0.2.1-Alpha</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; color:#ede6d9;" data-dl-version-title>V0.5.1-Beta</div>
           <div style="font-size:13px; color:#8a7c68; margin-top:4px;">Pre-built binaries, straight from the GitHub release page.</div>
         </div>
         <a href="https://github.com/Sight8218/OPNduck/releases" data-gh-rel-link style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#e1892f;">All releases &rarr;</a>
@@ -87,7 +87,7 @@
       </div>
     </div>
     <div style="background:rgba(225,137,47,0.06); border:1px solid rgba(225,137,47,0.2); border-radius:10px; padding:16px 20px; font-size:13.5px; color:#c4b8a4; line-height:1.6;">
-      Build steps are changing fast during pre-alpha and will go stale here faster than in the repo — <a href="https://github.com/Sight8218/OPNduck">the README</a> is the source of truth, not this page.
+      Build steps are changing fast during beta and will go stale here faster than in the repo — <a href="https://github.com/Sight8218/OPNduck">the README</a> is the source of truth, not this page.
     </div>
   </div>
 
@@ -123,7 +123,19 @@
     <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:20px;">RELEASE NOTES</div>
     <div style="border-left:2px solid rgba(225,137,47,0.3); padding-left:24px; margin-left:6px;">
       <div style="margin-bottom:26px;">
-        <div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#e1892f; margin-bottom:6px;">v0.2.1-alpha</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#e1892f; margin-bottom:6px;">v0.5.1-beta</div>
+        <div style="font-size:13.5px; color:#a89a86; line-height:1.6; text-wrap:pretty;">Optional local MCP server so AI apps (Claude Code, Codex, Gemini CLI, Cursor and more) can start and watch jobs. Animated menu icons. Something hiding for the curious.</div>
+      </div>
+      <div style="margin-bottom:26px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#e1892f; margin-bottom:6px;">v0.5.0-beta</div>
+        <div style="font-size:13.5px; color:#a89a86; line-height:1.6; text-wrap:pretty;">The performance update: PyTorch streaming + NVENC video engine, chunked long videos, trimmer with a visual editor, queue controls, watch folder, notifications and tray, live logs, 24 Omarchy palettes, Electron 45.</div>
+      </div>
+      <div style="margin-bottom:26px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#e1892f; margin-bottom:6px;">v0.4.0-beta</div>
+        <div style="font-size:13.5px; color:#a89a86; line-height:1.6; text-wrap:pretty;">The first beta with all the tools working: downloader, converter, upscalers, interpolation, subtitles and AI audio.</div>
+      </div>
+      <div style="margin-bottom:26px;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#8a7c68; margin-bottom:6px;">v0.2.1-alpha</div>
         <div style="font-size:13.5px; color:#a89a86; line-height:1.6; text-wrap:pretty;">Patch: the packaged app was effectively unusable on first install — navigation didn't work and social icons were missing, because React Router's BrowserRouter can't resolve routes when the app loads from disk instead of a real server. Fixed by switching to HashRouter and correcting a few hardcoded asset paths.</div>
       </div>
       <div style="margin-bottom:26px;">
@@ -160,7 +172,7 @@ class Component extends DCLogic {
   componentDidMount() {
     this._fetchGitHub('Sight8218/OPNduck');
     if (window.OPNduckCMS) window.OPNduckCMS.load().then(c => this._apply(c || {}));
-    else this._renderButtons({ links: [{ platform: 'Windows', url: 'https://github.com/Sight8218/OPNduck/releases/tag/v0.2.1-Alpha' }, { platform: 'Linux', url: 'https://github.com/Sight8218/OPNduck/releases/tag/v0.2.1-Alpha' }] });
+    else this._renderButtons({ links: [{ platform: 'Windows', url: 'https://github.com/Sight8218/OPNduck/releases/tag/v0.5.1-Beta' }, { platform: 'Linux', url: 'https://github.com/Sight8218/OPNduck/releases/tag/v0.5.1-Beta' }] });
   }
   _apply(c) {
     const d = c.downloads || {};
