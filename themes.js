@@ -127,7 +127,7 @@
     'OPNDUCK'.split('').forEach(function (ch) {
       GLYPHS[ch].forEach(function (row, r) {
         row.split('').forEach(function (b, c) {
-          if (b === '1') rects += '<rect x="' + (x + c) * cell + '" y="' + r * cell + '" width="' + cell + '" height="' + cell + '" style="fill:color-mix(in srgb,white ' + BANDS[r] + '%,var(--oth-accent))"/>';
+          if (b === '1') rects += '<rect x="' + (x + c) * cell + '" y="' + r * cell + '" width="' + cell + '" height="' + cell + '" style="fill:color-mix(in srgb,var(--oth-fg) ' + BANDS[r] + '%,var(--oth-accent))"/>';
         });
       });
       x += 6;
@@ -175,6 +175,7 @@
     sweep();
     document.documentElement.style.colorScheme = PALETTES[slug][0];
     document.documentElement.style.setProperty('--oth-accent', PALETTES[slug][1]);
+    document.documentElement.style.setProperty('--oth-fg', PALETTES[slug][5]);
     document.querySelectorAll('.oth-item').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.slug === slug ? 'true' : 'false'); });
   }
 
