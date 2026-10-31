@@ -7,6 +7,8 @@ history; entries are curated for readability.
 ## [Unreleased]
 
 ### Changed
+- Plainer wording and less filler across the app: Home is a short "Tools" page, tool cards no longer carry a Desktop/Universal badge, shorter Settings and theme text, a clearer Download button, and the Settings category panel no longer overlaps the page.
+
 - New startup screen: a duck bobbing on moving waves with the wordmark hopping in, all in the colours of your chosen theme (including Omarchy and palette themes), replacing the old fixed orange gradient bar.
 - Home is less crowded: a compact tile for each tool, and only the tool you pick opens below. The open tool is in the URL (`?tool=`), so the command palette now jumps straight to it.
 
@@ -84,6 +86,8 @@ is still **postponed** (WebKitGTK on Linux stutters/crashes with NVIDIA + Waylan
   filter is retried off), and a file with no speech reports that instead of saving an empty .srt.
 
 ### Changed
+- Plainer wording and less filler across the app: Home is a short "Tools" page, tool cards no longer carry a Desktop/Universal badge, shorter Settings and theme text, a clearer Download button, and the Settings category panel no longer overlaps the page.
+
 
 - **Electron 45.2.0** (Chromium 156, Node 24.22). Release notes for 45.0–45.2 reviewed: nothing in OPNduck uses the
   removed sandbox preload globals, the changed ASAR `fs.open` behaviour, or the deprecated `safeStorage`. New in
@@ -186,6 +190,8 @@ NVIDIA + Wayland); OPNduck stays on Electron.
   shows the install command when it's missing.
 
 ### Changed
+- Plainer wording and less filler across the app: Home is a short "Tools" page, tool cards no longer carry a Desktop/Universal badge, shorter Settings and theme text, a clearer Download button, and the Settings category panel no longer overlaps the page.
+
 
 - Job queues: downloads run 3 at a time, conversions 2, GPU jobs (upscale, interpolation, AI audio) 1;
   the rest wait in line.
@@ -285,6 +291,8 @@ Hotfix. **Everyone on v0.3.0-Alpha should upgrade.**
 - A Content-Security-Policy was added to the renderer.
 
 ### Changed
+- Plainer wording and less filler across the app: Home is a short "Tools" page, tool cards no longer carry a Desktop/Universal badge, shorter Settings and theme text, a clearer Download button, and the Settings category panel no longer overlaps the page.
+
 
 - Full keyboard navigation in dropdowns.
 - Command-palette downloads now offer the playlist choice.
@@ -335,6 +343,8 @@ may be revisited for Windows (WebView2) or non-NVIDIA Linux.
 - Real SVG icons instead of emoji/text glyphs.
 
 ### Changed
+- Plainer wording and less filler across the app: Home is a short "Tools" page, tool cards no longer carry a Desktop/Universal badge, shorter Settings and theme text, a clearer Download button, and the Settings category panel no longer overlaps the page.
+
 
 - Motion & Density settings now apply app-wide.
 - Home grid lays out with equal-height rows and no gaps.
@@ -449,6 +459,8 @@ card dashboard. Download/convert/AI engines are not wired in yet (Alpha
 phase).
 
 ### Changed
+- Plainer wording and less filler across the app: Home is a short "Tools" page, tool cards no longer carry a Desktop/Universal badge, shorter Settings and theme text, a clearer Download button, and the Settings category panel no longer overlaps the page.
+
 
 - Removed the Flat theme entirely — the theme engine now ships with two
   modes, **Glass** and **Monochrome**, instead of three.

@@ -31,8 +31,7 @@ export default function PreAlphaBanner() {
         <p className="leading-snug">
           <strong className="font-bold text-amber-300">Beta:</strong>{' '}
           <span className="text-[var(--text-dim)]">
-            Most tools are live, but some are still rough. Expect bugs and missing
-            features. Found one? Report it on{' '}
+            Expect bugs and missing features. Found one? Report it on{' '}
           </span>
           <a
             href={GITHUB_URL}

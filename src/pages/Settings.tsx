@@ -85,13 +85,8 @@ export default function Settings() {
 
   return (
     <div className="px-4 py-6 sm:px-5">
-      {/* pl-72 clears the fixed category panel (w-60 starting at left-4/5) —
-          without it this heading sat right underneath the panel. */}
-      <div className="mb-6 max-w-6xl pl-72">
+      <div className="mx-auto mb-6 max-w-3xl">
         <h1 className="text-2xl font-extrabold text-[var(--text)] sm:text-3xl">Settings</h1>
-        <p className="mt-1 text-sm text-[var(--text-dim)]">
-          Global configuration, separate from the main workspace.
-        </p>
       </div>
 
       {/* Category rail: portaled straight to document.body, fixed to the
@@ -100,7 +95,7 @@ export default function Settings() {
           just above the bottom of the screen (viewport-relative, not
           document-relative — no need to scroll to the very end to see it). */}
       {createPortal(
-        <div className="fixed left-4 top-24 bottom-6 z-30 w-60 sm:left-5">
+        <div className="fixed left-4 top-24 bottom-6 z-30 w-56 sm:left-5">
           <SettingsNav categories={CATEGORIES.filter((c) => c.id !== 'downloads' || !!host.settings)} activeId={activeId} onSelect={select} />
         </div>,
         document.body,

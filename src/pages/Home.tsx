@@ -22,13 +22,7 @@ import AdaptiveCardGrid from '../components/AdaptiveCardGrid'
 export default function Home() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-extrabold sm:text-3xl">Welcome to OPNduck</h1>
-        <p className="mt-1 text-sm text-[var(--text-dim)]">
-          Your local-first media processing workspace. Pick a tool below — installed plugins
-          add their own tile automatically.
-        </p>
-      </div>
+      <h1 className="mb-6 text-2xl font-extrabold sm:text-3xl">Tools</h1>
 
       <AdaptiveCardGrid />
     </div>

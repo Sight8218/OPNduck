@@ -96,8 +96,7 @@ export default function ThemeToggle({
 
   return (
     <div className="glass rounded-3xl p-5">
-      <h2 className="mb-1 text-base font-bold">UI Theme</h2>
-      <p className="mb-3 text-xs text-[var(--text-dim)]">Pick a look for the whole interface. Your choice is remembered.</p>
+      <h2 className="mb-3 text-base font-bold">Theme</h2>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <ThemeCard label="Blarange" hint="Black + orange. Default." swatches={MAIN_SWATCHES.blarange} active={theme === 'blarange'} onPick={pick('blarange')} />
         <ThemeCard label="Monochrome" hint="High-contrast black & white." swatches={MAIN_SWATCHES.monochrome} active={theme === 'monochrome'} onPick={pick('monochrome')} />
@@ -114,8 +113,7 @@ export default function ThemeToggle({
 
       <h3 className="mb-1 mt-6 text-sm font-bold">Omarchy themes</h3>
       <p className="mb-3 text-xs text-[var(--text-dim)]">
-        All {Object.keys(OMARCHY_PALETTES).length} themes from Omarchy 4.5 plus the classics that were dropped (Osaka Jade), built in, so you can use them on any system
-        (Omarchy not required).
+        {Object.keys(OMARCHY_PALETTES).length} palettes from Omarchy, built in. They work on any system.
       </p>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {Object.entries(OMARCHY_PALETTES).map(([slug, c]) => (

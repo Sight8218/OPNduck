@@ -24,7 +24,7 @@ import { useReduceMotion } from '../lib/motionPrefs'
 import { FeatureIcon } from './featureIcons'
 
 /**
- * Shared chrome for every tool card: glass body, header (icon, title, tagline, scope badge) and
+ * Shared chrome for every tool card: glass body, header (icon, title, tagline) and
  * a body for the tool's own controls. The hover glow is the single `card-glow-hover` class, so it
  * always uses the current theme's colour; it is off when Reduce motion is on.
  */
@@ -102,9 +102,6 @@ export default function FeatureCard({
             <p className="text-xs text-[var(--text-dim)]">{feature.tagline}</p>
           </div>
         </div>
-        <span className="rounded-full border border-[var(--glass-border)] px-2 py-0.5 text-xs font-medium text-[var(--text-dim)]">
-          {feature.scope === 'desktop-exclusive' ? 'Desktop' : 'Universal'}
-        </span>
       </div>
 
       <p className="mb-4 text-sm leading-relaxed text-[var(--text-dim)]">{feature.description}</p>

@@ -57,7 +57,7 @@ export default function AdaptiveCardGrid() {
           <open.render feature={open} />
         </div>
       ) : (
-        <p className="text-center text-sm text-[var(--text-dim)]">Pick a tool to get started.</p>
+        <p className="text-center text-sm text-[var(--text-dim)]">Pick a tool above.</p>
       )}
     </div>
   )

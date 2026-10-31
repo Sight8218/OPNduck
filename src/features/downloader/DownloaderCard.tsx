@@ -505,7 +505,7 @@ export default function DownloaderCard({ feature }: { feature: FeatureDefinition
           disabled={!url.trim() || running || ytDlpMissing || needsLogin}
           title={ytDlpMissing ? 'Install yt-dlp first' : needsLogin ? 'Sign-in required — see Settings → Downloads' : undefined}
         >
-          {subsOnlyRun ? 'Download subtitles' : 'Run Task'}
+          {subsOnlyRun ? 'Download subtitles' : 'Download'}
         </button>
         {running && (
           <button
