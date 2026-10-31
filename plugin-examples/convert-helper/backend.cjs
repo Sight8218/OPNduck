@@ -5,7 +5,7 @@ exports.activate = async (opnduck) => {
   // The one function both the card and the command palette use.
   async function convert(inputPath) {
     const mode = (await opnduck.settings.get('mode')) ?? 'transcode'
-    const id = await opnduck.jobs.start('tasks:startConvert', { inputPath, container: 'MP4', mode })
+    const id = await opnduck.jobs.start('convert', { inputPath, container: 'MP4', mode })
     opnduck.log(`started job ${id} for ${inputPath}`)
     return { id }
   }

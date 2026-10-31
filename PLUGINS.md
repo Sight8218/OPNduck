@@ -108,7 +108,7 @@ every call. A call without the permission rejects with `PermissionError`.
 | `hooks`       | Subscribe to events (`job:finished`, `job:failed`, `watch-folder:file`). |
 | `tools`       | Register the tools declared in `tools` for MCP clients and the TUI. |
 
-Raising the permission list in an update requires the user to approve again.
+The user can approve only some of what a plugin asks for; the plugin still runs and calls to the rest are refused. Adding a permission in an update requires approval again, and the plugin stays off until then.
 
 ## Backend API
 
@@ -133,7 +133,7 @@ Everything on `opnduck` is async and permission-checked:
 ```
 opnduck.id, opnduck.version                       plugin id and version (read-only)
 opnduck.log(...args)                              written to the plugin's log
-opnduck.jobs.start(channel, req) -> jobId         [jobs]   same channel names and request shapes as electron/mcp_tools.cjs
+opnduck.jobs.start(tool, args) -> jobId           [jobs]   tool and args as in electron/mcp_tools.cjs ('convert', 'download', ...), schema-checked; jobs always write to the download folder. Any *path argument also needs files:read and an allowed path
 opnduck.jobs.list() -> [{ id, status, progress, label, error }]   [jobs]  only this plugin's jobs
 opnduck.jobs.cancel(id)                           [jobs]
 opnduck.files.read(path) -> Buffer                [files:read]
@@ -146,11 +146,14 @@ opnduck.notify({ title, body })                   [notify]
 opnduck.on(event, fn) -> unsubscribe              [hooks]
 opnduck.tools.handle(name, fn)                    [tools]  fn(args) -> result for a tool declared in the manifest
 opnduck.commands.handle(id, fn)                   command palette entry declared in the manifest
-opnduck.rpc.handle(name, fn)                      expose a function to this plugin's own UI
+opnduck.rpc.handle(name, fn)                      expose fn(arg) to this plugin's own UI
 ```
 
 Paths are checked on every call: resolved, symlinks followed, and compared against the allowed
-folders. A path outside them rejects.
+folders. A path outside them rejects. Plugin folders that are symlinks are ignored, and a backend
+entry that is a symlink leaving its folder is refused. Redirects in `net.fetch` are re-checked
+against the hostname list on every hop. A plugin that throws, hangs in `activate` (10 s) or dies is
+switched off and logged; it never takes OPNduck down.
 
 ## UI entry
 
@@ -176,7 +179,7 @@ Rules:
 (`jobs`, `files.pick`, `settings`, `notify`), all going through the same permission checks, plus:
 
 ```
-api.rpc.call(name, ...args)     call a function the backend registered with opnduck.rpc.handle
+api.rpc.call(name, arg)         call a function the backend registered with opnduck.rpc.handle
 ```
 
 The UI never gets Node, Electron or the filesystem directly; every request goes to the host,

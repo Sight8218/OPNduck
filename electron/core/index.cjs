@@ -24,14 +24,24 @@
  * @param {object} deps.platform  see core/platform.cjs
  * @param {(state: object, req: object) => void} [deps.onFinished]  called when a task reaches a final state
  * @param {(channel: string, wrapped: Function) => void} [deps.registerStart]  expose a start function (e.g. over IPC)
+ * @param {(opts: object) => Promise<string|null>} [deps.pickPath]  the shell's file dialog, for plugins
+ * @param {boolean} [deps.safeMode]  start with every plugin skipped
  */
-function createCore({ platform, onFinished = () => {}, registerStart }) {
+function createCore({ platform, onFinished = () => {}, registerStart, pickPath, safeMode = false }) {
   const settings = require('./settings.cjs')
   settings.configure(platform)
   const { getSettings, ytdlpBaseArgs, hasCookies } = settings
 
   const tools = require('./tools.cjs').createTools(platform)
-  const engine = require('./tasks.cjs').createTaskEngine({ platform, getSettings, onFinished })
+  let plugins = null // set below; the engine needs a callback before the host exists
+  const engine = require('./tasks.cjs').createTaskEngine({
+    platform,
+    getSettings,
+    onFinished: (state, req) => {
+      onFinished(state, req)
+      plugins?.emit(state.status === 'error' ? 'job:failed' : 'job:finished', { id: state.id, kind: state.kind, status: state.status, label: state.label })
+    },
+  })
 
   /** Registers a job-start function through the engine's wrapper (see wrapStart). */
   function handleStart(channel, fn) {
@@ -64,8 +74,9 @@ function createCore({ platform, onFinished = () => {}, registerStart }) {
     return start(null, req)
   }
 
-  /** Stops everything cleanly: kills queued/running jobs' processes, saves history, stops the model workers. */
+  /** Stops everything cleanly: kills queued/running jobs' processes, saves history, stops the model workers and plugins. */
   function shutdown() {
+    void plugins.shutdown()
     modules.subtitles.whisperWorker.stop()
     modules.audioAi.demucsWorker.stop()
     for (const entry of engine.tasks.values()) {
@@ -74,7 +85,10 @@ function createCore({ platform, onFinished = () => {}, registerStart }) {
     engine.saveHistory()
   }
 
-  return { platform, settings, tools, engine, modules, ctx, startJob, shutdown }
+  const core = { platform, settings, tools, engine, modules, ctx, startJob, shutdown }
+  // Not started here: the shell calls `core.plugins.init()` once it is ready (after its windows and dialogs exist).
+  plugins = core.plugins = require('./plugins.cjs').createPluginHost({ core, platform, pickPath, safeMode })
+  return core
 }
 
 module.exports = { createCore }
