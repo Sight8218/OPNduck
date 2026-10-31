@@ -1,0 +1,12 @@
+{
+  "note": "DRAFT ONLY - not sent.",
+  "project": "OPNduck",
+  "version": "v0.5.1-Beta",
+  "content": "**OPNduck v0.5.1-Beta** 🦆\n\n**New**\n• MCP server (Settings → System, off by default): let any MCP-capable AI app (Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, LM Studio...) start jobs, watch logs and manage the queue - localhost only, token-protected\n• Animated menu icons\n• Something hiding for the curious... 👀\n\nBeta: expect bugs. Windows installers untested on real Windows. Tauri still postponed (WebKitGTK stutters/crashes with NVIDIA + Wayland).",
+  "embeds": [
+    {
+      "title": "OPNduck v0.5.1-Beta",
+      "url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.5.1-Beta"
+    }
+  ]
+}

@@ -6,6 +6,8 @@ history; entries are curated for readability.
 
 ## [Unreleased]
 
+## [0.5.1-Beta] - 2026-10-31
+
 ### Added
 - **A secret for the curious**: something hides behind the OPNduck name. Once found, Settings gains a switch to keep it in the menu.
 - **Animated menu icons**: Settings spins, Plugins pulls back and plugs in with a spark, Library pulls a book out, Home hops. They play on hover/press and are off with reduced motion.

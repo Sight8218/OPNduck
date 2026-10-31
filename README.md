@@ -5,7 +5,7 @@ upscaling, motion frame-interpolation, media downloads, conversions, and transcr
 directly to your local GPU/CPU at zero cost — no subscriptions, no cloud, no spying. All
 your media stays on your machine.
 
-This is **v0.5.0-Beta**, the performance release. Video upscaling now streams frames through the GPU
+This is **v0.5.1-Beta**, a small follow-up to the v0.5.0-Beta performance release: OPNduck can now be driven by any MCP-capable AI app (Settings → System, off by default), the menu icons are animated, and there is something hiding for the curious. The v0.5.0-Beta release brought the performance work. Video upscaling now streams frames through the GPU
 (PyTorch, NVIDIA) with no temporary image files, about 1.4-3.6x faster than the classic engine in testing, and
 AI video jobs can encode on the GPU (NVENC). Long videos are processed in chunks so temp disk use stays small,
 and AI Audio and Subtitles keep their models loaded between files. New tools include a visual **trimmer**, a
@@ -131,7 +131,7 @@ wired in, as is Subtitles (faster-whisper); Beat Finder lands in a later update.
 
 ## 📝 Project Metadata & Licensing
 
-- **Project State**: `v0.5.0-Beta` (most engines wired in; Beat Finder still stubbed — expect bugs!)
+- **Project State**: `v0.5.1-Beta` (most engines wired in; Beat Finder still stubbed — expect bugs!)
 - **Original Developer**: Aaron
 - **Development Model**: Built with the architectural assistance of AI.
 - **License**: [GPL-3.0](./LICENSE) — free software. Copyright © 2026 Aaron Jonsson.
