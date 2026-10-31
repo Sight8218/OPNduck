@@ -41,6 +41,7 @@ const { readOmarchyTheme, watchOmarchyTheme } = require('./omarchy.cjs')
 const { getSettings, setSettings, ytdlpBaseArgs, hasCookies } = require('./settings.cjs')
 const { openLoginWindow, clearLogin, loginStatus, loginContents } = require('./login.cjs')
 const { createSubscriptionManager } = require('./subscriptions.cjs')
+const { createMcpServer } = require('./mcp.cjs')
 
 const DEV_SERVER_URL = process.env.OPNDUCK_DEV_URL || 'http://localhost:1420'
 
@@ -175,10 +176,11 @@ function ytDlpInstallHint() {
 
 // Shared yt-dlp args (UTF-8 output, proxy, login cookies) come from ytdlpBaseArgs() in settings.cjs.
 ipcMain.handle('settings:get', () => getSettings())
-ipcMain.handle('settings:set', (_e, patch) => {
+ipcMain.handle('settings:set', async (_e, patch) => {
   const next = setSettings(patch)
   if (patch && 'runInTray' in patch) applyTray()
   applyQueueLimits()
+  if (patch && 'mcpServer' in patch) await applyMcp()
   return next
 })
 
@@ -962,11 +964,12 @@ function applyQueueLimits() {
 }
 
 ipcMain.handle('queue:state', () => ({ paused: queuePaused }))
-ipcMain.handle('queue:setPaused', (_e, paused) => {
+function setQueuePaused(paused) {
   queuePaused = !!paused
   if (!queuePaused) allPools.forEach((p) => p.drain())
   broadcastQueueState()
-})
+}
+ipcMain.handle('queue:setPaused', (_e, paused) => setQueuePaused(paused))
 // "Run next": a queued job jumps the line within its own queue.
 ipcMain.handle('tasks:runNext', (_e, id) => (typeof id === 'string' ? allPools.some((p) => p.prioritize(id)) : false))
 
@@ -1718,13 +1721,18 @@ ipcMain.handle('subs:remove', (_e, id) => needSubs().remove(String(id)))
 ipcMain.handle('subs:setEnabled', (_e, id, enabled) => needSubs().setEnabled(String(id), !!enabled))
 ipcMain.handle('subs:checkNow', (_e, id) => needSubs().checkNow(id ? String(id) : undefined))
 
-ipcMain.on('tasks:cancel', (_e, id) => {
+/** Cancels a queued or running task; false if there is nothing to cancel. */
+function cancelTask(id) {
   const entry = tasks.get(id)
-  if (!entry) return
+  if (!entry) return false
   // Don't rewrite the outcome of a task that already finished.
-  if (!['queued', 'running'].includes(entry.state.status)) return
+  if (!['queued', 'running'].includes(entry.state.status)) return false
   killTask(entry)
   updateTask(id, { status: 'canceled' })
+  return true
+}
+ipcMain.on('tasks:cancel', (_e, id) => {
+  cancelTask(id)
 })
 
 ipcMain.handle('tasks:rerun', (_e, id, opts) => {
@@ -3092,6 +3100,55 @@ handleStart('tasks:startSubtitles', (_e, req) => {
 })
 // --- end: subtitles/whisper-transcription ---
 
+/* --- MCP server (Settings → MCP server): lets Claude Code and other MCP clients drive jobs --- */
+// @category: mcp/mcp-main
+let mcp = null
+function needMcp() {
+  mcp ??= createMcpServer({
+    userDataDir: app.getPath('userData'),
+    tasks,
+    startHandlers,
+    cancelTask,
+    setQueuePaused,
+    probeMedia,
+    log: (m) => console.log(m),
+  })
+  return mcp
+}
+/** Starts or stops the server to match the setting. */
+async function applyMcp() {
+  try {
+    if (getSettings().mcpServer) await needMcp().start()
+    else if (mcp) await mcp.stop()
+  } catch (err) {
+    console.error('mcp: could not change server state:', err instanceof Error ? err.message : err)
+  }
+}
+function mcpInfo() {
+  const server = needMcp()
+  const bridge = path.join(__dirname, 'mcp_bridge.cjs')
+  const packaged = app.isPackaged
+  const command = packaged ? process.execPath : 'node'
+  const args = [bridge, server.infoFile]
+  const env = packaged ? { ELECTRON_RUN_AS_NODE: '1' } : {}
+  const q = (x) => (/[\s"']/.test(x) ? JSON.stringify(x) : x)
+  const envFlags = Object.entries(env).map(([k, v]) => `-e ${k}=${v}`)
+  return {
+    enabled: getSettings().mcpServer,
+    running: server.running,
+    port: server.port,
+    command,
+    args,
+    env,
+    claudeCommand: ['claude mcp add opnduck', ...envFlags, '--', q(command), ...args.map(q)].join(' '),
+  }
+}
+ipcMain.handle('mcp:info', () => mcpInfo())
+ipcMain.handle('mcp:resetToken', async () => {
+  await needMcp().resetToken()
+  return mcpInfo()
+})
+
 /* --- Developer tools (Settings, with dev mode on) --- */
 // @category: dev/dev-tools-main
 /** Makes text safe to paste in a bug report: home folder -> ~, credentials inside URLs hidden. */
@@ -3755,6 +3812,7 @@ app.whenReady().then(() => {
   trace('history loaded')
   startSubscriptions()
   trace('subscriptions started')
+  void applyMcp()
   createWindow()
   applyTray()
   trace('window created')
@@ -3763,7 +3821,10 @@ app.whenReady().then(() => {
   })
 })
 
-app.on('before-quit', () => subscriptions?.stop())
+app.on('before-quit', () => {
+  subscriptions?.stop()
+  void mcp?.stop()
+})
 
 // Don't orphan ffmpeg/soffice/python on exit, and don't lose a result that finished inside
 // the 400ms history-save debounce.

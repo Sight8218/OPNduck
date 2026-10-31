@@ -48,6 +48,8 @@ const DEFAULTS = {
   maxConversions: 2,
   /** Encoder for AI video jobs: 'auto' = GPU (NVENC) when it works, 'cpu' = x264. */
   videoEncoder: 'auto',
+  /** Local MCP server so tools like Claude Code can start and watch jobs (see mcp.cjs). Off by default. */
+  mcpServer: false,
   cookies: {
     /** 'none' | 'browser' (read from an installed browser) | 'file' (Netscape cookies.txt) |
      *  'login' (cookies saved from OPNduck's own sign-in window, see login.cjs). */
@@ -92,6 +94,7 @@ function validate(next) {
   if (w.enabled && !w.path) throw new Error('Choose a folder to watch first')
   if (typeof next.notifyOnFinish !== 'boolean' || typeof next.runInTray !== 'boolean') throw new Error('Invalid notification setting')
   if (!['auto', 'cpu'].includes(next.videoEncoder)) throw new Error('Invalid video encoder')
+  if (typeof next.mcpServer !== 'boolean') throw new Error('Invalid MCP server setting')
   const c = next.cookies
   if (!c || !['none', 'browser', 'file', 'login'].includes(c.mode)) throw new Error('Invalid cookie source')
   if (!COOKIE_BROWSERS.includes(c.browser)) throw new Error('Unsupported browser for cookies')
@@ -148,6 +151,7 @@ function setSettings(patch) {
     maxDownloads: patch.maxDownloads !== undefined ? patch.maxDownloads : current.maxDownloads,
     maxConversions: patch.maxConversions !== undefined ? patch.maxConversions : current.maxConversions,
     videoEncoder: patch.videoEncoder !== undefined ? patch.videoEncoder : current.videoEncoder,
+    mcpServer: patch.mcpServer !== undefined ? patch.mcpServer : current.mcpServer,
     cookies: { ...current.cookies, ...(patch.cookies && typeof patch.cookies === 'object' ? patch.cookies : {}) },
   }
   validate(next)
