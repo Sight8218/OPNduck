@@ -6,6 +6,9 @@ history; entries are curated for readability.
 
 ## [Unreleased]
 
+### Added
+- **MCP server** (Settings → System, off by default): any MCP-capable AI app (Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, LM Studio, ...) can start downloads, conversions, upscales, interpolation, subtitles, trims and audio AI, watch jobs and their logs, cancel jobs and pause the queue. Localhost only, token-protected, saves only to your download folder, jobs are tagged "via MCP". See `docs/MCP.md`.
+
 ## [0.5.0-Beta] - 2026-10-31
 
 The performance release. Video upscaling now streams frames straight through the GPU (PyTorch) with no temporary

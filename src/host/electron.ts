@@ -36,6 +36,7 @@ import type {
   UpscaleRequest,
   TrimRequest,
   MediaInfo,
+  McpInfo,
 } from './index'
 import type { OmarchyTheme } from '../themes/omarchySync'
 
@@ -61,6 +62,7 @@ interface ElectronBridge {
   checkFasterWhisper(): Promise<ToolStatus>
   checkDemucs(): Promise<ToolStatus>
   dev: NonNullable<Host['dev']>
+  mcp: { info(): Promise<McpInfo>; resetToken(): Promise<McpInfo> }
   queue: {
     state(): Promise<{ paused: boolean }>
     setPaused(paused: boolean): Promise<void>
@@ -75,7 +77,7 @@ interface ElectronBridge {
   onInstallProgress(listener: (p: { tool: PythonTool; line: string }) => void): () => void
   settings: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   subscriptions: {
     list(): Promise<Subscription[]>
@@ -197,6 +199,7 @@ export function detectElectronHost(): Host | null {
     },
     cancelInstall: () => bridge.cancelInstall(),
     dev: bridge.dev,
+    mcp: { info: () => bridge.mcp.info(), resetToken: () => bridge.mcp.resetToken() },
     queue: {
       state: () => bridge.queue.state(),
       setPaused: (paused) => bridge.queue.setPaused(paused),

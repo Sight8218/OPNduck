@@ -166,6 +166,7 @@ function TaskRowImpl({ task }: { task: TaskState }) {
           </Tag>
         )}
         {task.experimentalMatch && <Tag>{task.experimentalMatch}</Tag>}
+        {task.source === 'mcp' && <Tag>via MCP</Tag>}
       </div>
       <ProgressBar value={task.progress} status={task.status} />
       <TaskLogs taskId={task.id} />

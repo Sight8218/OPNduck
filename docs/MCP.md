@@ -1,0 +1,41 @@
+# OPNduck as an MCP server
+
+OPNduck can be driven by any AI app that supports the [Model Context Protocol](https://modelcontextprotocol.io): Claude Code, Codex CLI, Gemini CLI, Cursor, Claude Desktop, LM Studio and others. It is off by default.
+
+## Turn it on
+
+1. Settings → System → **MCP server** → turn it on.
+2. Pick your AI app in the same card. OPNduck shows the exact command to run, or the JSON to paste into that app's MCP settings.
+3. Keep OPNduck running while you use the tools.
+
+Any client that can start a stdio MCP server works. Clients that only accept a web URL (no command) are not supported yet.
+
+## Tools
+
+| Tool | What it does |
+|---|---|
+| `download` | yt-dlp download from a URL (format, quality) |
+| `convert` | convert a media, image or document file |
+| `upscale_image`, `upscale_video` | Real-ESRGAN |
+| `interpolate` | RIFE frame interpolation (2x/4x) |
+| `subtitles` | Whisper subtitles (SRT/VTT, optional translate to English) |
+| `trim` | cut a section out of a file |
+| `audio_ai` | vocal removal / voice isolation / cleanup |
+| `list_jobs`, `job_status` | progress, output path, last log lines |
+| `cancel_job`, `queue_pause`, `queue_resume` | control |
+| `probe_media` | duration, resolution (read-only) |
+
+Start tools return a job id right away; poll `job_status` for the result.
+
+## Safety
+
+- Listens on `127.0.0.1` only, on a random port, and needs a private token (`mcp.json` in the app's data folder, owner-only).
+- Browser requests (anything with an `Origin` header) are refused.
+- Tools only accept existing regular files by absolute path, and never choose an output folder: everything saves to your normal download folder.
+- No tool deletes files, changes settings or reads arbitrary files.
+- At most 20 MCP jobs may be waiting or running; they show a "via MCP" tag in the Library.
+- Turning the setting off closes the port and deletes the token. "Reset token" issues a new one.
+
+## How it works
+
+`electron/mcp_bridge.cjs` is a small stdio MCP server (plain Node, no dependencies) that the AI app starts. It forwards each call to the running app (`electron/mcp.cjs`), which runs the same job handlers the UI uses. Tool definitions live in `electron/mcp_tools.cjs`.

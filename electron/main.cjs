@@ -3141,6 +3141,17 @@ function mcpInfo() {
     args,
     env,
     claudeCommand: ['claude mcp add opnduck', ...envFlags, '--', q(command), ...args.map(q)].join(' '),
+    // Any MCP client works: these are the same stdio server written in each client's own format.
+    clients: [
+      { name: 'Claude Code', kind: 'command', text: ['claude mcp add opnduck', ...envFlags, '--', q(command), ...args.map(q)].join(' ') },
+      { name: 'Codex CLI', kind: 'command', text: ['codex mcp add opnduck', ...Object.entries(env).map(([k, v]) => `--env ${k}=${v}`), '--', q(command), ...args.map(q)].join(' ') },
+      { name: 'Gemini CLI', kind: 'command', text: ['gemini mcp add', ...Object.entries(env).map(([k, v]) => `-e ${k}=${v}`), 'opnduck', q(command), ...args.map(q)].join(' ') },
+      {
+        name: 'Cursor, Claude Desktop, LM Studio, others (JSON)',
+        kind: 'json',
+        text: JSON.stringify({ mcpServers: { opnduck: { command, args, ...(packaged ? { env } : {}) } } }, null, 2),
+      },
+    ],
   }
 }
 ipcMain.handle('mcp:info', () => mcpInfo())

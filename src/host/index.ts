@@ -128,6 +128,16 @@ export interface DownloadProbe {
 }
 
 /** Settings the main process reads itself (see electron/settings.cjs). */
+export interface McpInfo {
+  enabled: boolean
+  running: boolean
+  port: number | null
+  /** The `claude mcp add ...` line that registers OPNduck with Claude Code. */
+  claudeCommand: string
+  /** The same server written for each kind of MCP client: a shell command to run, or JSON to paste into its config. */
+  clients: { name: string; kind: 'command' | 'json'; text: string }[]
+}
+
 export interface AppSettings {
   /** '' = no proxy; otherwise an http(s)/socks4/socks5 URL used for every yt-dlp call. */
   proxy: string
@@ -146,6 +156,8 @@ export interface AppSettings {
   maxConversions: number
   /** Closing the window keeps OPNduck running in the system tray. */
   runInTray: boolean
+  /** Local MCP server, so tools like Claude Code can start and watch jobs. */
+  mcpServer: boolean
   cookies: {
     mode: 'none' | 'browser' | 'file' | 'login'
     browser: string
@@ -296,6 +308,8 @@ export interface TaskState {
   createdAt?: number
   /** Batch this task belongs to, if it was started together with others. */
   group?: BatchInfo | null
+  /** 'mcp' when an MCP client (not this window) started the job. */
+  source?: 'mcp'
 }
 
 export interface SubscriptionInput {
@@ -438,6 +452,11 @@ export interface Host {
     /** Starts a simulated job (no real work) to try the UI; `fail` makes it error out. Resolves to its task id. */
     fakeJob(fail?: boolean): Promise<string>
   }
+  /** The local MCP server (Settings → MCP server). Desktop shell only. */
+  mcp?: {
+    info(): Promise<McpInfo>
+    resetToken(): Promise<McpInfo>
+  }
   /** The job queue as a whole: pause starting new jobs (running ones finish). Desktop shell only. */
   queue?: {
     state(): Promise<{ paused: boolean }>
@@ -447,7 +466,7 @@ export interface Host {
   /** Main-process settings (proxy, login cookies). Desktop shell only. */
   settings?: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   /** Auto-download new uploads from a channel/playlist (checked while the app is open). Desktop shell only. */
   subscriptions?: {

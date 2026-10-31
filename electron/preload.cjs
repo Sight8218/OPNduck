@@ -40,6 +40,10 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   checkRealesrgan: () => ipcRenderer.invoke('system:checkRealesrgan'),
   checkRife: () => ipcRenderer.invoke('system:checkRife'),
   checkFasterWhisper: () => ipcRenderer.invoke('system:checkFasterWhisper'),
+  mcp: {
+    info: () => ipcRenderer.invoke('mcp:info'),
+    resetToken: () => ipcRenderer.invoke('mcp:resetToken'),
+  },
   queue: {
     state: () => ipcRenderer.invoke('queue:state'),
     setPaused: (paused) => ipcRenderer.invoke('queue:setPaused', paused),
