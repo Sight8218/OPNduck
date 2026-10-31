@@ -17,7 +17,14 @@
  */
 
 
+import PixelField from './PixelField'
+
 /** The single fixed background layer (styled by `.fluid-background` in index.css). */
 export default function FluidBackground() {
-  return <div className="fluid-background" aria-hidden="true" />
+  return (
+    <>
+      <div className="fluid-background" aria-hidden="true" />
+      <PixelField />
+    </>
+  )
 }

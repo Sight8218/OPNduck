@@ -4,6 +4,7 @@ import NavMenuCards from './NavMenuCards'
 import SocialLinks from './SocialLinks'
 import WindowControls from './WindowControls'
 import { useNavDisplay } from '../lib/navContext'
+import PixelLogo from './PixelLogo'
 import { unlockArcade } from '../lib/arcadeStore'
 
 /**
@@ -59,10 +60,10 @@ export default function NavBar() {
         <div
           role="presentation"
           onClick={openArcade}
-          className="titlebar-no-drag cursor-default select-none whitespace-nowrap px-2 text-center font-mono text-xl font-extrabold tracking-[0.12em] text-[var(--accent)]"
-          style={{ textShadow: '0 0 14px color-mix(in srgb, var(--accent) 45%, transparent)' }}
+          className="titlebar-no-drag cursor-default select-none whitespace-nowrap px-2 flex items-center"
+          style={{ filter: 'drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 45%, transparent))' }}
         >
-          OPNduck
+          <PixelLogo cell={3} />
         </div>
 
         {/* Right: the menu cards, then OS window controls when in the shell */}

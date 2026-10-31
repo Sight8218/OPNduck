@@ -522,3 +522,17 @@ body {
   outline: 1px solid rgba(255, 70, 70, 0.4);
   outline-offset: -1px;
 }
+
+/* Pixel scatter behind every page (see PixelField). */
+.pixel-field {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: min(760px, 100vh);
+  z-index: 0;
+  pointer-events: none;
+  fill: var(--accent);
+  -webkit-mask-image: linear-gradient(#000 55%, transparent);
+  mask-image: linear-gradient(#000 55%, transparent);
+}

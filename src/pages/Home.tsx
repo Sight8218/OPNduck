@@ -17,12 +17,15 @@
  */
 
 
+import PixelLogo from '../components/PixelLogo'
 import AdaptiveCardGrid from '../components/AdaptiveCardGrid'
 
 export default function Home() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <h1 className="mb-6 text-2xl font-extrabold sm:text-3xl">Tools</h1>
+      <h1 className="mb-6" aria-label="OPNduck">
+        <PixelLogo cell={6} banded />
+      </h1>
 
       <AdaptiveCardGrid />
     </div>
