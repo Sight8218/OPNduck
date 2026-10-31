@@ -16,7 +16,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "desktop:dev": "concurrently -k \"vite\" \"wait-on http://localhost:1420 && electron .\"",
+    "desktop:dev": "node scripts/dev.mjs",
     "desktop:build": "npm run build && electron .",
     "desktop:start": "electron .",
     "dist:linux": "npm run build && electron-builder --linux AppImage pacman",

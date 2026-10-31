@@ -46,3 +46,4 @@ sidecar/__pycache__
 *.njsproj
 *.sln
 *.sw?github-release/*/*/assets/
+.dev-session.pid

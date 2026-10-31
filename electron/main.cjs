@@ -3732,8 +3732,14 @@ function startWatchFolder() {
   watchTimer.unref?.()
 }
 
+// One OPNduck per profile: launching it again just brings the open window forward instead of piling up processes.
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+if (!gotSingleInstanceLock) app.quit()
+else app.on('second-instance', () => showMainWindow())
+
 trace('main.cjs loaded')
 app.whenReady().then(() => {
+  if (!gotSingleInstanceLock) return
   trace('app ready')
   applyQueueLimits()
   startWatchFolder()
