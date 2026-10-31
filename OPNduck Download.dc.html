@@ -48,7 +48,7 @@
 
   <!-- HERO -->
   <div style="padding:70px 48px 40px; max-width:960px; margin:0 auto; text-align:left;">
-    <span data-dl-version style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1.5px; color:#e1892f; background:rgba(225,137,47,0.12); border:1px solid rgba(225,137,47,0.35); border-radius:5px; padding:5px 10px;">V0.5.2-BETA</span>
+    <span data-dl-version style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1.5px; color:#e1892f; background:rgba(225,137,47,0.12); border:1px solid rgba(225,137,47,0.35); border-radius:5px; padding:5px 10px;">V0.5.3-BETA</span>
     <h1 style="font-family:'JetBrains Mono',monospace; font-size:38px; font-weight:700; margin:20px 0 16px; letter-spacing:-0.3px;">Download &amp; build</h1>
     <p style="font-size:16px; line-height:1.65; color:#a89a86; margin:0; max-width:600px; text-wrap:pretty;">Installers (Windows, Linux AppImage, Arch package) are unsigned for now, there's no auto-updater, no download counter to impress you with. It's beta — here's how to get it running today, and what to expect if you do.</p>
   </div>
@@ -59,7 +59,7 @@
     <div style="background:linear-gradient(155deg,#211a13,#171310); border:1px solid rgba(225,137,47,0.25); border-radius:14px; padding:30px;">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:20px;">
         <div>
-          <div style="font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; color:#ede6d9;" data-dl-version-title>V0.5.2-Beta</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; color:#ede6d9;" data-dl-version-title>V0.5.3-Beta</div>
           <div style="font-size:13px; color:#8a7c68; margin-top:4px;">Pre-built binaries, straight from the GitHub release page.</div>
         </div>
         <a href="https://github.com/Sight8218/OPNduck/releases" data-gh-rel-link style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#e1892f;">All releases &rarr;</a>
@@ -124,7 +124,7 @@
     <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:20px;">RELEASE NOTES</div>
     <div style="border-left:2px solid rgba(225,137,47,0.3); padding-left:24px; margin-left:6px;">
       <div style="margin-bottom:26px;">
-        <div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#e1892f; margin-bottom:6px;">v0.5.2-beta</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#e1892f; margin-bottom:6px;">v0.5.3-beta</div>
         <div style="font-size:13.5px; color:#a89a86; line-height:1.6; text-wrap:pretty;">Optional local MCP server so AI apps (Claude Code, Codex, Gemini CLI, Cursor and more) can start and watch jobs. Animated menu icons. Something hiding for the curious.</div>
       </div>
       <div style="margin-bottom:26px;">
@@ -173,7 +173,7 @@ class Component extends DCLogic {
   componentDidMount() {
     this._fetchGitHub('Sight8218/OPNduck');
     if (window.OPNduckCMS) window.OPNduckCMS.load().then(c => this._apply(c || {}));
-    else this._renderButtons({ links: [{ platform: 'Windows', url: 'https://github.com/Sight8218/OPNduck/releases/tag/v0.5.2-Beta' }, { platform: 'Linux', url: 'https://github.com/Sight8218/OPNduck/releases/tag/v0.5.2-Beta' }] });
+    else this._renderButtons({ links: [{ platform: 'Windows', url: 'https://github.com/Sight8218/OPNduck/releases/tag/v0.5.3-Beta' }, { platform: 'Linux', url: 'https://github.com/Sight8218/OPNduck/releases/tag/v0.5.3-Beta' }] });
   }
   _apply(c) {
     const d = c.downloads || {};

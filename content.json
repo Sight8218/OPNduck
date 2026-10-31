@@ -55,6 +55,15 @@
   },
   "blog": [
     {
+      "slug": "v0-5-3-beta",
+      "title": "v0.5.3 Beta — OPNduck in your terminal",
+      "date": "2026-10-31",
+      "author": "Ducky",
+      "tag": "RELEASE",
+      "excerpt": "A terminal version of OPNduck (also on npm) that uses about 100 MB instead of about 680 MB, plus a first-launch setup wizard that lets you pick what to install.",
+      "body": "New: OPNduck TUI. All eight tools in a terminal with forms, path completion, live progress, a queue, library, settings and all the themes. It shares settings and history with the desktop app. Install with npm i -g opnduck-tui (needs Node.js 20 or newer) or unpack the tarball from the release.\nNew: a setup wizard on first launch (and in Settings, System) that lists the downloader, the fast video engine, Audio AI and Subtitles with their sizes and installs what you tick.\nUnder the hood the job code moved into Electron-free modules; the desktop app behaves the same.\nThe Tauri migration is still postponed: WebKitGTK stutters and crashes on NVIDIA + Wayland, so OPNduck stays on Electron for now."
+    },
+    {
       "slug": "v0-5-2-beta",
       "title": "v0.5.2 Beta — a calmer, pixel-style look",
       "date": "2026-10-31",
@@ -92,20 +101,20 @@
     }
   ],
   "downloads": {
-    "version": "v0.5.2-Beta",
-    "releaseUrl": "https://github.com/Sight8218/OPNduck/releases/tag/v0.5.2-Beta",
+    "version": "v0.5.3-Beta",
+    "releaseUrl": "https://github.com/Sight8218/OPNduck/releases/tag/v0.5.3-Beta",
     "links": [
       {
         "platform": "Windows",
-        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.5.2-Beta/OPNduck.Setup.0.5.2-beta.exe"
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.5.3-Beta/OPNduck.Setup.0.5.3-beta.exe"
       },
       {
         "platform": "Linux",
-        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.5.2-Beta/OPNduck-0.5.2-beta.AppImage"
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.5.3-Beta/OPNduck-0.5.3-beta.AppImage"
       },
       {
         "platform": "Arch Linux",
-        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.5.2-Beta/opnduck-desktop-0.5.2-beta.pacman"
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.5.3-Beta/opnduck-desktop-0.5.3-beta.pacman"
       }
     ]
   }
