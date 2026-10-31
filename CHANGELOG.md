@@ -7,6 +7,7 @@ history; entries are curated for readability.
 ## [Unreleased]
 
 ### Changed
+- Sharper corners: the radius scale is now 1-4 px in Blarange and Monochrome (Omarchy themes were already square).
 - Calmer Blarange colours: neutral warm-black surfaces and borders instead of orange-tinted ones, orange kept for actions, focus and the active item, and a flat wordmark instead of the gradient with a glow. The Beta notice now follows the theme.
 - Plainer wording and less filler across the app: Home is a short "Tools" page, tool cards no longer carry a Desktop/Universal badge, shorter Settings and theme text, a clearer Download button, and the Settings category panel no longer overlaps the page.
 
@@ -87,6 +88,7 @@ is still **postponed** (WebKitGTK on Linux stutters/crashes with NVIDIA + Waylan
   filter is retried off), and a file with no speech reports that instead of saving an empty .srt.
 
 ### Changed
+- Sharper corners: the radius scale is now 1-4 px in Blarange and Monochrome (Omarchy themes were already square).
 - Calmer Blarange colours: neutral warm-black surfaces and borders instead of orange-tinted ones, orange kept for actions, focus and the active item, and a flat wordmark instead of the gradient with a glow. The Beta notice now follows the theme.
 - Plainer wording and less filler across the app: Home is a short "Tools" page, tool cards no longer carry a Desktop/Universal badge, shorter Settings and theme text, a clearer Download button, and the Settings category panel no longer overlaps the page.
 
@@ -192,6 +194,7 @@ NVIDIA + Wayland); OPNduck stays on Electron.
   shows the install command when it's missing.
 
 ### Changed
+- Sharper corners: the radius scale is now 1-4 px in Blarange and Monochrome (Omarchy themes were already square).
 - Calmer Blarange colours: neutral warm-black surfaces and borders instead of orange-tinted ones, orange kept for actions, focus and the active item, and a flat wordmark instead of the gradient with a glow. The Beta notice now follows the theme.
 - Plainer wording and less filler across the app: Home is a short "Tools" page, tool cards no longer carry a Desktop/Universal badge, shorter Settings and theme text, a clearer Download button, and the Settings category panel no longer overlaps the page.
 
@@ -294,6 +297,7 @@ Hotfix. **Everyone on v0.3.0-Alpha should upgrade.**
 - A Content-Security-Policy was added to the renderer.
 
 ### Changed
+- Sharper corners: the radius scale is now 1-4 px in Blarange and Monochrome (Omarchy themes were already square).
 - Calmer Blarange colours: neutral warm-black surfaces and borders instead of orange-tinted ones, orange kept for actions, focus and the active item, and a flat wordmark instead of the gradient with a glow. The Beta notice now follows the theme.
 - Plainer wording and less filler across the app: Home is a short "Tools" page, tool cards no longer carry a Desktop/Universal badge, shorter Settings and theme text, a clearer Download button, and the Settings category panel no longer overlaps the page.
 
@@ -347,6 +351,7 @@ may be revisited for Windows (WebView2) or non-NVIDIA Linux.
 - Real SVG icons instead of emoji/text glyphs.
 
 ### Changed
+- Sharper corners: the radius scale is now 1-4 px in Blarange and Monochrome (Omarchy themes were already square).
 - Calmer Blarange colours: neutral warm-black surfaces and borders instead of orange-tinted ones, orange kept for actions, focus and the active item, and a flat wordmark instead of the gradient with a glow. The Beta notice now follows the theme.
 - Plainer wording and less filler across the app: Home is a short "Tools" page, tool cards no longer carry a Desktop/Universal badge, shorter Settings and theme text, a clearer Download button, and the Settings category panel no longer overlaps the page.
 
@@ -464,6 +469,7 @@ card dashboard. Download/convert/AI engines are not wired in yet (Alpha
 phase).
 
 ### Changed
+- Sharper corners: the radius scale is now 1-4 px in Blarange and Monochrome (Omarchy themes were already square).
 - Calmer Blarange colours: neutral warm-black surfaces and borders instead of orange-tinted ones, orange kept for actions, focus and the active item, and a flat wordmark instead of the gradient with a glow. The Beta notice now follows the theme.
 - Plainer wording and less filler across the app: Home is a short "Tools" page, tool cards no longer carry a Desktop/Universal badge, shorter Settings and theme text, a clearer Download button, and the Settings category panel no longer overlaps the page.
 
