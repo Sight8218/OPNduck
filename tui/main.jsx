@@ -1,8 +1,10 @@
-import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { render } from 'ink'
 import App from './App.jsx'
+import { createCore } from '../electron/core/index.cjs'
+import { createNodePlatform } from '../electron/core/platform.cjs'
+import pkg from '../package.json'
 import { makeTheme, themeNames } from './theme.js'
 
 const HELP = `OPNduck TUI: the same tools as the desktop app, in a terminal.
@@ -28,14 +30,10 @@ if (args.includes('-h') || args.includes('--help')) {
   process.exit(0)
 }
 
-// The job core runs unbundled, from the electron/core folder next to this file's folder (see scripts/build-tui.mjs).
-const require = createRequire(import.meta.url)
+// The job core is bundled into this file; the Python helper scripts sit next to it (see scripts/build-tui.mjs).
 const here = path.dirname(fileURLToPath(import.meta.url))
-const { createCore } = require(path.join(here, '..', 'electron', 'core', 'index.cjs'))
-const { createNodePlatform } = require(path.join(here, '..', 'electron', 'core', 'platform.cjs'))
-const pkg = require(path.join(here, '..', 'package.json'))
 
-const platform = createNodePlatform({ version: pkg.version })
+const platform = createNodePlatform({ version: pkg.version, scriptsDir: here })
 const core = createCore({
   platform,
   onFinished: (state) => {

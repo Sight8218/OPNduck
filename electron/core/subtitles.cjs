@@ -24,7 +24,7 @@ const fs = require('node:fs')
 
 function createSubtitles(ctx) {
   const {
-    venvNvidiaLibDirs, createModelWorker, whisperPython, handleStart, assertAbsolutePath, assertOneOf, defaultDownloadDir, uniqueOutputPath, addTask, broadcastTasks, runInPool, whisperPool, tasks, updateTask, isCanceled, pythonCommand,
+    venvNvidiaLibDirs, createModelWorker, whisperPython, handleStart, assertAbsolutePath, assertOneOf, defaultDownloadDir, uniqueOutputPath, addTask, broadcastTasks, runInPool, whisperPool, tasks, updateTask, isCanceled, pythonCommand, platform,
   } = ctx
 
   /**
@@ -39,7 +39,7 @@ function createSubtitles(ctx) {
 
   const SUBTITLE_FORMATS = ['srt', 'vtt']
 
-  const WHISPER_SCRIPT = path.join(__dirname, '..', 'whisper_subtitles.py')
+  const WHISPER_SCRIPT = platform.scriptPath('whisper_subtitles.py')
 
   // GPU Whisper finds its CUDA 12 libraries through the dynamic-linker path (PATH on Windows).
   function whisperEnv() {

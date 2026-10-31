@@ -42,19 +42,20 @@ function createCore({ platform, onFinished = () => {}, registerStart }) {
   // Job modules share one context: the platform, tools, engine and each other's helpers.
   const ctx = { platform, tools, getSettings, ytdlpBaseArgs, hasCookies, ...tools, ...engine, ...engine.pools, handleStart }
   const modules = {}
-  const add = (name, file, factory) => {
-    const mod = require(`./${file}.cjs`)[factory](ctx)
+  // Static requires (not built from a string) so a bundler can follow them.
+  const add = (name, create) => {
+    const mod = create(ctx)
     modules[name] = mod
     Object.assign(ctx, mod)
     return mod
   }
-  add('common', 'common', 'createCommon')
-  add('convert', 'convert', 'createConvert')
-  add('trim', 'trim', 'createTrim')
-  add('audioAi', 'audio_ai', 'createAudioAi')
-  add('subtitles', 'subtitles', 'createSubtitles')
-  add('gpu', 'gpu_jobs', 'createGpuJobs')
-  add('download', 'download', 'createDownload')
+  add('common', require('./common.cjs').createCommon)
+  add('convert', require('./convert.cjs').createConvert)
+  add('trim', require('./trim.cjs').createTrim)
+  add('audioAi', require('./audio_ai.cjs').createAudioAi)
+  add('subtitles', require('./subtitles.cjs').createSubtitles)
+  add('gpu', require('./gpu_jobs.cjs').createGpuJobs)
+  add('download', require('./download.cjs').createDownload)
 
   /** Starts a job by its channel name (the same names the desktop IPC uses), without a UI. */
   function startJob(channel, req) {

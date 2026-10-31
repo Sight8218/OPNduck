@@ -22,6 +22,7 @@
  * (used by the terminal app); electron/platform_electron.cjs is the Electron one.
  *
  *   paths.userData / downloads / documents   folders (strings)
+ *   scriptPath(name)                         full path of a bundled Python helper script
  *   version, isPackaged                      the app's version and whether it runs from a package
  *   emit(channel, payload)                   push an event to every UI (windows, or the TUI)
  *   canNotify() / notify({ title, body, actions, onAction, onClick })
@@ -53,7 +54,7 @@ function detached(cmd, args) {
   }
 }
 
-/** @param {{ version?: string, isPackaged?: boolean }} [opts] */
+/** @param {{ version?: string, isPackaged?: boolean, scriptsDir?: string }} [opts] scriptsDir: where the Python helper scripts live (default: electron/) */
 function createNodePlatform(opts = {}) {
   const bus = new EventEmitter()
   const opener = process.platform === 'win32' ? ['cmd', ['/c', 'start', '']] : process.platform === 'darwin' ? ['open', []] : ['xdg-open', []]
@@ -64,6 +65,8 @@ function createNodePlatform(opts = {}) {
       downloads: path.join(os.homedir(), 'Downloads'),
       documents: path.join(os.homedir(), 'Documents'),
     },
+    /** Full path of a Python helper script that ships with the app. */
+    scriptPath: (name) => path.join(opts.scriptsDir ?? path.join(__dirname, '..'), name),
     version: opts.version ?? '0.0.0',
     isPackaged: opts.isPackaged ?? false,
     /** Listen for events sent with emit(); returns an unsubscribe function. */

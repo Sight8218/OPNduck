@@ -387,7 +387,7 @@ function createGpuJobs(ctx) {
    * Used for video upscaling when OPNduck's Python environment has CUDA PyTorch (Settings can force ncnn).
    * Measured on an RTX 3080 end to end: ~1.4-1.8x faster than the ncnn path at 2x and 2.3-3.6x at 4x,
    * with no temp disk use. Any failure falls back to the ncnn path automatically. */
-  const TORCH_SCRIPT = path.join(__dirname, '..', 'torch_upscale.py')
+  const TORCH_SCRIPT = platform.scriptPath('torch_upscale.py')
 
   const TORCH_MODELS = {
     'realesr-animevideov3': {

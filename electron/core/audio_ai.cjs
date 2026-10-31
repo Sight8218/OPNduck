@@ -25,7 +25,7 @@ const os = require('node:os')
 
 function createAudioAi(ctx) {
   const {
-    createModelWorker, demucsPython, handleStart, assertAbsolutePath, defaultDownloadDir, uniqueOutputPath, addTask, broadcastTasks, runInPool, gpuPool, convertPool, updateTask, tasks, isCanceled, probeVideoCodec, spawnTracked,
+    createModelWorker, demucsPython, handleStart, assertAbsolutePath, defaultDownloadDir, uniqueOutputPath, addTask, broadcastTasks, runInPool, gpuPool, convertPool, updateTask, tasks, isCanceled, probeVideoCodec, spawnTracked, platform,
   } = ctx
 
   /**
@@ -63,7 +63,7 @@ function createAudioAi(ctx) {
 
   const VIDEO_INPUT_EXT = new Set(['mp4', 'mkv', 'mov', 'webm', 'avi', 'flv', 'm4v', 'wmv', 'ts', 'mpg', 'mpeg', '3gp'])
 
-  const DEMUCS_SCRIPT = path.join(__dirname, '..', 'demucs_separate.py')
+  const DEMUCS_SCRIPT = platform.scriptPath('demucs_separate.py')
 
   const demucsWorker = createModelWorker({ python: () => demucsPython(), scriptPath: DEMUCS_SCRIPT })
 

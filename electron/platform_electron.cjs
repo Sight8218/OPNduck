@@ -17,6 +17,7 @@
  */
 
 /** The Electron implementation of the platform interface (see core/platform.cjs). */
+const path = require('node:path')
 const { app, BrowserWindow, Notification, shell } = require('electron')
 
 const windows = () => BrowserWindow.getAllWindows()
@@ -33,6 +34,7 @@ module.exports = {
       return app.getPath('documents')
     },
   },
+  scriptPath: (name) => path.join(__dirname, name),
   get version() {
     return app.getVersion()
   },
