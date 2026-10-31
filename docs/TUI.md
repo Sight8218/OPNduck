@@ -7,6 +7,8 @@ The OPNduck tools in a terminal: download, convert, trim, upscale (image and vid
 From a checkout: `npm run tui` (builds and starts it).
 From a release: unpack `opnduck-tui-<version>.tar.gz` and run `./opnduck-tui.mjs` (needs Node.js 20 or newer).
 
+As an npm package (once published): `npm install -g opnduck-tui`, then `opnduck-tui` (or `npx opnduck-tui`). The same build is also published to GitHub Packages as `@sight8218/opnduck-tui`.
+
 Options: `--theme <name>` (any of the 26 themes, also `OPNDUCK_THEME`), `--screen <tools|queue>`, `--start <channel> '<json>'` to start a job when it opens (repeatable), `--help`.
 
 ## Screens
@@ -30,3 +32,14 @@ The YouTube sign-in window (use the desktop app, or set a cookies file or browse
 ## How it is built
 
 `electron/core/` has the job code with no Electron import; `core/platform.cjs` is the small interface to the operating system (paths, events, notifications, opening folders). `tui/` is the Ink (React for terminals) app. `scripts/build-tui.mjs` bundles both into `dist-tui/opnduck-tui.mjs` plus the Python helper scripts; `scripts/pack-tui.mjs` makes the tarball. The tool forms are generated from the job definitions in `electron/mcp_tools.cjs`, the same ones the MCP server uses.
+
+## Publishing the npm packages (maintainer notes)
+
+`npm run tui:npm` builds the TUI and packs two tarballs into `release-build/npm/`: `opnduck-tui-<version>.tgz` (npm registry) and `sight8218-opnduck-tui-<version>.tgz` (GitHub Packages, name `@sight8218/opnduck-tui`). Both are the same 400 KB build, with no runtime dependencies.
+
+- **npm registry:** `npm login`, then `npm publish release-build/npm/opnduck-tui-<version>.tgz` (the account's two-factor code is asked for).
+- **GitHub Packages:** the GitHub login needs the `write:packages` permission once: `gh auth refresh -h github.com -s write:packages`. Then publish without storing the token anywhere:
+  `printf '//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}\n@sight8218:registry=https://npm.pkg.github.com\n' > /tmp/gh-npmrc && NODE_AUTH_TOKEN=$(gh auth token) npm publish --userconfig /tmp/gh-npmrc release-build/npm/sight8218-opnduck-tui-<version>.tgz`
+  The package then appears under **Packages** on the repository page.
+
+Publishing a version is permanent: a version number cannot be reused, even after deleting the package.

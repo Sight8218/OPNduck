@@ -7,7 +7,7 @@ history; entries are curated for readability.
 ## [Unreleased]
 
 ### Added
-- **OPNduck TUI** (beta): the tools in a terminal, about 100 MB of memory instead of about 680 MB. Tools, Queue, Library, Settings and Setup screens, forms for all eight tools with path completion, live progress, and all 26 themes. It shares settings and history with the desktop app. Run it with `npm run tui`, or unpack the new `opnduck-tui` tarball (needs Node.js 20 or newer). See `docs/TUI.md`.
+- **OPNduck TUI** (beta): the tools in a terminal, about 100 MB of memory instead of about 680 MB. Tools, Queue, Library, Settings and Setup screens, forms for all eight tools with path completion, live progress, and all 26 themes. It shares settings and history with the desktop app. Run it with `npm run tui`, or unpack the new `opnduck-tui` tarball (needs Node.js 20 or newer). See `docs/TUI.md`. It is also packed as an npm package (`npm run tui:npm`) for the npm registry and GitHub Packages.
 - **Setup wizard**: on first launch (and from Settings, System, Open setup) a window lists the downloader, the fast video engine, Audio AI and Subtitles with their download sizes, marks what you already have, and installs the ones you tick one after another with live progress and a Cancel button. Tools that come from your package manager (ffmpeg, Real-ESRGAN, RIFE, LibreOffice) are listed with their install command when missing.
 
 ### Changed

@@ -25,7 +25,8 @@
     "dist": "npm run build && electron-builder --linux AppImage pacman --win nsis portable",
     "tui:build": "node scripts/build-tui.mjs",
     "tui": "node scripts/build-tui.mjs && node dist-tui/opnduck-tui.mjs",
-    "tui:pack": "node scripts/pack-tui.mjs"
+    "tui:pack": "node scripts/pack-tui.mjs",
+    "tui:npm": "node scripts/pack-npm.mjs"
   },
   "build": {
     "appId": "dev.opnduck.desktop",
