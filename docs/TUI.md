@@ -42,4 +42,13 @@ The YouTube sign-in window (use the desktop app, or set a cookies file or browse
   `printf '//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}\n@sight8218:registry=https://npm.pkg.github.com\n' > /tmp/gh-npmrc && NODE_AUTH_TOKEN=$(gh auth token) npm publish --userconfig /tmp/gh-npmrc release-build/npm/sight8218-opnduck-tui-<version>.tgz`
   The package then appears under **Packages** on the repository page.
 
+### Automatic publishing (GitHub Actions)
+
+`.github/workflows/publish-tui.yml` publishes both packages whenever a GitHub release is published (or when run by hand from the Actions tab). It first checks that the release tag matches `package.json` (`v0.5.3-Beta` and `0.5.3-beta`), builds on a clean runner, then:
+
+- publishes `opnduck-tui` to the npm registry with **trusted publishing**: no npm token is stored anywhere, and the package gets a provenance badge;
+- publishes `@sight8218/opnduck-tui` to GitHub Packages with the built-in `GITHUB_TOKEN`.
+
+One-time setup for npm: publish the first version by hand (a package has to exist before it can trust a workflow), then on npmjs.com open the package -> Settings -> Trusted Publisher -> GitHub Actions and enter user `Sight8218`, repository `OPNduck`, workflow `publish-tui.yml`. After that, releases publish themselves. If a version was already published by hand, the workflow's publish step for it fails harmlessly (a version number cannot be reused).
+
 Publishing a version is permanent: a version number cannot be reused, even after deleting the package.

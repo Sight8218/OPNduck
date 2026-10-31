@@ -1,0 +1,83 @@
+# Publishes the terminal app (opnduck-tui) when a GitHub release is published.
+#   - npm registry: "trusted publishing" (OIDC), so no npm token is stored anywhere. One-time setup on npmjs.com:
+#       package opnduck-tui -> Settings -> Trusted Publisher -> GitHub Actions
+#       organization/user: Sight8218, repository: OPNduck, workflow filename: publish-tui.yml
+#     (the package must exist first, so the very first version is published by hand).
+#   - GitHub Packages: the built-in GITHUB_TOKEN.
+# The release tag must match the version in package.json (v0.5.3-Beta <-> 0.5.3-beta).
+name: Publish TUI
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: v
+        name: Check the tag matches package.json
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          TAG="${{ github.event.release.tag_name }}"
+          if [ -n "$TAG" ] && [ "$(echo "$TAG" | tr '[:upper:]' '[:lower:]')" != "v$VERSION" ]; then
+            echo "Release tag $TAG does not match package.json version $VERSION" >&2
+            exit 1
+          fi
+      - name: Install build tools only
+        run: npm ci --ignore-scripts
+      - name: Build and pack
+        run: node scripts/pack-npm.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-packages
+          path: release-build/npm/*.tgz
+          if-no-files-found: error
+
+  publish-npm:
+    needs: pack
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing + provenance
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Use a recent npm (trusted publishing needs 11.5.1+)
+        run: npm install -g npm@latest
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-packages
+      - name: Publish to the npm registry
+        run: npm publish "opnduck-tui-${{ needs.pack.outputs.version }}.tgz" --provenance
+
+  publish-github:
+    needs: pack
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-packages
+      - name: Publish to GitHub Packages
+        run: npm publish "sight8218-opnduck-tui-${{ needs.pack.outputs.version }}.tgz"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
