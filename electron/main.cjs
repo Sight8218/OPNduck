@@ -704,15 +704,10 @@ ipcMain.handle('updates:openRelease', (_e, url) => {
 })
 
 /**
- * Spotify tracks are DRM-protected — yt-dlp has no Spotify extractor and
- * never will (there's no legitimate way to pull audio directly off it).
- * Best-effort experimental workaround: read the track's own public page
- * metadata — title and the "Artist · Album · Song · Year" line from its
- * og: tags, the same info a link-preview embed would show, no auth and no
- * DRM touched — then search YouTube for the same song via yt-dlp's built-in
- * ytsearch. This is NOT a download from Spotify; every caller must label
- * the result accordingly (TaskState.experimentalMatch) rather than implying
- * it came from Spotify.
+ * Spotify tracks are DRM-protected and yt-dlp can't fetch them. As an experimental workaround we
+ * read the track's public page metadata (title, artist) and search YouTube for the same song.
+ * This is not a download from Spotify, so callers must label the result as a match
+ * (TaskState.experimentalMatch).
  */
 // @category: downloader/spotify-youtube-match
 const SPOTIFY_TRACK_RE = /open\.spotify\.com\/(?:intl-\w+\/)?track\/[a-zA-Z0-9]+/
@@ -2397,15 +2392,9 @@ handleStart('tasks:startUpscale', (_e, req) => {
 // --- end: upscaler/task-orchestration-main-process ---
 
 /**
- * Video upscaling — no single tool does this. The pipeline is:
- *   1. ffmpeg extracts every frame to lossless PNGs.
- *   2. realesrgan-ncnn-vulkan upscales the whole frame folder in one batch
- *      call (it natively supports -i dir -o dir).
- *   3. ffmpeg reassembles the upscaled frames at the source's original fps
- *      and muxes the source's original audio back in.
- * Real videos mean real frame counts (a 2-minute 30fps clip is ~3600
- * frames) — this is slow and uses real disk space for the temp frames,
- * by design; there's no shortcut around per-frame AI upscaling.
+ * Video upscaling: ffmpeg extracts the frames, realesrgan-ncnn-vulkan upscales them in batch,
+ * ffmpeg reassembles them at the source fps and muxes the original audio back in. Slow and
+ * disk-hungry on long clips; there is no shortcut around per-frame upscaling.
  */
 // @category: upscaler/video-upscale-pipeline
 
@@ -3020,14 +3009,8 @@ const interpolateJob = (id, req, outputPath) =>
 // --- end: upscaler/video-upscale-pipeline ---
 
 /**
- * Frame interpolation — same three-phase shape as video upscaling, swapping
- * realesrgan-ncnn-vulkan for rife-ncnn-vulkan:
- *   1. ffmpeg extracts every frame to lossless PNGs.
- *   2. rife-ncnn-vulkan interpolates the whole frame folder in one batch call,
- *      generating extra in-between frames (-n sets the target frame count).
- *   3. ffmpeg reassembles the interpolated frames at multiplier×fps and muxes
- *      the source's original audio back in — duration is unchanged, motion
- *      is just smoother.
+ * Frame interpolation: the same three phases as video upscaling, with rife-ncnn-vulkan adding
+ * in-between frames and ffmpeg reassembling at multiplier×fps. Duration is unchanged.
  */
 // @category: interpolate/frame-interpolation-pipeline
 handleStart('tasks:startInterpolate', async (_e, req) => {

@@ -18,14 +18,9 @@ function indexOf(pathname: string): number {
  * during render is the standard framer transition idiom and is safe here.
  */
 /**
- * One page's animated wrapper. Split out from PageTransition so `settled`
- * is local React state on an instance that only ever exists for a single
- * page/key — it starts `false` fresh on every mount. A single shared
- * `settled` boolean on the parent was reset via a `useEffect` that only
- * fires *after* the new page's first paint, so that first paint — the
- * frame where the slide distance is biggest — briefly rendered with the
- * *previous* page's `settled=true`, snapping `transform` to `none` and
- * killing the slide (only the opacity fade was visible).
+ * One page's animated wrapper. `settled` is per instance so it starts false on every mount;
+ * a shared flag reset in an effect would still be true for the first paint of the next page
+ * and cancel its slide.
  */
 function PageFrame({
   swipe,

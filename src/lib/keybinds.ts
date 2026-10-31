@@ -117,14 +117,8 @@ export function comboFromEvent(e: KeyboardEvent): string | null {
   return parts.join('+')
 }
 
-// While the Settings > Keybinds capture UI is listening for a new combo,
-// every OTHER keydown listener in the app (CommandPalette, DevModeProvider)
-// needs to go quiet — otherwise pressing the key combo you're *replacing*
-// (a completely normal thing to do while rebinding) also fires that old
-// binding's own handler on the same keystroke. For "rebind command palette,
-// then press its current combo Ctrl+Space to test/reconfirm it," that meant
-// the palette popped open over the Settings page mid-capture, which looked
-// exactly like "the rebind didn't register" even though it actually had.
+// While Settings > Keybinds is capturing a new combo, other keydown listeners stay quiet, so
+// pressing the combo you are replacing doesn't also fire its old action.
 let capturing = false
 
 export function setCapturing(value: boolean): void {

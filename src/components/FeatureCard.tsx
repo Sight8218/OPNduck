@@ -24,20 +24,9 @@ import { useReduceMotion } from '../lib/motionPrefs'
 import { FeatureIcon } from './featureIcons'
 
 /**
- * Shared chrome for every adaptive card: glass body, header (icon + title +
- * tagline + scope badge) and a footer. Feature-specific controls render in
- * the body via `children`.
- *
- * The hover glow is intentionally a single flat class, `card-glow-hover`
- * (defined once in index.css against the theme's own --card-glow token) —
- * no per-card CSS variable, no reading `feature.accent` here at all. That
- * field used to drive a per-card inline-style override and, at various
- * points, produced a different glow color per card (hardcoded accents,
- * then a self-referential CSS variable that only accidentally resolved).
- * Removed outright rather than patched again: every card now physically
- * cannot glow anything but the current theme's one color. Purely
- * decorative, so it respects Settings > Appearance > Motion & Density >
- * Reduce motion.
+ * Shared chrome for every tool card: glass body, header (icon, title, tagline, scope badge) and
+ * a body for the tool's own controls. The hover glow is the single `card-glow-hover` class, so it
+ * always uses the current theme's colour; it is off when Reduce motion is on.
  */
 export default function FeatureCard({
   feature,

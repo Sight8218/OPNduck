@@ -18,14 +18,9 @@
 
 
 /**
- * OPNduck Host Interface — the single seam between the UI and the native shell.
- *
- * The React tree calls ONLY these functions for anything OS/native related.
- * This is what makes the Electron → Tauri swap cheap: each shell gets an
- * adapter that implements the same interface, so the UI never changes.
- *
- * Two implementations exist: the Electron adapter (src/host/electron.ts, over the preload
- * bridge) and a browser no-op fallback below. A Tauri adapter could join later.
+ * OPNduck Host Interface: the one seam between the UI and the native shell. The React tree
+ * calls only these functions for anything OS-related; each shell implements the same interface
+ * (Electron adapter in src/host/electron.ts, plus a browser no-op fallback below).
  */
 
 import { detectElectronHost } from './electron'

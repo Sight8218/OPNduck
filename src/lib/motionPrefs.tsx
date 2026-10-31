@@ -41,12 +41,9 @@ function readStored(key = STORAGE_KEY): boolean {
 }
 
 /**
- * Global "reduce motion" and "compact density" preferences (Settings >
- * Appearance > Motion & Density). Both are mirrored onto <html> as data
- * attributes (`data-reduce-motion`, `data-density`) that index.css keys off:
- * reduce motion kills CSS transitions/animations app-wide and, via
- * MotionConfig, framer-motion's transform/layout animations; compact density
- * shrinks Tailwind's spacing scale.
+ * Global "reduce motion" and "compact density" preferences (Settings > Appearance). Both are
+ * mirrored onto <html> as data attributes that index.css keys off; reduce motion also reaches
+ * framer-motion through MotionConfig.
  */
 export function ReduceMotionProvider({ children }: { children: ReactNode }) {
   const [reduceMotion, setReduceMotionState] = useState<boolean>(() => readStored())

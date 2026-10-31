@@ -105,12 +105,8 @@ export function useTheme() {
 }
 
 /**
- * Keeps the "Synced with Omarchy" theme live app-wide, independent of
- * `useTheme()` above. `useTheme()` is only called from the Settings page —
- * without this, switching the Omarchy theme while on Home/Library/Plugins
- * had no visible effect until you navigated back to Settings and its
- * subscription remounted. Mount this once, at the app root, so it's always
- * listening regardless of the current page.
+ * Keeps the "Synced with Omarchy" theme live on every page. Mount it once at the app root;
+ * `useTheme()` only runs on the Settings page.
  */
 export function useOmarchyThemeSync(): void {
   useEffect(() => {

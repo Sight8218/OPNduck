@@ -17,16 +17,9 @@
  */
 
 /**
- * Derives OPNduck's full theme token set from a live Omarchy theme's
- * colors.toml, so the "Synced with Omarchy" option (see ThemeToggle) can
- * work for any of Omarchy's ~20 themes — including ones added after this
- * was written — without hand-authoring a preset per theme.
- *
- * Omarchy's colors.toml uses the same flat schema for every theme (accent,
- * a 4-step background ladder, a 4-step foreground ladder, mode, plus ANSI
- * colors) — see the `omarchy` skill's theming.md. Everything below is
- * computed from just those fields, using `color-mix()` for tints so it
- * degrades gracefully for palettes this was never specifically tuned against.
+ * Derives OPNduck's full token set from a live Omarchy theme's colors.toml, so the "Synced with
+ * Omarchy" option works for any Omarchy theme without a hand-made preset. It uses only the
+ * common fields (accent, background and foreground ladders, mode) and `color-mix()` for tints.
  */
 
 export interface OmarchyTheme {
