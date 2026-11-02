@@ -73,7 +73,7 @@ function createDevices({ file, now = Date.now }) {
     if (typeof code !== 'string' || !codes.has(code)) return null
     codes.delete(code) // single use, whatever happens next
     if (devices.length >= MAX_DEVICES) throw new Error('Too many paired devices: remove one first')
-    const name = typeof deviceName === 'string' ? deviceName.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 60) : ''
+    const name = typeof deviceName === 'string' ? deviceName.replace(/\p{Cc}/gu, ' ').trim().slice(0, 60) : ''
     const kind = KINDS.includes(deviceKind) ? deviceKind : 'phone'
     const token = crypto.randomBytes(32).toString('base64url')
     const device = { id: crypto.randomUUID(), name: name || 'Device', kind, tokenHash: hash(token), createdAt: now(), lastSeen: 0 }

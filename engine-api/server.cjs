@@ -78,6 +78,7 @@ function createEngineApi({ inbox, name, v1 = null, log = () => {} }) {
       const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...(code === 413 ? { Connection: 'close' } : {}) }
       if (origin && ALLOWED_ORIGIN.some((re) => re.test(origin))) {
         headers['Access-Control-Allow-Origin'] = origin
+        headers['Access-Control-Expose-Headers'] = 'Upload-Offset, Upload-Length, Content-Range, Content-Disposition'
         headers.Vary = 'Origin'
       }
       res.writeHead(code, headers)
@@ -88,8 +89,8 @@ function createEngineApi({ inbox, name, v1 = null, log = () => {} }) {
       if (!origin || !ALLOWED_ORIGIN.some((re) => re.test(origin))) return reply(403, { error: 'Origin not allowed' })
       res.writeHead(204, {
         'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+        'Access-Control-Allow-Methods': 'GET, HEAD, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type, Content-Range, Range',
         'Access-Control-Max-Age': '600',
         Vary: 'Origin',
       })
@@ -129,7 +130,7 @@ function createEngineApi({ inbox, name, v1 = null, log = () => {} }) {
       try {
         for (const host of addresses) {
           const s = http.createServer(handle)
-          s.requestTimeout = 10000
+          s.requestTimeout = v1 ? 5 * 60 * 1000 : 10000 // an 8 MB upload chunk over a slow link needs more than ten seconds
           s.headersTimeout = 10000
           await new Promise((resolve, reject) => {
             s.once('error', reject)

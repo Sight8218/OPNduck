@@ -9,6 +9,8 @@ const E = require('../electron/core/remote/envelope.cjs')
 const { createEngineApi } = require('../engine-api/server.cjs')
 const { createDevices } = require('../engine-api/devices.cjs')
 const { createV1 } = require('../engine-api/v1.cjs')
+const { createUploads, safeName } = require('../engine-api/uploads.cjs')
+const crypto = require('node:crypto')
 const { buildRemoteRequest } = require('../engine-api/remote_request.cjs')
 
 let nextPort = 47930
@@ -31,6 +33,7 @@ function fakeEngine() {
         },
       ],
     ]),
+    taskFile: (id) => tasks.get(id)?.finalPath ?? null,
     cancelTask: (id) => tasks.has(id),
     rerunTask: (id) => tasks.has(id),
     removeTasks: (ids) => ids.filter((i) => tasks.delete(i)).length,
@@ -44,13 +47,14 @@ async function running(opts = {}) {
   const platform = { on: (ch, fn) => (bus.on(ch, fn), () => bus.off(ch, fn)), emit: (ch, p) => bus.emit(ch, p) }
   const engine = fakeEngine()
   const devices = createDevices({ file: path.join(dir, 'devices.json') })
-  const v1 = createV1({ engine, platform, devices, name: () => 'My PC', version: '9.9.9', info: () => ({ gpus: ['Test GPU'] }), ...opts })
+  const uploads = opts.noUploads ? null : createUploads({ dir: path.join(dir, 'uploads'), maxBytes: opts.maxBytes ?? 1024 * 1024, freeBytes: () => opts.free ?? 1e12 })
+  const v1 = createV1({ engine, platform, devices, uploads, name: () => 'My PC', version: '9.9.9', info: () => ({ gpus: ['Test GPU'] }), ...opts })
   const inbox = { keys: () => E.deriveKeys(E.newSecret()), receive: async () => true }
   const api = createEngineApi({ inbox, name: () => 'My PC', v1 })
   const st = await api.start({ mode: 'localhost', port: nextPort++ })
-  const call = (method, p, { token, body } = {}) =>
+  const call = (method, p, { token, body, raw, extra = {} } = {}) =>
     new Promise((resolve, reject) => {
-      const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) }
+      const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}), ...extra }
       const req = http.request({ host: '127.0.0.1', port: st.port, path: p, method, headers, agent: false }, (res) => {
         const chunks = []
         res.on('data', (c) => chunks.push(c))
@@ -62,14 +66,14 @@ async function running(opts = {}) {
           } catch {
             /* not JSON */
           }
-          resolve({ status: res.statusCode, json, text })
+          resolve({ status: res.statusCode, json, text, headers: res.headers, buf: Buffer.concat(chunks) })
         })
       })
       req.on('error', reject)
-      req.end(body ? JSON.stringify(body) : undefined)
+      req.end(raw ?? (body ? JSON.stringify(body) : undefined))
     })
   const pairNew = async (kind = 'phone') => (await call('POST', '/v1/pair', { body: { code: devices.newPairCode(), deviceName: 'Test', deviceKind: kind } })).json.deviceToken
-  return { api, engine, devices, platform, call, pairNew, st, dir }
+  return { api, engine, devices, platform, call, pairNew, st, dir, uploads }
 }
 
 test('pairing: a code works once, a wrong or reused code does not, and only the token hash is stored', async () => {
@@ -119,7 +123,8 @@ test('info says what the engine can do', async () => {
   try {
     const token = await h.pairNew()
     const r = (await h.call('GET', '/v1/info', { token })).json
-    assert.deepEqual([r.name, r.version, r.apiVersion, r.kinds, r.gpus], ['My PC', '9.9.9', 1, ['download'], ['Test GPU']])
+    assert.deepEqual([r.name, r.version, r.apiVersion, r.gpus, r.uploads], ['My PC', '9.9.9', 1, ['Test GPU'], true])
+    assert.ok(r.kinds.includes('download') && r.kinds.includes('convert'))
     assert.equal((await h.call('GET', '/v1/health')).json.apiVersion, 1)
   } finally {
     await h.api.stop()
@@ -158,7 +163,11 @@ test('remote requests never carry paths, destinations or cookie settings', () =>
     {},
   ]
   for (const req of bad) assert.throws(() => buildRemoteRequest('download', req), undefined, JSON.stringify(req).slice(0, 60))
-  assert.throws(() => buildRemoteRequest('convert', { inputPath: '/x' }), /Unknown job kind/)
+  assert.throws(() => buildRemoteRequest('convert', { inputPath: '/x', container: 'MP4' }), /uploadId is required|inputPath cannot|file paths/)
+  assert.throws(() => buildRemoteRequest('convert', { uploadId: 'a'.repeat(32), container: 'MP4' }), /not finished or does not exist/)
+  assert.throws(() => buildRemoteRequest('convert', { uploadId: 'a'.repeat(32), container: 'MP4', destination: '/tmp' }, () => '/up/x.mp4'), /destination/)
+  assert.throws(() => buildRemoteRequest('rm_rf', {}), /Unknown job kind/)
+  assert.deepEqual(buildRemoteRequest('convert', { uploadId: 'a'.repeat(32), container: 'MP4' }, () => '/up/x.mp4').req.inputPath, '/up/x.mp4')
   assert.throws(() => buildRemoteRequest('download', null))
 })
 
@@ -228,6 +237,117 @@ test('events: a snapshot first, then updates at most four times a second, and th
     assert.match(updates[0], /"host":"My PC"/)
     req.destroy()
     await new Promise((r) => setTimeout(r, 100))
+  } finally {
+    await h.api.stop()
+  }
+})
+
+const put = (h, token, id, buf, start, total) => h.call('PUT', `/v1/uploads/${id}`, { token, raw: buf, extra: { 'Content-Range': `bytes ${start}-${start + buf.length - 1}/${total}` } })
+
+test('uploads: chunks append in order, a wrong offset is told where to resume, and the finished file starts a job', async () => {
+  const h = await running()
+  try {
+    const token = await h.pairNew()
+    const data = crypto.randomBytes(1000)
+    const sha = crypto.createHash('sha256').update(data).digest('hex')
+    const made = await h.call('POST', '/v1/uploads', { token, body: { name: '../../etc/My Clip.mp4', size: 1000, sha256: sha } })
+    assert.equal(made.status, 201)
+    const id = made.json.uploadId
+    assert.equal((await put(h, token, id, data.subarray(0, 400), 0, 1000)).json.offset, 400)
+    const head = await h.call('HEAD', `/v1/uploads/${id}`, { token })
+    assert.equal(head.headers['upload-offset'], '400')
+    const gap = await put(h, token, id, data.subarray(600), 600, 1000)
+    assert.deepEqual([gap.status, gap.json.offset], [409, 400])
+    const done = await put(h, token, id, data.subarray(400), 400, 1000)
+    assert.deepEqual([done.status, done.json.complete], [200, true])
+    const file = h.uploads.resolve(id, h.devices.list()[0].id)
+    assert.equal(path.basename(file), 'My Clip.mp4', 'the name is cleaned: no folders')
+    assert.ok(file.startsWith(path.join(h.dir, 'uploads')))
+    assert.deepEqual(fs.readFileSync(file), data)
+    const job = await h.call('POST', '/v1/tasks', { token, body: { kind: 'convert', req: { uploadId: id, container: 'MP4' } } })
+    assert.equal(job.status, 501, 'the fake engine has no convert handler, so the request got past validation')
+  } finally {
+    await h.api.stop()
+  }
+})
+
+test('uploads: a damaged file, a too-big file, a full disk, another device and a no-uploads engine are all refused', async () => {
+  const h = await running({ maxBytes: 2000 })
+  try {
+    const token = await h.pairNew()
+    const other = await h.pairNew()
+    const bad = await h.call('POST', '/v1/uploads', { token, body: { name: 'a.bin', size: 10, sha256: 'a'.repeat(64) } })
+    const r = await put(h, token, bad.json.uploadId, Buffer.alloc(10), 0, 10)
+    assert.equal(r.status, 422)
+    assert.equal((await h.call('POST', '/v1/uploads', { token, body: { name: 'big.bin', size: 5000 } })).status, 413)
+    assert.equal((await h.call('POST', '/v1/uploads', { token, body: { name: 'x', size: 0 } })).status, 400)
+    const mine = await h.call('POST', '/v1/uploads', { token, body: { name: 'm.bin', size: 10 } })
+    assert.equal((await put(h, other, mine.json.uploadId, Buffer.alloc(10), 0, 10)).status, 404, 'someone else cannot write to it')
+    assert.equal((await put(h, token, mine.json.uploadId, Buffer.alloc(10), 0, 99)).status, 400, 'a range that does not match the size')
+  } finally {
+    await h.api.stop()
+  }
+  const full = await running({ free: 1000 })
+  try {
+    const token = await full.pairNew()
+    assert.equal((await full.call('POST', '/v1/uploads', { token, body: { name: 'x.bin', size: 500 } })).status, 507)
+  } finally {
+    await full.api.stop()
+  }
+  const none = await running({ noUploads: true })
+  try {
+    const token = await none.pairNew()
+    assert.equal((await none.call('POST', '/v1/uploads', { token, body: { name: 'x.bin', size: 5 } })).status, 501)
+    assert.ok(!(await none.call('GET', '/v1/info', { token })).json.kinds.includes('convert'))
+  } finally {
+    await none.api.stop()
+  }
+})
+
+test('upload names are made safe and old uploads are swept', () => {
+  assert.equal(safeName('../../a/b\\c.txt'), 'c.txt')
+  assert.equal(safeName('.bashrc'), 'bashrc')
+  assert.equal(safeName(''), 'upload')
+  assert.ok(safeName('x'.repeat(500) + '.mp4').length <= 120 && safeName('x'.repeat(500) + '.mp4').endsWith('.mp4'))
+  let t = 0
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'up-'))
+  const u = createUploads({ dir, retentionMs: 1000, freeBytes: () => 1e12, now: () => t })
+  const { uploadId } = u.create({ name: 'a.bin', size: 5 }, 'dev')
+  t = 2000
+  u.sweep()
+  assert.deepEqual(fs.readdirSync(dir), [])
+  assert.throws(() => u.status(uploadId, 'dev'), /No such upload/)
+})
+
+test('files: the finished result streams, resumes with Range, and a signed link works without a header until it expires', async () => {
+  let t = 1_000_000
+  const h = await running({ now: () => t })
+  try {
+    const token = await h.pairNew()
+    const file = path.join(h.dir, 'résumé "x".mp4')
+    const data = crypto.randomBytes(500)
+    fs.writeFileSync(file, data)
+    h.engine.tasks.set('j1', { state: { id: 'j1', status: 'done' }, finalPath: file })
+    h.engine.tasks.set('j2', { state: { id: 'j2', status: 'running' }, finalPath: file })
+    assert.equal((await h.call('GET', '/v1/files/j1')).status, 401)
+    const all = await h.call('GET', '/v1/files/j1', { token })
+    assert.deepEqual([all.status, all.headers['content-length']], [200, '500'])
+    assert.match(all.headers['content-disposition'], /^attachment; filename="r_sum_ _x_\.mp4"; filename\*=UTF-8''r%C3%A9sum%C3%A9%20%22x%22\.mp4$/)
+    assert.deepEqual(all.buf, data)
+    const part = await h.call('GET', '/v1/files/j1', { token, extra: { Range: 'bytes=100-199' } })
+    assert.deepEqual([part.status, part.headers['content-range']], [206, 'bytes 100-199/500'])
+    assert.deepEqual(part.buf, data.subarray(100, 200))
+    assert.deepEqual((await h.call('GET', '/v1/files/j1', { token, extra: { Range: 'bytes=-50' } })).buf, data.subarray(450))
+    assert.deepEqual((await h.call('GET', '/v1/files/j1', { token, extra: { Range: 'bytes=400-' } })).buf, data.subarray(400))
+    assert.equal((await h.call('GET', '/v1/files/j1', { token, extra: { Range: 'bytes=900-' } })).status, 416)
+    assert.equal((await h.call('GET', '/v1/files/j2', { token })).status, 404, 'a job that is not done has no file')
+    assert.equal((await h.call('GET', '/v1/files/nope', { token })).status, 404)
+    const link = (await h.call('POST', '/v1/files/j1/link', { token })).json
+    assert.deepEqual((await h.call('GET', link.url)).buf, data)
+    assert.equal((await h.call('GET', link.url.replace('j1', 'j2'))).status, 403, 'a link is only good for its own file')
+    assert.equal((await h.call('GET', link.url.slice(0, -3) + 'abc')).status, 403)
+    t += 11 * 60 * 1000
+    assert.equal((await h.call('GET', link.url)).status, 403, 'expired')
   } finally {
     await h.api.stop()
   }
