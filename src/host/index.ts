@@ -507,7 +507,11 @@ export interface TaskState {
   /** Batch this task belongs to, if it was started together with others. */
   group?: BatchInfo | null
   /** 'mcp' when an MCP client (not this window) started the job. */
-  source?: 'mcp' | 'link'
+  source?: 'mcp' | 'link' | 'remote'
+  /** The server this job runs on, when it is not this PC. */
+  host?: string
+  /** What a job on a server is doing now: Uploading, Running on <server>, Downloading result, Reconnecting. */
+  stage?: string | null
 }
 
 export interface SubscriptionInput {

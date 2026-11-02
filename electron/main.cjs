@@ -498,6 +498,16 @@ const servers = createServers({
   seal: (text) => (safeStorage.isEncryptionAvailable() ? SEALED + safeStorage.encryptString(text).toString('base64') : `plain:${text}`),
   unseal: (sealed) => (sealed.startsWith(SEALED) ? safeStorage.decryptString(Buffer.from(sealed.slice(SEALED.length), 'base64')) : sealed.replace(/^plain:/, '')),
 })
+// Jobs the person (or the per-kind default in Settings > Servers) sends to a server run as mirror tasks in this queue.
+const { createHosts } = require('./core/remote/hosts.cjs')
+const hosts = createHosts({ engine, servers, defaultDownloadDir, uniqueOutputPath: core.ctx.uniqueOutputPath })
+for (const [channel, fn] of [...engine.startHandlers]) {
+  const routed = hosts.route(channel, fn)
+  if (routed === fn) continue
+  engine.startHandlers.set(channel, routed) // run again, recipes, MCP and links all start jobs through this map
+  ipcMain.removeHandler(channel)
+  ipcMain.handle(channel, routed)
+}
 ipcMain.handle('servers:list', () => ({ servers: servers.list(), defaults: servers.defaults(), encrypted: safeStorage.isEncryptionAvailable() }))
 ipcMain.handle('servers:add', async (_e, link) => {
   const s = await servers.add(String(link))

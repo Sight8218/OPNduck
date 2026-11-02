@@ -57,7 +57,7 @@ const RUNNING_LABEL: Record<TaskState['kind'], string> = {
 }
 
 function statusLabel(task: TaskState): string {
-  if (task.status === 'running') return RUNNING_LABEL[task.kind]
+  if (task.status === 'running') return task.stage || RUNNING_LABEL[task.kind]
   return { queued: 'Queued', done: 'Done', error: 'Error', canceled: 'Canceled' }[task.status]
 }
 
@@ -190,7 +190,8 @@ function TaskRowImpl({ task }: { task: TaskState }) {
         )}
         {task.experimentalMatch && <Tag>{task.experimentalMatch}</Tag>}
         {task.source === 'mcp' && <Tag>via MCP</Tag>}
-            {task.source === 'link' && <Tag>via link</Tag>}
+        {task.source === 'link' && <Tag>via link</Tag>}
+        {task.host && <Tag>on {task.host}</Tag>}
       </div>
       <ProgressBar value={task.progress} status={task.status} />
       <TaskLogs taskId={task.id} />

@@ -99,6 +99,12 @@ function createServers({ file, seal, unseal, fetchFn = fetch, deviceName = () =>
     return json
   }
 
+  /** A raw request (uploads and file downloads), signed in as this device. Resolves with the Response, whatever its status. */
+  function raw(id, method, route, { headers = {}, body, signal } = {}) {
+    const s = find(id)
+    return fetchFn(s.baseUrl + route, { method, headers: { Authorization: `Bearer ${unseal(s.token)}`, ...headers }, body, signal, duplex: body ? 'half' : undefined })
+  }
+
   /** Pairs with a server from its pair link (`opnduck://pair?...`). */
   async function add(linkText) {
     const link = parseEnginePairLink(linkText)
@@ -160,6 +166,7 @@ function createServers({ file, seal, unseal, fetchFn = fetch, deviceName = () =>
     remove,
     setDefault,
     request,
+    raw,
     token: (id) => unseal(find(id).token),
     get: (id) => view(find(id)),
   }
