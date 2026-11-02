@@ -197,3 +197,60 @@ test('a hand-damaged file is ignored, and the pending list is capped', async () 
   }
   assert.equal(ib.list().length, 50)
 })
+
+test('the browser (WebCrypto) implementation matches the same vector and the Node one, both ways', async () => {
+  const W = await import('../extension/lib/envelope.mjs')
+  const secret = Uint8Array.from(Buffer.from(vector.secretHex, 'hex'))
+  const keys = await W.deriveKeys(secret)
+  assert.equal(keys.topic, vector.topic)
+  assert.equal(keys.authToken, vector.authToken)
+  assert.equal(await W.seal(vector.envelope, keys.encKey, Uint8Array.from(Buffer.from(vector.ivHex, 'hex'))), vector.wire)
+  assert.deepEqual(await W.open(vector.wire, keys.encKey), vector.envelope)
+  // a message sealed in the browser opens in Node, and the other way round
+  const nodeKeys = E.deriveKeys(Buffer.from(vector.secretHex, 'hex'))
+  const fromBrowser = await W.seal({ v: 1, id: 'abcdefgh', ts: 1, url: 'https://a.com' }, keys.encKey)
+  assert.equal(E.open(fromBrowser, nodeKeys.encKey).url, 'https://a.com')
+  assert.equal((await W.open(E.seal({ v: 1, id: 'x', url: 'https://b.com' }, nodeKeys.encKey), keys.encKey)).url, 'https://b.com')
+  assert.equal(await W.open('junk', keys.encKey), null)
+  await assert.rejects(W.deriveKeys(new Uint8Array(5)), /32 bytes/)
+})
+
+test('the browser side reads pair links and finds the link in shared text', async () => {
+  const W = await import('../extension/lib/envelope.mjs')
+  const secret = E.newSecret()
+  const link = E.buildPairLink({ secret, relay: 'https://ntfy.example.com', relayToken: 'tk', direct: 'https://pc.ts.net:47822', name: 'PC' })
+  const p = W.parsePairLink(link)
+  assert.deepEqual([Buffer.from(p.secret).equals(secret), p.relay, p.relayToken, p.direct, p.name], [true, 'https://ntfy.example.com', 'tk', 'https://pc.ts.net:47822', 'PC'])
+  assert.equal(W.parsePairLink('nope'), null)
+  assert.equal(W.firstUrl('', 'Watch this https://youtu.be/abc123?t=5, it is great!'), 'https://youtu.be/abc123?t=5')
+  assert.equal(W.firstUrl('https://a.com/x', 'https://b.com'), 'https://a.com/x')
+  assert.equal(W.firstUrl('no link here', null), '')
+})
+
+test('sendLink prefers the direct path, falls back to the relay, and says which it used', async () => {
+  const W = await import('../extension/lib/envelope.mjs')
+  const secret = Uint8Array.from(E.newSecret())
+  const keys = E.deriveKeys(Buffer.from(secret))
+  const calls = []
+  const mk = (direct) => async (url, init = {}) => {
+    calls.push({ url: String(url), method: init.method ?? 'GET', auth: init.headers?.Authorization, body: init.body })
+    if (String(url).includes('/v1/health')) return { ok: direct, status: direct ? 200 : 500 }
+    if (String(url).includes('/v1/send')) return { ok: true, status: 202 }
+    return { ok: true, status: 200 }
+  }
+  assert.equal(await W.sendLink({ secret, direct: 'https://pc.ts.net:47822', relay: '', relayToken: '' }, 'https://a.com/1', 'Phone', mk(true)), 'direct')
+  const send = calls.find((c) => c.url.endsWith('/v1/send'))
+  assert.equal(send.auth, `Bearer ${keys.authToken}`)
+  assert.equal(E.open(send.body, keys.encKey).url, 'https://a.com/1')
+  calls.length = 0
+  assert.equal(await W.sendLink({ secret, direct: 'https://pc.ts.net:47822', relay: '', relayToken: 'tok' }, 'https://a.com/2', 'Phone', mk(false)), 'relay')
+  const relayCall = calls.find((c) => c.method === 'POST' && !c.url.includes('/v1/'))
+  assert.equal(relayCall.url, `https://ntfy.sh/${keys.topic}`)
+  assert.equal(relayCall.auth, 'Bearer tok')
+  assert.equal(E.open(relayCall.body, keys.encKey).from, 'Phone')
+  calls.length = 0
+  assert.equal(await W.sendLink({ secret, direct: '', relay: 'https://ntfy.example.com' }, 'https://a.com/3', 'Phone', mk(true)), 'relay')
+  assert.ok(calls.every((c) => !c.url.includes('/v1/')), 'no direct address, so no health check')
+  await assert.rejects(W.sendLink({ secret }, 'https://a.com/4', 'Phone', async () => { throw new Error('offline') }), /Couldn't reach/)
+  await assert.rejects(W.sendLink({ secret }, 'https://a.com/5', 'Phone', async () => ({ ok: false, status: 429 })), /429/)
+})
