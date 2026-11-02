@@ -523,7 +523,7 @@ body {
   outline-offset: -1px;
 }
 
-/* Pixel scatter behind every page (see PixelField). It falls very slowly: a layer takes 8 to 17 minutes to cross the screen. */
+/* Pixel scatter behind every page (see PixelField). It falls very slowly: a layer takes 4 to 8 minutes to cross the screen. */
 @keyframes pixel-fall {
   to {
     transform: translateY(54px); /* one full tile (ROWS in PixelField) */
@@ -533,9 +533,9 @@ body {
   animation: pixel-fall linear infinite;
   will-change: transform;
 }
-.pixel-layer-0 { animation-duration: 1000s; }
-.pixel-layer-1 { animation-duration: 700s; }
-.pixel-layer-2 { animation-duration: 500s; }
+.pixel-layer-0 { animation-duration: 500s; }
+.pixel-layer-1 { animation-duration: 350s; }
+.pixel-layer-2 { animation-duration: 250s; }
 @media (prefers-reduced-motion: reduce) {
   .pixel-layer { animation: none; }
 }
