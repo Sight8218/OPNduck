@@ -1,0 +1,13 @@
+{
+  "appId": "dev.opnduck.companion",
+  "appName": "OPNduck",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}
