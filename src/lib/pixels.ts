@@ -47,19 +47,20 @@ export function pixelText(text: string): { cells: PixelCell[]; cols: number; row
 }
 
 /** A repeatable scatter of squares, thicker toward the left and right edges. */
-export function pixelScatter(cols: number, rows: number): { x: number; y: number; opacity: number }[] {
-  let seed = 7
+export function pixelScatter(cols: number, rows: number, seedValue = 7): { x: number; y: number; opacity: number }[] {
+  let seed = Math.max(1, Math.floor(seedValue) % 2147483647)
   const rnd = () => {
     seed = (seed * 16807) % 2147483647
     return seed / 2147483647
   }
   const out: { x: number; y: number; opacity: number }[] = []
-  for (let i = 0; i < cols * rows * 0.045; i++) {
+  for (let i = 0; i < cols * rows * 0.07; i++) {
     const x = Math.floor(rnd() * cols)
     const y = Math.floor(rnd() * rows)
     const edge = Math.abs(x - cols / 2) / (cols / 2)
-    if (rnd() > 0.02 + edge * edge * 0.85) continue
-    out.push({ x, y, opacity: 0.06 + rnd() * 0.16 })
+    // Denser toward the sides, but the middle gets some too (fainter, so it never fights the content).
+    if (rnd() > 0.2 + edge * edge * 0.7) continue
+    out.push({ x, y, opacity: (0.06 + rnd() * 0.16) * (0.55 + 0.45 * edge) })
   }
   return out
 }

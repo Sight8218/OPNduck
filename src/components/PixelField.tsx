@@ -28,7 +28,7 @@ const LAYERS = 3
 /** The scatter drifts down like very slow snow: three layers at different speeds, each tiled twice so the loop has no seam. */
 export default function PixelField() {
   const layers = useMemo(() => {
-    const dots = pixelScatter(COLS, ROWS)
+    const dots = pixelScatter(COLS, ROWS, 1 + Math.floor(Math.random() * 2_000_000_000)) // a different scatter every launch
     return Array.from({ length: LAYERS }, (_, l) => dots.filter((_, i) => i % LAYERS === l))
   }, [])
   return (
