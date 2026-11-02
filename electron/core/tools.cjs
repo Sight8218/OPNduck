@@ -78,6 +78,13 @@ function createTools(platform) {
   }
 
 
+  /** Chromaprint's fpcalc (the music tagger's fingerprinting) isn't bundled either. */
+  function fpcalcInstallHint() {
+    if (process.platform === 'win32') return 'winget install AcoustID.Chromaprint'
+    if (process.platform === 'darwin') return 'brew install chromaprint'
+    return 'sudo pacman -S chromaprint   (or your distro\'s package manager)'
+  }
+
   /** Same idea as yt-dlp: ffmpeg isn't bundled either. */
   function ffmpegInstallHint() {
     if (process.platform === 'win32') return 'winget install Gyan.FFmpeg'
@@ -377,6 +384,21 @@ function createTools(platform) {
   }
 
 
+  function checkFpcalc() {
+    return new Promise((resolve) => {
+      let child
+      try {
+        child = spawn('fpcalc', ['-version'])
+      } catch {
+        resolve({ available: false, installHint: fpcalcInstallHint() })
+        return
+      }
+      child.on('error', () => resolve({ available: false, installHint: fpcalcInstallHint() }))
+      child.on('close', (code) => resolve({ available: code === 0, installHint: fpcalcInstallHint() }))
+    })
+  }
+
+
   function checkRealesrgan() {
     return new Promise((resolve) => {
       let child
@@ -487,7 +509,7 @@ function createTools(platform) {
     managedYtDlpPath, ytdlpCommand, sofficeCommand, pythonCommand, demucsPython, whisperPython, pythonCwd,
     venvHasPackage, hasNvidiaGpu, venvNvidiaLibDirs, cachedEngineCheck, clearEngineCache,
     VENV_DIR, VENV_PYTHON,
-    checkYtDlp, installYtDlp, checkLibreOffice, checkFfmpeg, checkRealesrgan, checkRife,
+    checkYtDlp, installYtDlp, checkLibreOffice, checkFfmpeg, checkFpcalc, fpcalcInstallHint, checkRealesrgan, checkRife,
     checkTorchEngine, checkDemucs, checkFasterWhisper, installTool, cancelInstall,
   }
 }

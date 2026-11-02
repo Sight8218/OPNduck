@@ -6,6 +6,7 @@ import {
   IconPlayerTrackNext,
   IconArrowsMinimize,
   IconScissors,
+  IconTags,
   IconTextCaption,
   IconTransform,
   type Icon,
@@ -22,6 +23,7 @@ const FEATURE_ICONS: Record<string, Icon> = {
   'audio-ai': IconMicrophone2,
   trim: IconScissors,
   compress: IconArrowsMinimize,
+  tag: IconTags,
 }
 
 export function FeatureIcon({ name, size = 22 }: { name: string; size?: number }) {

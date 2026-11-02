@@ -327,6 +327,39 @@ function createCommon(ctx) {
     })
   }
 
+  /** The tags, duration and whether it has a cover, read with ffprobe (null if it can't be read). */
+  function probeTags(inputPath) {
+    return new Promise((resolve) => {
+      let child
+      try {
+        child = spawn('ffprobe', ['-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', inputPath])
+      } catch {
+        resolve(null)
+        return
+      }
+      let out = ''
+      child.stdout.on('data', (c) => (out += c))
+      child.on('error', () => resolve(null))
+      child.on('close', () => {
+        try {
+          const info = JSON.parse(out)
+          // Containers disagree on where tags live and how they are cased: merge stream and format tags, lower-cased.
+          const raw = {}
+          for (const src of [info.format?.tags, ...(info.streams ?? []).filter((x) => x.codec_type === 'audio').map((x) => x.tags)]) {
+            for (const [k, v] of Object.entries(src ?? {})) raw[k.toLowerCase()] ??= v
+          }
+          resolve({
+            tags: raw,
+            duration: Number.parseFloat(info.format?.duration) || null,
+            hasCover: !!info.streams?.some((x) => x.disposition?.attached_pic === 1),
+          })
+        } catch {
+          resolve(null)
+        }
+      })
+    })
+  }
+
   /** One JPEG frame of a file at time `t` seconds, as a data URL (null on failure). Used by the trimmer preview. */
   function mediaFrame(inputPath, t, width) {
     return new Promise((resolve) => {
@@ -377,7 +410,7 @@ function createCommon(ctx) {
     })
   }
 
-  return { parseHttpUrl, decodeHtmlEntities, assertAbsolutePath, assertOneOf, uniqueOutputPath, probeDuration, spawnTracked, probeVideoMeta, probeVideoCodec, probeMedia, mediaFrame, createModelWorker, fmtClock, listSorted }
+  return { parseHttpUrl, decodeHtmlEntities, assertAbsolutePath, assertOneOf, uniqueOutputPath, probeDuration, spawnTracked, probeVideoMeta, probeVideoCodec, probeMedia, probeTags, mediaFrame, createModelWorker, fmtClock, listSorted }
 }
 
 module.exports = { createCommon }

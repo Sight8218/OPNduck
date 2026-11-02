@@ -152,6 +152,21 @@ const TOOLS = [
     },
   },
   {
+    name: 'tag_music',
+    description: 'Look up a song by its audio fingerprint (AcoustID, MusicBrainz, Cover Art Archive) and write artist, title, album, year, track and cover into the file. It changes the file only when it is sure enough. Returns a job id.',
+    channel: 'tasks:startTag',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        inputPath: FILE,
+        organize: { type: 'boolean', description: 'Also move the file to Artist/Album/ next to where it is. Default false.' },
+        minConfidence: { type: 'number', minimum: 0.5, maximum: 1, description: 'How sure the match must be before the file is changed, 0.5 to 1. Default 0.9.' },
+      },
+      required: ['inputPath'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'audio_ai',
     description: 'Remove vocals / isolate the voice / clean up audio (Demucs, or ffmpeg for echo). Returns a job id.',
     channel: 'tasks:startAudioAi',
@@ -223,6 +238,7 @@ const DEFAULTS = {
   subtitles: { model: 'tiny', language: 'auto', translate: false, format: 'srt' },
   trim: { end: null, mode: 'fast' },
   compress: { quality: 'fast' },
+  tag_music: { organize: false, minConfidence: 0.9 },
   audio_ai: { format: 'MP3', keepVideo: false },
 }
 

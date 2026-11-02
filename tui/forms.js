@@ -13,6 +13,7 @@ const MCP_NAME = {
   'audio-ai': 'audio_ai',
   trim: 'trim',
   compress: 'compress',
+  tagger: 'tag_music',
 }
 
 const LABELS = {
@@ -33,6 +34,8 @@ const LABELS = {
   keepVideo: 'Keep the video',
   targetMB: 'Target size (MB)',
   quality: 'Speed',
+  organize: 'Move to Artist/Album/',
+  minConfidence: 'Needs to be this sure (0.5-1)',
 }
 
 const TIME_KEYS = ['start', 'end']

@@ -36,6 +36,8 @@ import type {
   UpscaleRequest,
   TrimRequest,
   CompressRequest,
+  TagRequest,
+  TagLookup,
   MediaInfo,
   McpInfo,
   HostPlugins,
@@ -58,6 +60,8 @@ interface ElectronBridge {
   checkYtDlp(): Promise<ToolStatus>
   installYtDlp(): Promise<{ ok: boolean; error?: string }>
   checkFfmpeg(): Promise<ToolStatus>
+  checkFpcalc(): Promise<ToolStatus>
+  tagger: { identify(filePath: string): Promise<TagLookup>; listAudio(folder: string): Promise<string[]> }
   checkLibreOffice(): Promise<ToolStatus>
   checkRealesrgan(): Promise<ToolStatus>
   checkRife(): Promise<ToolStatus>
@@ -119,6 +123,7 @@ interface ElectronBridge {
     startAudioAi(req: AudioAiRequest): Promise<string>
     startTrim(req: TrimRequest): Promise<string>
     startCompress(req: CompressRequest): Promise<string>
+    startTag(req: TagRequest): Promise<string>
     cancel(taskId: string): void
     rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
     openFolder(taskId: string): Promise<void>
@@ -188,6 +193,8 @@ export function detectElectronHost(): Host | null {
     checkYtDlp: () => bridge.checkYtDlp(),
     installYtDlp: () => bridge.installYtDlp(),
     checkFfmpeg: () => bridge.checkFfmpeg(),
+    checkFpcalc: () => bridge.checkFpcalc(),
+    tagger: bridge.tagger,
     checkLibreOffice: () => bridge.checkLibreOffice(),
     checkRealesrgan: () => bridge.checkRealesrgan(),
     checkRife: () => bridge.checkRife(),
@@ -251,6 +258,7 @@ export function detectElectronHost(): Host | null {
       startAudioAi: (req) => bridge.tasks.startAudioAi(req),
       startTrim: (req) => bridge.tasks.startTrim(req),
       startCompress: (req) => bridge.tasks.startCompress(req),
+      startTag: (req) => bridge.tasks.startTag(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
       runNext: (taskId) => bridge.tasks.runNext(taskId),
       logs: (taskId) => bridge.tasks.logs(taskId),

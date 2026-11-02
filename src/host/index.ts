@@ -225,6 +225,38 @@ export type AudioAiFormat = 'MP3' | 'FLAC' | 'WAV'
 
 export type TrimMode = 'fast' | 'precise'
 
+/** What the music tagger knows or proposes about one song. */
+export interface TagFields {
+  title: string | null
+  artist: string | null
+  album: string | null
+  year: number | null
+  track: number | null
+}
+
+export interface TagLookup {
+  path: string
+  /** The tags the file has now. */
+  current: TagFields & { hasCover: boolean }
+  /** What the lookup found (null = nothing). */
+  found: (TagFields & { coverUrl?: string; releaseId?: string | null }) | null
+  /** 0 to 1. */
+  confidence: number
+  source: 'acoustid' | 'filename' | 'none'
+}
+
+export interface TagRequest {
+  /** Set by the card when it starts several jobs at once. */
+  batch?: BatchInfo
+  inputPath: string
+  /** The tags the user reviewed. Without them the job looks the file up itself and writes only a sure match. */
+  tags?: Partial<TagFields> & { coverUrl?: string }
+  /** Also move the file to Artist/Album/ next to where it is. */
+  organize?: boolean
+  /** With no \`tags\`: how sure the match must be, 0.5 to 1 (default 0.9). */
+  minConfidence?: number
+}
+
 export type CompressQuality = 'fast' | 'best'
 
 export interface CompressRequest {
@@ -291,7 +323,7 @@ export interface SubtitlesRequest {
   destination?: string
 }
 
-export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress'
+export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress' | 'tag'
 export type TaskStatus = 'queued' | 'running' | 'done' | 'error' | 'canceled'
 
 export interface TaskState {
@@ -371,6 +403,7 @@ export interface HostTasks {
   startAudioAi(req: AudioAiRequest): Promise<string>
   startTrim(req: TrimRequest): Promise<string>
   startCompress(req: CompressRequest): Promise<string>
+  startTag(req: TagRequest): Promise<string>
   cancel(taskId: string): void
   /** Replays a finished task's original request as a new task. Resolves to the new id (null if it can't be replayed). */
   rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
@@ -487,6 +520,14 @@ export interface Host {
   installYtDlp(): Promise<{ ok: boolean; error?: string }>
   /** ffmpeg isn't bundled either — same check, for the Converter. */
   checkFfmpeg(): Promise<ToolStatus>
+  /** The music tagger needs Chromaprint's fpcalc. */
+  checkFpcalc(): Promise<ToolStatus>
+  /** Music tagger lookups. They contact AcoustID, MusicBrainz and the Cover Art Archive, only when called. */
+  tagger: {
+    identify(filePath: string): Promise<TagLookup>
+    /** The audio files in a folder (and one level of subfolders). */
+    listAudio(folder: string): Promise<string[]>
+  }
   /** LibreOffice (soffice) powers the Converter's document formats. */
   checkLibreOffice(): Promise<ToolStatus>
   /** realesrgan-ncnn-vulkan isn't bundled either, and unlike yt-dlp/ffmpeg it's
@@ -767,6 +808,28 @@ const browserTasks: HostTasks = {
     browserListeners.forEach((l) => l(browserTaskList))
     return id
   },
+  startTag: async (req) => {
+    const id = crypto.randomUUID()
+    browserTaskList = [
+      {
+        id,
+        kind: 'tag',
+        status: 'error',
+        progress: 0,
+        label: 'Tagging requires the desktop app',
+        error: 'Desktop app required',
+        format: req.organize ? 'Organize' : '',
+        quality: '',
+        sizeBytes: null,
+        sizeIsEstimate: false,
+        thumbnailUrl: null,
+        experimentalMatch: null,
+      },
+      ...browserTaskList,
+    ]
+    browserListeners.forEach((l) => l(browserTaskList))
+    return id
+  },
   startAudioAi: async (req) => {
     const id = crypto.randomUUID()
     browserTaskList = [
@@ -844,6 +907,13 @@ const browserHost: Host = {
   checkYtDlp: async () => ({ available: false, installHint: 'Desktop app required' }),
   installYtDlp: async () => ({ ok: false, error: 'Desktop app required' }),
   checkFfmpeg: async () => ({ available: false, installHint: 'Desktop app required' }),
+  checkFpcalc: async () => ({ available: false, installHint: 'Desktop app required' }),
+  tagger: {
+    identify: async () => {
+      throw new Error('Desktop app required')
+    },
+    listAudio: async () => [],
+  },
   checkLibreOffice: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkRealesrgan: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkRife: async () => ({ available: false, installHint: 'Desktop app required' }),

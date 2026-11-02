@@ -26,6 +26,7 @@ import SubtitlesCard from './subtitles/SubtitlesCard'
 import ImageUpscalerCard from './upscaler/ImageUpscalerCard'
 import VideoUpscalerCard from './upscaler/VideoUpscalerCard'
 import CompressCard from './compress/CompressCard'
+import TaggerCard from './tagger/TaggerCard'
 import TrimCard from './trim/TrimCard'
 
 /**
@@ -133,6 +134,17 @@ export function registerCoreFeatures(): void {
       icon: 'compress',
       enabled: true,
       render: CompressCard,
+      source: 'core',
+    },
+    {
+      id: 'tagger',
+      title: 'Music Tagger',
+      tagline: 'Tags and cover art',
+      description: 'Look up your songs and fill in artist, title, album, year, track and cover art. You check the matches before anything is written.',
+      scope: 'desktop-exclusive',
+      icon: 'tag',
+      enabled: true,
+      render: TaggerCard,
       source: 'core',
     },
   ])

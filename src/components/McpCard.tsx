@@ -67,7 +67,7 @@ export default function McpCard() {
     <div className="glass rounded-3xl p-5">
       <h2 className="mb-1 text-base font-bold">MCP server</h2>
       <p className="mb-2 text-xs text-[var(--text-dim)]">
-        Let any AI app that supports MCP (Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, LM Studio and more) download, convert, upscale, trim, compress and subtitle files through OPNduck, and watch the jobs.
+        Let any AI app that supports MCP (Claude Code, Codex, Gemini CLI, Cursor, Claude Desktop, LM Studio and more) download, convert, upscale, trim, compress, tag and subtitle files through OPNduck, and watch the jobs.
       </p>
       <label className="flex cursor-pointer items-start gap-3 py-2">
         <input type="checkbox" className="mt-0.5 accent-[var(--accent)]" checked={info.enabled} disabled={busy} onChange={(e) => void toggle(e.target.checked)} />

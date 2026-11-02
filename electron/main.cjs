@@ -267,6 +267,10 @@ ipcMain.handle('system:checkYtDlp', () => tools.checkYtDlp())
 ipcMain.handle('system:installYtDlp', () => tools.installYtDlp())
 ipcMain.handle('system:checkLibreOffice', () => tools.checkLibreOffice())
 ipcMain.handle('system:checkFfmpeg', () => tools.checkFfmpeg())
+ipcMain.handle('system:checkFpcalc', () => tools.checkFpcalc())
+// Music tagger: look one file up (read-only; the card calls it file by file), and list the audio in a folder.
+ipcMain.handle('tagger:identify', (_e, filePath) => (typeof filePath === 'string' ? modules.tagger.identifyTrack(filePath) : Promise.reject(new Error('Invalid path'))))
+ipcMain.handle('tagger:listAudio', (_e, folder) => (typeof folder === 'string' && path.isAbsolute(folder) ? modules.tagger.listAudioFiles(folder) : []))
 ipcMain.handle('system:checkRealesrgan', () => tools.checkRealesrgan())
 ipcMain.handle('system:checkRife', () => tools.checkRife())
 ipcMain.handle('system:checkTorchEngine', () => tools.checkTorchEngine(torchEngineReady))
@@ -428,7 +432,7 @@ ipcMain.handle('tasks:clearFinished', () => clearFinished())
  * Export writes the finished tasks (with the requests needed to run them again) as JSON. Import
  * reads such a file back: every field is re-validated here — a hand-edited or hostile file must
  * never smuggle in a channel, path or value the app wouldn't accept from its own UI. */
-const TASK_KINDS = ['download', 'convert', 'upscale', 'interpolate', 'subtitles', 'audio-ai', 'trim', 'compress']
+const TASK_KINDS = ['download', 'convert', 'upscale', 'interpolate', 'subtitles', 'audio-ai', 'trim', 'compress', 'tag']
 
 function sanitizeImported(rows) {
   if (!Array.isArray(rows)) return []
