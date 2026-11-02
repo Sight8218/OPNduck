@@ -835,6 +835,12 @@ app.on('web-contents-created', (_e, contents) => {
       event.preventDefault()
     }
   })
+  // A plugin card lives in a sandboxed subframe and may only ever show its own plugin's files. Without this a card
+  // could send its frame to a web address and carry data out in the URL.
+  contents.on('will-frame-navigate', (event) => {
+    if (event.isMainFrame) return
+    if (!event.url.startsWith('opnduck-plugin://') && event.url !== 'about:blank') event.preventDefault()
+  })
   contents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://') || url.startsWith('http://')) shell.openExternal(url)
     return { action: 'deny' }
@@ -1020,11 +1026,31 @@ app.whenReady().then(() => {
   startSubscriptions()
   trace('subscriptions started')
   void applyMcp()
+  // A card runs in a sandboxed iframe on this scheme. Reserved paths (__frame.html, __frame.js, __app/*) are the
+  // card page and the app's stylesheet; anything else is a file from the plugin's own folder.
+  const pluginFrame = require('./core/plugin_frame.cjs')
+  const distDir = path.join(__dirname, '..', 'dist')
   protocol.handle('opnduck-plugin', (req) => {
+    const plain = { 'access-control-allow-origin': '*', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' }
     try {
       const url = new URL(req.url)
-      const { data, type } = core.plugins.readAsset(url.hostname, decodeURIComponent(url.pathname).replace(/^\//, ''))
-      return new Response(data, { headers: { 'content-type': type, 'access-control-allow-origin': '*', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
+      const id = url.hostname
+      const rel = decodeURIComponent(url.pathname).replace(/^\//, '')
+      if (rel.startsWith('__')) {
+        const p = core.plugins.list().find((x) => x.id === id)
+        if (!p || p.status !== 'running' || !p.manifest?.ui) return new Response('Not found', { status: 404 })
+        if (rel === '__frame.html') {
+          return new Response(pluginFrame.frameHtml(pluginFrame.appCssName(distDir)), { headers: { ...plain, 'content-type': 'text/html; charset=utf-8', 'content-security-policy': pluginFrame.FRAME_CSP } })
+        }
+        if (rel === '__frame.js') return new Response(fs.readFileSync(path.join(__dirname, 'plugin_frame', 'frame.js')), { headers: { ...plain, 'content-type': 'text/javascript' } })
+        if (rel.startsWith('__app/')) {
+          const { data, type } = pluginFrame.appAsset(distDir, rel.slice(6))
+          return new Response(data, { headers: { ...plain, 'content-type': type } })
+        }
+        return new Response('Not found', { status: 404 })
+      }
+      const { data, type } = core.plugins.readAsset(id, rel)
+      return new Response(data, { headers: { ...plain, 'content-type': type } })
     } catch {
       return new Response('Not found', { status: 404 })
     }

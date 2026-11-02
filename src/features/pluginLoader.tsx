@@ -1,34 +1,9 @@
-import * as React from 'react'
 import { host, type PluginSummary } from '../host'
-import PluginCardHost, { type PluginApi, type PluginCardComponent } from './PluginCardHost'
+import PluginFrame from './PluginFrame'
 import { featureRegistry, registerFeatures, unregisterFeature, type FeatureDefinition } from './registry'
 
-declare global {
-  interface Window {
-    /** What a plugin card reads: the host's own React (a second copy would break hooks). */
-    OPNduck?: { readonly React: typeof React }
-  }
-}
-
-/** The card-safe API for one plugin; every call carries that plugin's id into the host's permission checks. */
-function makeApi(id: string): PluginApi {
-  const call = (method: string, ...args: unknown[]) => host.plugins!.call(id, method, args)
-  return {
-    jobs: {
-      start: (tool, args) => call('jobs.start', tool, args) as Promise<string>,
-      list: () => call('jobs.list') as Promise<unknown[]>,
-      cancel: (jobId) => call('jobs.cancel', jobId) as Promise<void>,
-    },
-    files: { pick: (opts) => call('files.pick', opts ?? {}) as Promise<string | null> },
-    settings: { get: (key) => call('settings.get', key), set: (key, value) => call('settings.set', key, value) as Promise<void> },
-    notify: (opts) => call('notify', opts) as Promise<void>,
-    rpc: { call: (name, arg) => call('rpc.call', name, arg) },
-  }
-}
-
-function definitionFor(p: PluginSummary, card: PluginCardComponent): FeatureDefinition {
+function definitionFor(p: PluginSummary): FeatureDefinition {
   const m = p.manifest!
-  const api = makeApi(p.id)
   const def: FeatureDefinition = {
     id: p.id,
     title: m.name,
@@ -38,7 +13,7 @@ function definitionFor(p: PluginSummary, card: PluginCardComponent): FeatureDefi
     icon: m.icon ?? '★',
     accent: m.accent,
     enabled: true,
-    render: ({ feature }) => <PluginCardHost feature={feature} card={card} api={api} />,
+    render: ({ feature }) => <PluginFrame key={`${p.id}-${m.version}`} pluginId={p.id} version={m.version} entry={m.ui!.entry} feature={feature} />,
     source: 'plugin',
   }
   return def
@@ -72,23 +47,15 @@ async function doSync(): Promise<void> {
   for (const p of wanted) {
     const m = p.manifest!
     if (loadedVersion.get(p.id) === m.version && featureRegistry.some((f) => f.id === p.id)) continue
-    try {
-      // The host serves this URL from the plugin's own folder (opnduck-plugin:// in electron/main.cjs).
-      const mod = (await import(/* @vite-ignore */ `opnduck-plugin://${p.id}/${m.ui!.entry}?v=${encodeURIComponent(m.version)}-${Date.now()}`)) as { default?: unknown }
-      if (typeof mod.default !== 'function') throw new Error('the UI entry must default-export a component')
-      unregisterFeature(p.id)
-      registerFeatures([definitionFor(p, mod.default as PluginCardComponent)])
-      loadedVersion.set(p.id, m.version)
-    } catch (err) {
-      console.error(`[plugin ${p.id}] could not load its card:`, err)
-    }
+    unregisterFeature(p.id)
+    registerFeatures([definitionFor(p)])
+    loadedVersion.set(p.id, m.version)
   }
 }
 
-/** Called once at startup (desktop only): exposes `window.OPNduck`, loads running plugins, and follows changes. */
+/** Called once at startup (desktop only): shows running plugins on Home and follows changes. A card's code runs in a sandboxed frame (PluginFrame), never in this window. */
 export function startPluginLoader(): void {
-  if (!host.plugins || window.OPNduck) return
-  Object.defineProperty(window, 'OPNduck', { value: Object.freeze({ React }), enumerable: true })
+  if (!host.plugins) return
   void syncPlugins()
   host.plugins.onChanged(() => void syncPlugins())
 }

@@ -169,7 +169,7 @@ Rules:
 
 1. **No bundler assumed.** The entry runs as-is as an ES module: plain JS, no `import` of `react`,
    no JSX unless you compile it yourself. Use `React.createElement` or ship compiled output.
-2. **Use the host's React** from `window.OPNduck.React`. A second copy of React breaks hooks.
+2. **Use the frame's React** from `window.OPNduck.React`, don't bundle a second copy of it.
 3. **Style with the app's CSS custom properties and classes** (`--text`, `--text-dim`,
    `--input-bg`, `glass-btn`, `glass-input`, ...), not hardcoded colors, so the card follows the
    user's theme. See `src/index.css` and `src/themes/tokens.css`.
@@ -181,14 +181,26 @@ The `api` prop offers the namespaces of the backend API that make sense in a car
 api.rpc.call(name, arg)         call a function the backend registered with opnduck.rpc.handle
 ```
 
-**A card is not isolated from the app.** Its script runs inside OPNduck's own window, so code in a
-card can reach everything the app's UI can (including the bridge the app itself uses), not just
-`api`. The permission checks protect the `api` and the backend; they cannot hold back a card
-that goes around them. Treat an unverified card like an unverified backend: read it first.
+**A card runs in a sandbox.** OPNduck loads your UI entry into a sandboxed iframe on its own
+`opnduck-plugin://<id>/` origin. Inside it:
 
-The script and its styles/images are served from the plugin's folder over `opnduck-plugin://<id>/`
-(only while the plugin is enabled, only inside its folder, never the backend file). Export a
-default component from the entry; it is loaded as an ES module.
+- `window.OPNduck.React` is a React the frame brings itself (not the app's), and `api` is the only way
+  out. Each call travels by `postMessage` to the app, which answers it for your plugin id with the same
+  permission checks as before. A card cannot reach the app's window, its storage, `window.opnduckHost` or
+  other plugins' calls.
+- No network: the frame's content security policy blocks `fetch`, XHR, WebSocket, remote scripts, images
+  and fonts, and navigating the frame anywhere but your own plugin folder. To talk to the internet, ask
+  your backend over `api.rpc.call` (it needs the `network` permission).
+- Not available: `localStorage`, cookies, popups, forms, `alert()`. Keep state with
+  `api.settings.get/set` (needs `settings`) or in your backend.
+- The app's stylesheet and theme variables are copied into the frame, so `--text`, `glass-btn` and the
+  other classes work and follow the user's theme. Its fonts load too.
+- Height follows your content automatically (4000 px maximum).
+- Your script and its styles/images are served from your plugin folder (only while the plugin is on,
+  never the backend file), and the module's default export is rendered as before.
+
+Your **backend** is a different matter: it is Node code running with the user's privileges (see
+[Trust](#trust-verified-and-unverified)). The sandbox covers cards only.
 
 ## Tools
 

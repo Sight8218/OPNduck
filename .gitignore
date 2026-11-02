@@ -52,3 +52,4 @@ github-release/*/*/assets/
 __pycache__/
 .dev-session.pid
 dist-tui
+electron/plugin_frame/frame.js

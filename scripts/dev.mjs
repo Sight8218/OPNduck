@@ -3,7 +3,7 @@
 //  - Frontend edits hot-reload through Vite as usual.
 //  - Backend edits (electron/*.cjs, *.py) restart Electron automatically.
 //  - Closing the app or pressing Ctrl+C stops everything this launcher started.
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, watch, writeFileSync, unlinkSync } from 'node:fs'
 import net from 'node:net'
 import path from 'node:path'
@@ -51,6 +51,7 @@ const portOpen = (port) =>
   })
 
 await stopPrevious()
+spawnSync(process.execPath, [path.join(root, 'scripts/build-frame.mjs')], { cwd: root, stdio: 'inherit' }) // the sandboxed plugin card page
 writeFileSync(pidFile, String(process.pid))
 
 let vite = null
