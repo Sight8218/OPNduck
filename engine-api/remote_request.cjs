@@ -21,7 +21,7 @@
  * No Electron.
  */
 
-const { TOOLS, buildStartRequest } = require('../electron/mcp_tools.cjs')
+const { TOOLS, DEFAULTS, buildStartRequest } = require('../electron/mcp_tools.cjs')
 
 /** Tools that work on one uploaded file. The file is named by an upload id, never by a path. */
 const FILE_KINDS = ['convert', 'upscale_image', 'upscale_video', 'interpolate', 'subtitles', 'trim', 'compress', 'make_gif', 'audio_ai']
@@ -72,7 +72,7 @@ function buildRemoteRequest(kind, req, resolveUpload = () => null) {
   const url = typeof req.url === 'string' ? req.url : ''
   const why = whyRefused({ ...req, url: undefined })
   if (why) throw new Error(why)
-  const clean = {}
+  const clean = { ...(DEFAULTS[kind] ?? {}) }
   for (const k of FIELDS[kind]) if (req[k] !== undefined && req[k] !== null) clean[k] = req[k]
   if (kind === 'download') {
     let u

@@ -149,6 +149,7 @@ export interface AppSettings {
   remoteEnabled: boolean
   remoteMode: 'ask' | 'auto'
   remoteRelay: boolean
+  shareEngine: boolean
   remoteBind: 'off' | 'localhost' | 'tailscale' | 'lan'
   remotePort: number
   remoteDirectUrl: string
@@ -313,6 +314,32 @@ export interface InboxLink {
   at: number
 }
 
+export interface ServerEntry {
+  id: string
+  name: string
+  baseUrl: string
+  /** How well the connection is protected: 'lan-http' is not encrypted. */
+  transport: 'https' | 'loopback' | 'tailnet' | 'lan-http'
+}
+export interface ServerStatus {
+  online: boolean
+  mismatch: boolean
+  version?: string
+  error?: string
+  kinds?: string[]
+  gpus?: string[]
+  freeDiskBytes?: number | null
+  tools?: Record<string, boolean>
+  uploads?: boolean
+}
+export interface ShareState {
+  enabled: boolean
+  listening: boolean
+  bind: 'off' | 'localhost' | 'tailscale' | 'lan'
+  error: string
+  urls: string[]
+  devices: { id: string; name: string; kind: string; createdAt: number; lastSeen: number }[]
+}
 export interface RemoteServer {
   running: boolean
   port: number | null
@@ -649,6 +676,21 @@ export interface Host {
   /** The music tagger needs Chromaprint's fpcalc. */
   checkFpcalc(): Promise<ToolStatus>
   /** Measures a file and suggests settings for a tool, with the reason for each (reads the file; starts no job). */
+  /** OPNduck servers this app can run jobs on, and sharing this PC's engine with other devices. Desktop only. */
+  servers: {
+    list(): Promise<{ servers: ServerEntry[]; defaults: Record<string, string>; encrypted: boolean }>
+    /** Pairs with a server from its `opnduck://pair?...` link. Throws a readable message. */
+    add(link: string): Promise<ServerEntry>
+    check(id: string): Promise<ServerStatus>
+    remove(id: string): Promise<boolean>
+    /** Where a kind of job runs by default: 'ask', 'local' or a server id. */
+    setDefault(kind: string, where: string): Promise<Record<string, string>>
+    shareState(): Promise<ShareState>
+    /** A new one-time link another device uses to pair with this PC. */
+    sharePairLink(): Promise<{ link: string }>
+    shareRevoke(id: string): Promise<boolean>
+    onChange(listener: () => void): () => void
+  }
   /** Send to OPNduck: links from other devices that wait for a click. Desktop only. */
   remote: {
     state(): Promise<RemoteState>
@@ -765,7 +807,7 @@ export interface Host {
   /** Main-process settings (proxy, login cookies). Desktop shell only. */
   settings?: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; remoteEnabled?: boolean; remoteMode?: 'ask' | 'auto'; remoteRelay?: boolean; remoteBind?: 'off' | 'localhost' | 'tailscale' | 'lan'; remotePort?: number; remoteFormat?: string; remoteVideoQuality?: string; remoteAudioQuality?: string; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; remoteEnabled?: boolean; remoteMode?: 'ask' | 'auto'; remoteRelay?: boolean; shareEngine?: boolean; remoteBind?: 'off' | 'localhost' | 'tailscale' | 'lan'; remotePort?: number; remoteFormat?: string; remoteVideoQuality?: string; remoteAudioQuality?: string; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   /** Auto-download new uploads from a channel/playlist (checked while the app is open). Desktop shell only. */
   subscriptions?: {
@@ -1092,6 +1134,19 @@ const browserHost: Host = {
   installYtDlp: async () => ({ ok: false, error: 'Desktop app required' }),
   checkFfmpeg: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkFpcalc: async () => ({ available: false, installHint: 'Desktop app required' }),
+  servers: {
+    list: async () => ({ servers: [], defaults: {}, encrypted: false }),
+    add: async () => {
+      throw new Error('Desktop app required')
+    },
+    check: async () => ({ online: false, mismatch: false, error: 'Desktop app required' }),
+    remove: async () => false,
+    setDefault: async () => ({}),
+    shareState: async () => ({ enabled: false, listening: false, bind: 'off', error: '', urls: [], devices: [] }),
+    sharePairLink: async () => ({ link: '' }),
+    shareRevoke: async () => false,
+    onChange: () => () => {},
+  },
   remote: {
     state: async () => ({ enabled: false, mode: 'ask', pending: [] }),
     accept: async () => false,

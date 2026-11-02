@@ -18,7 +18,7 @@
 
 // OPNDUCK_TRACE=1 prints a startup timeline (ms since process start); scripts/perf-check uses it.
 const trace = process.env.OPNDUCK_TRACE ? (label) => console.log(`[trace] ${label} ${Math.round(process.uptime() * 1000)}ms`) : () => {}
-const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage, protocol } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, nativeImage, protocol, safeStorage } = require('electron')
 
 // The last few hundred lines of main-process and renderer console output, for Settings -> Developer tools.
 const appLog = []
@@ -238,7 +238,7 @@ ipcMain.handle('settings:set', async (_e, patch) => {
   applyQueueLimits()
   if (patch && 'mcpServer' in patch) await applyMcp()
   if (patch && ('remoteEnabled' in patch || 'remoteMode' in patch)) platform.emit('remote:changed', null)
-  if (patch && ('remoteEnabled' in patch || 'remoteBind' in patch || 'remotePort' in patch)) await applyEngineApi()
+  if (patch && ('remoteEnabled' in patch || 'remoteBind' in patch || 'remotePort' in patch || 'shareEngine' in patch)) await applyEngineApi()
   if (patch && ('remoteEnabled' in patch || 'remoteRelay' in patch)) applyRelay()
   return next
 })
@@ -428,13 +428,34 @@ ipcMain.handle('remote:state', () => {
 const tailscale = require('./core/remote/tailscale.cjs')
 const { createEngineApi } = require('../engine-api/server.cjs')
 const { buildPairLink } = require('./core/remote/envelope.cjs')
+const { createDevices } = require('../engine-api/devices.cjs')
+const { createUploads } = require('../engine-api/uploads.cjs')
+const { createV1 } = require('../engine-api/v1.cjs')
+const { createInfo } = require('../engine-api/info.cjs')
+const { buildEnginePairLink } = require('../engine-api/pairlink.cjs')
+const { createServers } = require('./core/remote/servers.cjs')
 let engineApi = null
-/** Starts or stops the link server to match the settings (off unless Send to OPNduck is on and a bind mode is chosen). */
+let sharing = null // { devices, uploads, v1 }: made the first time this PC's engine is shared
+function needSharing() {
+  if (sharing) return sharing
+  const dir = path.join(platform.paths.userData, 'engine')
+  const devices = createDevices({ file: path.join(dir, 'devices.json'), codesFile: path.join(dir, 'pair-codes.json') })
+  const uploads = createUploads({ dir: path.join(dir, 'uploads') })
+  const info = createInfo({ outputDir: () => defaultDownloadDir(), ytdlpCommand: () => core.ctx.ytdlpCommand?.() ?? 'yt-dlp' })
+  const real = createV1({ engine, platform, devices, uploads, name: () => os.hostname(), version: platform.version, info, log: (m) => console.log(m) })
+  // The routes exist only while sharing is switched on; with it off the server answers only health checks and Send to OPNduck.
+  const v1 = {
+    handle: (req, res, ctx) => (getSettings().shareEngine ? real.handle(req, res, ctx) : ctx.reply(404, { error: 'Not found' })),
+    closeAll: () => real.closeAll(),
+  }
+  return (sharing = { devices, uploads, v1 })
+}
+/** Starts or stops the link server to match the settings (off unless Send to OPNduck or engine sharing is on and a bind mode is chosen). */
 async function applyEngineApi() {
   const s = getSettings()
   const inbox = needRemote()
-  engineApi ??= createEngineApi({ inbox, name: () => os.hostname(), log: (m) => console.log(m) })
-  if (!s.remoteEnabled || s.remoteBind === 'off') await engineApi.stop()
+  engineApi ??= createEngineApi({ inbox, name: () => os.hostname(), v1: needSharing().v1, log: (m) => console.log(m) })
+  if (!(s.remoteEnabled || s.shareEngine) || s.remoteBind === 'off') await engineApi.stop()
   else {
     const ts = s.remoteBind === 'tailscale' ? await tailscale.status() : null
     await engineApi.start({ mode: s.remoteBind, port: s.remotePort, tailscaleIp: ts?.ip ?? null })
@@ -468,6 +489,59 @@ ipcMain.handle('remote:resetPairing', () => {
   needRemote().resetPairing()
   applyRelay() // the topic changed with the secret
   return true
+})
+/* --- Servers this app can use, and sharing this PC's engine with other devices --- */
+const SEALED = 'safe:'
+const servers = createServers({
+  file: path.join(platform.paths.userData, 'servers.json'),
+  // The OS keyring holds the key. Without one (a bare Linux session) the token is stored as is, in a file only this user can read.
+  seal: (text) => (safeStorage.isEncryptionAvailable() ? SEALED + safeStorage.encryptString(text).toString('base64') : `plain:${text}`),
+  unseal: (sealed) => (sealed.startsWith(SEALED) ? safeStorage.decryptString(Buffer.from(sealed.slice(SEALED.length), 'base64')) : sealed.replace(/^plain:/, '')),
+})
+ipcMain.handle('servers:list', () => ({ servers: servers.list(), defaults: servers.defaults(), encrypted: safeStorage.isEncryptionAvailable() }))
+ipcMain.handle('servers:add', async (_e, link) => {
+  const s = await servers.add(String(link))
+  platform.emit('servers:changed', null)
+  return s
+})
+ipcMain.handle('servers:check', (_e, id) => servers.check(String(id)))
+ipcMain.handle('servers:remove', (_e, id) => {
+  const ok = servers.remove(String(id))
+  platform.emit('servers:changed', null)
+  return ok
+})
+ipcMain.handle('servers:setDefault', (_e, kind, where) => {
+  servers.setDefault(String(kind), String(where))
+  platform.emit('servers:changed', null)
+  return servers.defaults()
+})
+/** Where other devices can reach this PC's engine, first the best one: the Tailscale HTTPS address, then the addresses it listens on. */
+async function engineUrls() {
+  const s = getSettings()
+  const st = engineApi?.status()
+  if (!st?.running) return []
+  const urls = []
+  if (s.remoteDirectUrl) urls.push(s.remoteDirectUrl.replace(/\/+$/, ''))
+  for (const a of st.addresses) if (a !== '0.0.0.0') urls.push(`http://${a}:${st.port}`)
+  if (st.addresses.includes('0.0.0.0')) for (const addrs of Object.values(os.networkInterfaces())) for (const i of addrs ?? []) if (i.family === 'IPv4' && !i.internal) urls.push(`http://${i.address}:${st.port}`)
+  return [...new Set(urls)].sort((x, y) => Number(/^http:\/\/127\./.test(x)) - Number(/^http:\/\/127\./.test(y)))
+}
+ipcMain.handle('share:state', async () => {
+  const sh = needSharing()
+  const st = engineApi?.status() ?? { running: false, port: null, addresses: [], error: '' }
+  return { enabled: getSettings().shareEngine, listening: st.running, bind: getSettings().remoteBind, error: st.error, urls: await engineUrls(), devices: sh.devices.list() }
+})
+// A new one-time pair link holds a code that lets a device in: it goes only to this app's window, as a QR code or to copy.
+ipcMain.handle('share:pairLink', async () => {
+  if (!getSettings().shareEngine) throw new Error('Turn on sharing first')
+  const urls = await engineUrls()
+  if (!urls.length) throw new Error('Choose who can connect (this computer, Tailscale or your network) first')
+  return { link: buildEnginePairLink({ baseUrl: urls[0], code: needSharing().devices.newPairCode(), name: os.hostname() }) }
+})
+ipcMain.handle('share:revoke', (_e, id) => {
+  const ok = needSharing().devices.revoke(String(id))
+  platform.emit('servers:changed', null)
+  return ok
 })
 ipcMain.handle('remote:tailscale', () => tailscale.status())
 ipcMain.handle('remote:tailscaleServe', async (_e, on) => {

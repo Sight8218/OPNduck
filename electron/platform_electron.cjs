@@ -18,9 +18,11 @@
 
 /** The Electron implementation of the platform interface (see core/platform.cjs). */
 const path = require('node:path')
+const { EventEmitter } = require('node:events')
 const { app, BrowserWindow, Notification, shell } = require('electron')
 
 const windows = () => BrowserWindow.getAllWindows()
+const bus = new EventEmitter()
 
 module.exports = {
   paths: {
@@ -43,6 +45,12 @@ module.exports = {
   },
   emit(channel, payload) {
     for (const win of windows()) win.webContents.send(channel, payload)
+    bus.emit(channel, payload)
+  },
+  /** Listen to events in the main process too (the engine API follows 'tasks:update'); returns an unsubscribe function. */
+  on(channel, fn) {
+    bus.on(channel, fn)
+    return () => bus.off(channel, fn)
   },
   canNotify: () => Notification.isSupported(),
   /** Shows a notification; `actions` are button labels and `onAction` runs when one is pressed. */

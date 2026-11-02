@@ -4,6 +4,7 @@ import { IconAdjustmentsHorizontal, IconCpu, IconDownload, IconInfoCircle, IconK
 import GpuPerformanceCard from '../components/GpuPerformanceCard'
 import MusicTaggingCard from '../components/MusicTaggingCard'
 import SendToOpnduckCard from '../components/SendToOpnduckCard'
+import ServersCard from '../components/ServersCard'
 import NotificationsCard from '../components/NotificationsCard'
 import McpCard from '../components/McpCard'
 import PluginSafeMode from '../components/PluginSafeMode'
@@ -161,6 +162,7 @@ export default function Settings() {
             {host.settings && <NotificationsCard />}
             {host.settings && <MusicTaggingCard />}
             {host.settings && <SendToOpnduckCard />}
+            {host.settings && <ServersCard />}
             {host.settings && <QueueCard />}
             {host.settings && <WatchFolderCard />}
             {host.mcp && <McpCard />}

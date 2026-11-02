@@ -36,6 +36,21 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   installYtDlp: () => ipcRenderer.invoke('system:installYtDlp'),
   checkFfmpeg: () => ipcRenderer.invoke('system:checkFfmpeg'),
   checkFpcalc: () => ipcRenderer.invoke('system:checkFpcalc'),
+  servers: {
+    list: () => ipcRenderer.invoke('servers:list'),
+    add: (link) => ipcRenderer.invoke('servers:add', link),
+    check: (id) => ipcRenderer.invoke('servers:check', id),
+    remove: (id) => ipcRenderer.invoke('servers:remove', id),
+    setDefault: (kind, where) => ipcRenderer.invoke('servers:setDefault', kind, where),
+    shareState: () => ipcRenderer.invoke('share:state'),
+    sharePairLink: () => ipcRenderer.invoke('share:pairLink'),
+    shareRevoke: (id) => ipcRenderer.invoke('share:revoke', id),
+    onChange: (listener) => {
+      const handler = () => listener()
+      ipcRenderer.on('servers:changed', handler)
+      return () => ipcRenderer.removeListener('servers:changed', handler)
+    },
+  },
   remote: {
     state: () => ipcRenderer.invoke('remote:state'),
     relay: () => ipcRenderer.invoke('remote:relay'),

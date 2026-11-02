@@ -25,15 +25,14 @@
  *   opnduck-server send-link     print the link for "Send to OPNduck" (phone page, extension)
  */
 const fs = require('node:fs')
-const os = require('node:os')
 const path = require('node:path')
-const { spawnSync } = require('node:child_process')
 const pkg = require('../package.json')
 const { loadConfig, reachableUrls } = require('./config.cjs')
 const { createDevices } = require('../engine-api/devices.cjs')
 const { createUploads } = require('../engine-api/uploads.cjs')
 const { createV1 } = require('../engine-api/v1.cjs')
 const { createEngineApi } = require('../engine-api/server.cjs')
+const { createInfo } = require('../engine-api/info.cjs')
 const { buildEnginePairLink } = require('../engine-api/pairlink.cjs')
 
 const HELP = `opnduck-server ${pkg.version}: the OPNduck engine on another machine.
@@ -75,33 +74,6 @@ async function printPairLink(cfg, code) {
   if (urls.length > 1) console.log(`\nThe link uses ${urls[0]}. Other addresses this server answers on: ${urls.slice(1).join(', ')}`)
   if (new URL(urls[0]).hostname === '127.0.0.1') console.log('\nThis address only works on this machine. Set OPNDUCK_BIND (or OPNDUCK_PUBLIC_URL) so other devices can reach it.')
   console.log('\nThe code works once and expires in 5 minutes. Run "opnduck-server pair" for another.')
-}
-
-const which = (cmd, args = ['-version']) => {
-  const r = spawnSync(cmd, args, { stdio: 'ignore', timeout: 4000 })
-  return !r.error && r.status === 0
-}
-
-/** What this machine can do, for GET /v1/info. Cached for a minute: it starts programs. */
-function makeInfo(cfg, core) {
-  let cached = null
-  let at = 0
-  return () => {
-    if (cached && Date.now() - at < 60000) return cached
-    let gpus = []
-    const smi = spawnSync('nvidia-smi', ['--query-gpu=name', '--format=csv,noheader'], { encoding: 'utf8', timeout: 4000 })
-    if (!smi.error && smi.status === 0) gpus = smi.stdout.split('\n').map((l) => l.trim()).filter(Boolean)
-    let freeDiskBytes = null
-    try {
-      const s = fs.statfsSync(cfg.output)
-      freeDiskBytes = s.bavail * s.bsize
-    } catch {
-      /* output folder missing */
-    }
-    cached = { gpus, freeDiskBytes, tools: { ffmpeg: which('ffmpeg'), ytdlp: which(core.ctx.ytdlpCommand?.() ?? 'yt-dlp', ['--version']) }, platform: process.platform, cpus: os.cpus().length }
-    at = Date.now()
-    return cached
-  }
 }
 
 /** Deletes finished results (and their history rows) older than the retention time, and expired uploads. */
@@ -167,7 +139,7 @@ async function serve(cfg) {
 
   const devices = createDevices({ file: p.devices, codesFile: p.codes })
   const uploads = createUploads({ dir: p.uploads, maxBytes: cfg.maxUploadGB * 1024 ** 3, retentionMs: cfg.retentionHours * 3600 * 1000 })
-  const v1 = createV1({ engine: core.engine, platform, devices, uploads, name: () => cfg.name, version: pkg.version, info: makeInfo(cfg, core), log: (l) => console.log(l) })
+  const v1 = createV1({ engine: core.engine, platform, devices, uploads, name: () => cfg.name, version: pkg.version, info: createInfo({ outputDir: () => path.join(cfg.output, 'OPNduck'), ytdlpCommand: () => core.ctx.ytdlpCommand?.() ?? 'yt-dlp' }), log: (l) => console.log(l) })
   const api = createEngineApi({ inbox, name: () => cfg.name, v1, log: (l) => console.log(l) })
   const st = await api.start({ mode: 'address', address: cfg.bind, port: cfg.port })
   if (!st.running) {

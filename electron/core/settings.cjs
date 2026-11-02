@@ -69,6 +69,8 @@ const DEFAULTS = {
   /** Where the link server listens: off (default), this computer only, this computer and the Tailscale address, or the whole LAN. */
   /** Listen to the encrypted relay channel (ntfy) for links while Send to OPNduck is on. */
   remoteRelay: true,
+  /** Let other OPNduck apps (and the phone app) use this computer's engine, through the same link server. */
+  shareEngine: false,
   remoteBind: 'off',
   remotePort: 47821,
   /** The https:// address Tailscale serves the link server on, once the user enabled it (goes into the pair link). */
@@ -127,6 +129,7 @@ function validate(next) {
   if (typeof next.remoteEnabled !== 'boolean') throw new Error('Invalid Send to OPNduck setting')
   if (!['ask', 'auto'].includes(next.remoteMode)) throw new Error('"When a link arrives" must be ask or auto')
   if (typeof next.remoteRelay !== 'boolean') throw new Error('Invalid relay setting')
+  if (typeof next.shareEngine !== 'boolean') throw new Error('Invalid engine sharing setting')
   if (!['off', 'localhost', 'tailscale', 'lan'].includes(next.remoteBind)) throw new Error('Invalid link server setting')
   if (!Number.isInteger(next.remotePort) || next.remotePort < 1024 || next.remotePort > 65525) throw new Error('The link server port must be 1024 to 65525')
   if (typeof next.remoteDirectUrl !== 'string' || (next.remoteDirectUrl !== '' && !/^https:\/\/[a-z0-9.-]+(:\d{2,5})?$/i.test(next.remoteDirectUrl))) throw new Error('Invalid direct address')
@@ -196,6 +199,7 @@ function setSettings(patch) {
     remoteEnabled: patch.remoteEnabled !== undefined ? patch.remoteEnabled : current.remoteEnabled,
     remoteMode: patch.remoteMode !== undefined ? patch.remoteMode : current.remoteMode,
     remoteRelay: patch.remoteRelay !== undefined ? patch.remoteRelay : current.remoteRelay,
+    shareEngine: patch.shareEngine !== undefined ? patch.shareEngine : current.shareEngine,
     remoteBind: patch.remoteBind !== undefined ? patch.remoteBind : current.remoteBind,
     remotePort: patch.remotePort !== undefined ? patch.remotePort : current.remotePort,
     remoteDirectUrl: patch.remoteDirectUrl !== undefined ? patch.remoteDirectUrl : current.remoteDirectUrl,
