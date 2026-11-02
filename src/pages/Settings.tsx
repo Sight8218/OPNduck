@@ -4,6 +4,7 @@ import { IconAdjustmentsHorizontal, IconCpu, IconDownload, IconInfoCircle, IconK
 import GpuPerformanceCard from '../components/GpuPerformanceCard'
 import NotificationsCard from '../components/NotificationsCard'
 import McpCard from '../components/McpCard'
+import PluginSafeMode from '../components/PluginSafeMode'
 import QueueCard from '../components/QueueCard'
 import WatchFolderCard from '../components/WatchFolderCard'
 import SetupCard from '../components/SetupCard'
@@ -159,6 +160,7 @@ export default function Settings() {
             {host.settings && <QueueCard />}
             {host.settings && <WatchFolderCard />}
             {host.mcp && <McpCard />}
+            {host.plugins && <PluginSafeMode />}
             <StorageCard />
             <UpdatesCard />
           </section>

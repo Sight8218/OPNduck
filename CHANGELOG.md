@@ -4,6 +4,11 @@ All notable changes to OPNduck are documented in this file. Generated with
 [git-cliff](https://github.com/orhun/git-cliff) from Conventional Commit
 history; entries are curated for readability.
 
+## [Unreleased]
+
+### Added
+- **Plugin system** (beta): plugins can add a card to Home and/or a background script that starts jobs, reads files, uses the network and adds tools, each behind permissions you approve. New Plugins page (Installed tab) to review permissions, turn plugins on and off, remove them and open the plugins folder, plus a Safe mode switch that skips every plugin. Plugins that are not verified show a warning first. Permissions are not a sandbox; see `PLUGINS.md`. The plugin store tab is a placeholder for now.
+
 ## [0.5.3-Beta] - 2026-10-31
 
 ### Added
