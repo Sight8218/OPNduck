@@ -275,6 +275,16 @@ export interface Recipe {
   builtIn?: boolean
 }
 
+/** One tool a recipe step can use. `properties` is the JSON schema of its settings (the input is filled in by the recipe). */
+export interface RecipeTool {
+  name: string
+  description: string
+  accepts: string[]
+  required: string[]
+  properties: Record<string, { type?: string | string[]; enum?: unknown[]; minimum?: number; maximum?: number; description?: string }>
+  defaults: Record<string, unknown>
+}
+
 export interface RecipeRun {
   runId: string
   batchId: string | null
@@ -585,6 +595,10 @@ export interface Host {
   /** Recipes: saved chains of tools. Desktop only. */
   recipes: {
     list(): Promise<Recipe[]>
+    /** The tools a step can use, with their settings, for the editor. */
+    tools(): Promise<RecipeTool[]>
+    /** The files in a folder a recipe starting from `input` can run on. */
+    filesIn(folder: string, input: RecipeInput): Promise<string[]>
     /** Saves a new recipe (no id) or updates one (with its id). Throws a readable message when the chain can't work. */
     save(recipe: Omit<Recipe, 'id' | 'output' | 'builtIn'> & { id?: string }): Promise<Recipe>
     remove(id: string): Promise<boolean>
@@ -1004,6 +1018,8 @@ const browserHost: Host = {
   checkFpcalc: async () => ({ available: false, installHint: 'Desktop app required' }),
   recipes: {
     list: async () => [],
+    tools: async () => [],
+    filesIn: async () => [],
     save: async () => {
       throw new Error('Desktop app required')
     },

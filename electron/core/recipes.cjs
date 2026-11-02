@@ -25,7 +25,7 @@
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
-const { TOOLS, STEP_TYPES, producesFor, buildStartRequest } = require('../mcp_tools.cjs')
+const { TOOLS, DEFAULTS, STEP_TYPES, producesFor, buildStartRequest } = require('../mcp_tools.cjs')
 
 const INPUT_TYPES = ['url', 'video', 'audio', 'image']
 const MAX_STEPS = 12
@@ -298,12 +298,58 @@ function createRecipes(ctx) {
     return { runId, taskIds: r.ids }
   }
 
+  /** The tools a step can use, for the editor: title, what it takes and gives, and its settings (without the input). */
+  function tools() {
+    return Object.keys(STEP_TYPES).map((name) => {
+      const def = TOOLS.find((t) => t.name === name)
+      const properties = Object.fromEntries(Object.entries(def.inputSchema.properties).filter(([k]) => !RESERVED_ARGS.includes(k)))
+      return {
+        name,
+        description: def.description.replace(/ Returns a job id\.$/, ''),
+        accepts: STEP_TYPES[name].accepts,
+        required: (def.inputSchema.required ?? []).filter((k) => !RESERVED_ARGS.includes(k)),
+        properties,
+        defaults: Object.fromEntries(Object.entries(DEFAULTS[name] ?? {}).filter(([k]) => k in properties)),
+      }
+    })
+  }
+
+  const EXTS = {
+    video: ['mp4', 'mkv', 'mov', 'webm', 'avi', 'm4v', 'flv', 'wmv', 'ts'],
+    audio: ['mp3', 'flac', 'wav', 'ogg', 'm4a', 'opus', 'aac', 'wma'],
+    image: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'tif', 'tiff', 'avif'],
+  }
+
+  /** The files in a folder (and one level of subfolders) a recipe starting from \`input\` can run on, at most 200. */
+  function filesIn(folder, input) {
+    const exts = EXTS[input]
+    if (!exts || typeof folder !== 'string' || !path.isAbsolute(folder)) return []
+    const out = []
+    const visit = (dir, depth) => {
+      let entries
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true })
+      } catch {
+        return
+      }
+      entries.sort((a, b) => a.name.localeCompare(b.name))
+      for (const e of entries) {
+        if (out.length >= 200) return
+        const full = path.join(dir, e.name)
+        if (e.isFile() && exts.includes(path.extname(e.name).slice(1).toLowerCase())) out.push(full)
+        else if (e.isDirectory() && depth < 1 && !e.name.startsWith('.')) visit(full, depth + 1)
+      }
+    }
+    visit(folder, 0)
+    return out
+  }
+
   const status = (runId) => {
     const r = runs.get(runId)
     return r ? { runId, recipe: r.recipe.name, steps: r.recipe.steps.length, done: r.done, failedAt: r.failedAt, taskIds: [...r.ids] } : null
   }
 
-  return { recipes: { list, get, save, remove, duplicate, run, resume, status, validate: validateRecipe } }
+  return { recipes: { list, get, save, remove, duplicate, run, resume, status, tools, filesIn, validate: validateRecipe } }
 }
 
 module.exports = { createRecipes, validateRecipe, BUILT_IN, INPUT_TYPES, TOOL_KIND, MAX_STEPS }

@@ -272,6 +272,8 @@ ipcMain.handle('system:checkFpcalc', () => tools.checkFpcalc())
 // Auto settings: measure a file and suggest settings for a tool, with reasons (read-only, nothing is started).
 // Recipes (chains of tools): the Recipes page lists, edits and runs them.
 ipcMain.handle('recipes:list', () => core.recipes.list())
+ipcMain.handle('recipes:tools', () => core.recipes.tools())
+ipcMain.handle('recipes:filesIn', (_e, folder, input) => core.recipes.filesIn(folder, String(input)))
 ipcMain.handle('recipes:save', (_e, recipe) => core.recipes.save(recipe))
 ipcMain.handle('recipes:remove', (_e, id) => core.recipes.remove(String(id)))
 ipcMain.handle('recipes:duplicate', (_e, id) => core.recipes.duplicate(String(id)))

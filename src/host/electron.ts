@@ -41,6 +41,8 @@ import type {
   TagLookup,
   AutoTool,
   Recipe,
+  RecipeInput,
+  RecipeTool,
   RecipeRun,
   AutoSuggestion,
   MediaInfo,
@@ -68,6 +70,10 @@ interface ElectronBridge {
   checkFpcalc(): Promise<ToolStatus>
   recipes: {
     list(): Promise<Recipe[]>
+    /** The tools a step can use, with their settings, for the editor. */
+    tools(): Promise<RecipeTool[]>
+    /** The files in a folder a recipe starting from `input` can run on. */
+    filesIn(folder: string, input: RecipeInput): Promise<string[]>
     save(recipe: Omit<Recipe, 'id' | 'output' | 'builtIn'> & { id?: string }): Promise<Recipe>
     remove(id: string): Promise<boolean>
     duplicate(id: string): Promise<Recipe>

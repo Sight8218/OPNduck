@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   checkFpcalc: () => ipcRenderer.invoke('system:checkFpcalc'),
   recipes: {
     list: () => ipcRenderer.invoke('recipes:list'),
+    tools: () => ipcRenderer.invoke('recipes:tools'),
+    filesIn: (folder, input) => ipcRenderer.invoke('recipes:filesIn', folder, input),
     save: (recipe) => ipcRenderer.invoke('recipes:save', recipe),
     remove: (id) => ipcRenderer.invoke('recipes:remove', id),
     duplicate: (id) => ipcRenderer.invoke('recipes:duplicate', id),
