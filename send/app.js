@@ -27,7 +27,7 @@ let pair = load()
 function render() {
   $('pair').hidden = !!pair
   $('send').hidden = !pair
-  if (pair) $('who').textContent = pair.name || 'your computer'
+  if (pair) $('who').textContent = pair.name || 'Your computer'
   $('device').value = localStorage.getItem(DEVICE) || defaultName()
 }
 
