@@ -93,17 +93,18 @@ export function firstUrl(...texts) {
 export const makeEnvelope = (url, from, target = 'download') => ({ v: VERSION, id: crypto.randomUUID(), ts: Date.now(), url, target, from })
 
 /**
- * Sends a link to the paired computer: through each direct address that answers its health check within 1.5 seconds
+ * Sends a link to the paired computer: through each direct address that answers its health check within 1.5 seconds (4 for Tailscale)
  * (`pair.local`, this computer, then `pair.direct`, over Tailscale), else through the relay.
  * Returns 'local', 'direct' or 'relay'; throws a readable Error if none works.
  */
 export async function sendLink(pair, url, from, fetchImpl = fetch) {
   const keys = await deriveKeys(pair.secret)
   const wire = await seal(makeEnvelope(url, from), keys.encKey)
-  for (const [how, base] of [['local', pair.local], ['direct', pair.direct]]) {
+  // The first request over Tailscale can take a few seconds (the connection and its certificate are set up), so it gets longer.
+  for (const [how, base, wait] of [['local', pair.local, 1500], ['direct', pair.direct, 4000]]) {
     if (!base) continue
     try {
-      const health = await fetchImpl(`${base}/v1/health`, { signal: AbortSignal.timeout(1500) })
+      const health = await fetchImpl(`${base}/v1/health`, { signal: AbortSignal.timeout(wait) })
       if (!health.ok) continue
       const r = await fetchImpl(`${base}/v1/send`, { method: 'POST', headers: { Authorization: `Bearer ${keys.authToken}` }, body: wire })
       if (r.status === 202) return how
