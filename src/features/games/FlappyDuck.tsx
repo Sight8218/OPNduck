@@ -12,6 +12,11 @@ const SPACING = 190
 const PIPE_W = 52
 const R = 12
 
+// The duck from the startup screen (index.html), drawn from the same 64x64 paths.
+const DUCK_BODY = typeof Path2D === 'undefined' ? null : new Path2D('M10 38c0-8 7-13 15-13h4c-2-9 3-17 12-17 8 0 13 6 13 13 0 0-1 0-2 0l7 3-7 3c-1 14-8 23-18 23H26C16 49 10 45 10 38z')
+const DUCK_BELLY = typeof Path2D === 'undefined' ? null : new Path2D('M24 38c0 5 5 8 11 8 7 0 12-3 13-8-5 2-10 2-14 1-4-1-7-3-10-1z')
+const DUCK_SCALE = 0.62
+
 interface Pipe {
   x: number
   gapY: number
@@ -78,8 +83,8 @@ export default function FlappyDuck() {
 
     c.fillStyle = p.bg
     c.fillRect(0, 0, W, H)
-    c.fillStyle = p.accent
-    c.globalAlpha = 0.85
+    c.fillStyle = p.accentSoft
+    c.globalAlpha = 0.4
     for (const pipe of s.pipes) {
       c.fillRect(pipe.x, 0, PIPE_W, pipe.gapY)
       c.fillRect(pipe.x, pipe.gapY + GAP, PIPE_W, H - GROUND - pipe.gapY - GAP)
@@ -91,11 +96,20 @@ export default function FlappyDuck() {
     c.fillRect(0, H - GROUND, W, GROUND)
     c.save()
     c.translate(70, s.y)
-    c.rotate(Math.max(-0.5, Math.min(1, s.vy / 600)))
-    c.font = '26px sans-serif'
-    c.textAlign = 'center'
-    c.textBaseline = 'middle'
-    c.fillText('🦆', 0, 0)
+    c.rotate(Math.max(-0.12, Math.min(0.3, s.vy / 1800))) // a gentle tilt, not a swing
+    c.scale(DUCK_SCALE, DUCK_SCALE)
+    c.translate(-34, -28) // the duck's centre in its 64x64 drawing
+    if (DUCK_BODY && DUCK_BELLY) {
+      c.fillStyle = p.accent
+      c.fill(DUCK_BODY)
+      c.globalAlpha = 0.55
+      c.fill(DUCK_BELLY)
+      c.globalAlpha = 1
+      c.fillStyle = p.bg
+      c.beginPath()
+      c.arc(45, 17, 2.4, 0, Math.PI * 2)
+      c.fill()
+    }
     c.restore()
     c.fillStyle = p.text
     c.textAlign = 'center'
