@@ -23,8 +23,14 @@ const COLS = 107
 const ROWS = 54
 
 /** A faint scatter of accent-coloured squares along the top of every page. */
+const LAYERS = 3
+
+/** The scatter drifts down like very slow snow: three layers at different speeds, each tiled twice so the loop has no seam. */
 export default function PixelField() {
-  const dots = useMemo(() => pixelScatter(COLS, ROWS), [])
+  const layers = useMemo(() => {
+    const dots = pixelScatter(COLS, ROWS)
+    return Array.from({ length: LAYERS }, (_, l) => dots.filter((_, i) => i % LAYERS === l))
+  }, [])
   return (
     <svg
       aria-hidden="true"
@@ -33,8 +39,16 @@ export default function PixelField() {
       preserveAspectRatio="xMidYMin slice"
       shapeRendering="crispEdges"
     >
-      {dots.map((d, i) => (
-        <rect key={i} x={d.x} y={d.y} width="1" height="1" opacity={d.opacity} />
+      {layers.map((dots, l) => (
+        <g key={l} className={`pixel-layer pixel-layer-${l}`}>
+          {[0, -ROWS].map((offset) => (
+            <g key={offset} transform={`translate(0 ${offset})`}>
+              {dots.map((d, i) => (
+                <rect key={i} x={d.x} y={d.y} width="1" height="1" opacity={d.opacity} />
+              ))}
+            </g>
+          ))}
+        </g>
       ))}
     </svg>
   )
