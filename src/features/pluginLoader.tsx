@@ -1,6 +1,6 @@
 import { host, type PluginSummary } from '../host'
 import PluginFrame from './PluginFrame'
-import { setSelectorPlugin } from './selectorStore'
+import { setSlotPlugin, type SlotName } from './selectorStore'
 import { featureRegistry, registerFeatures, unregisterFeature, type FeatureDefinition } from './registry'
 
 function definitionFor(p: PluginSummary): FeatureDefinition {
@@ -39,10 +39,12 @@ async function doSync(): Promise<void> {
     return
   }
   const running = list.filter((p) => p.status === 'running' && p.manifest?.ui)
-  // A selector plugin replaces the tile row on Home instead of being a tile; the first one wins.
-  const selector = running.find((p) => p.manifest!.ui!.slot === 'selector')
-  setSelectorPlugin(selector ? { pluginId: selector.id, name: selector.manifest!.name, version: selector.manifest!.version, entry: selector.manifest!.ui!.entry } : null)
-  const wanted = running.filter((p) => p.manifest!.ui!.slot !== 'selector')
+  // A slot plugin fills part of Home instead of being a tile; the first one of each slot wins.
+  for (const slot of ['selector', 'stage'] as SlotName[]) {
+    const p = running.find((x) => x.manifest!.ui!.slot === slot)
+    setSlotPlugin(slot, p ? { pluginId: p.id, name: p.manifest!.name, version: p.manifest!.version, entry: p.manifest!.ui!.entry } : null)
+  }
+  const wanted = running.filter((p) => !p.manifest!.ui!.slot)
   for (const f of [...featureRegistry]) {
     if (f.source === 'plugin' && !wanted.some((p) => p.id === f.id)) {
       unregisterFeature(f.id)

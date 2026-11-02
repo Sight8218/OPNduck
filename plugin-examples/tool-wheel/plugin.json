@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "apiVersion": 1,
   "author": "Aaron Jonsson",
-  "description": "Replaces the tool tiles on Home with a wheel. With nothing picked the cards turn slowly and sit dimmed; pick one and the wheel spins smoothly to it.",
+  "description": "A wheel of tool cards under the Home tiles. With nothing picked the cards turn slowly and sit dimmed; pick one and the wheel spins smoothly to it, then the real tool opens in the middle.",
   "repo": "https://github.com/Sight8218/OPNduck",
   "permissions": [],
-  "ui": { "entry": "ui.js", "slot": "selector" }
+  "ui": { "entry": "ui.js", "slot": "stage" }
 }

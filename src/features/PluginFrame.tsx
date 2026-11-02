@@ -53,6 +53,9 @@ function iconSvg(name: string): string {
 }
 
 interface Props {
+  /** A stage plugin fills its container instead of sizing to its content, and may fade the open tool's card in and out. */
+  fill?: boolean
+  onCardOpacity?(opacity: number): void
   /** Only for a selector plugin (manifest ui.slot): the app's tools, so it can draw its own picker. */
   app?: AppView
   pluginId: string
@@ -82,7 +85,7 @@ function currentTheme() {
  * or the preload bridge). The only link is postMessage. Calls are answered for THIS plugin id, taken from
  * the props and never from the message, and only the card-safe part of the host API answers them (UI_METHODS).
  */
-export default function PluginFrame({ pluginId, version, entry, feature, app }: Props) {
+export default function PluginFrame({ pluginId, version, entry, feature, app, fill, onCardOpacity }: Props) {
   const frame = useRef<HTMLIFrameElement>(null)
   const [height, setHeight] = useState(160)
   const [error, setError] = useState<string | null>(null)
@@ -114,8 +117,10 @@ export default function PluginFrame({ pluginId, version, entry, feature, app }: 
       if (m.type === 'ready') {
         frameReady.current = true
         sendTheme()
-        post({ type: 'init', entry, version, feature: { id, title, tagline, description, scope, icon, accent, enabled: true, source: 'plugin' } })
+        post({ type: 'init', entry, version, fill: fill === true, feature: { id, title, tagline, description, scope, icon, accent, enabled: true, source: 'plugin' } })
         if (appRef.current) post({ type: 'app', ...appPayload(appRef.current) })
+      } else if (m.type === 'card-opacity' && typeof m.value === 'number' && Number.isFinite(m.value)) {
+        onCardOpacity?.(Math.min(1, Math.max(0, m.value)))
       } else if (m.type === 'select' && appRef.current) {
         const pick = m.id === null ? null : typeof m.id === 'string' && appRef.current.features.some((f) => f.id === m.id) ? m.id : undefined
         if (pick !== undefined) appRef.current.onSelect(pick)
@@ -138,7 +143,7 @@ export default function PluginFrame({ pluginId, version, entry, feature, app }: 
       window.removeEventListener('message', onMessage)
       observer.disconnect()
     }
-  }, [pluginId, version, entry, feature, attempt])
+  }, [pluginId, version, entry, feature, attempt, fill, onCardOpacity])
 
   if (error !== null) {
     return (
@@ -165,8 +170,8 @@ export default function PluginFrame({ pluginId, version, entry, feature, app }: 
       title={feature.title}
       sandbox="allow-scripts"
       src={`opnduck-plugin://${pluginId}/__frame.html`}
-      className="block w-full border-0"
-      style={{ height, colorScheme: scheme }}
+      className={fill ? 'absolute inset-0 block h-full w-full border-0' : 'block w-full border-0'}
+      style={fill ? { colorScheme: scheme } : { height, colorScheme: scheme }}
     />
   )
 }

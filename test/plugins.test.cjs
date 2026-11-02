@@ -629,6 +629,7 @@ test('ui.slot "selector" is accepted without tile fields; other slots are refuse
   const r = P.validateManifest(sel)
   assert.equal(r.ok, true)
   assert.equal(r.manifest.ui.slot, 'selector')
+  assert.equal(P.validateManifest({ ...sel, ui: { entry: 'ui.js', slot: 'stage' } }).manifest.ui.slot, 'stage')
   assert.equal(P.validateManifest({ ...sel, ui: { entry: 'ui.js', slot: 'footer' } }).ok, false)
   assert.equal(P.validateManifest({ ...sel, ui: { entry: 'ui.js' } }).ok, false, 'a plain card still needs tagline, icon and scope')
 })

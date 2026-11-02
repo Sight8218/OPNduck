@@ -112,12 +112,12 @@ function validateManifest(raw) {
   if (uiRaw !== undefined) {
     if (!isPlainObject(uiRaw) || !isSafeRelPath(uiRaw.entry) || !/\.m?js$/.test(uiRaw.entry)) bad('ui.entry must be a relative .js path inside the plugin folder')
     else ui = { entry: uiRaw.entry }
-    // `slot: "selector"`: the card replaces the tile row on Home instead of being one of the tiles.
+    // `slot`: "selector" replaces the tile row on Home; "stage" fills the area under the tiles around the open tool. Neither is a tile.
     if (isPlainObject(uiRaw) && uiRaw.slot !== undefined) {
-      if (uiRaw.slot !== 'selector') bad('ui.slot must be "selector"')
-      else if (ui) ui.slot = 'selector'
+      if (!['selector', 'stage'].includes(uiRaw.slot)) bad('ui.slot must be "selector" or "stage"')
+      else if (ui) ui.slot = uiRaw.slot
     }
-    if (ui?.slot === 'selector') {
+    if (ui?.slot) {
       if (raw.accent !== undefined && !isStr(raw.accent, 100)) bad('accent must be a CSS color string')
     } else {
       if (!isStr(raw.tagline, 120)) bad('tagline is required for a plugin with a card')

@@ -53,6 +53,8 @@ api.app = {
   features: () => appState.features,
   selected: () => appState.selected,
   select: (id) => send({ type: 'select', id: id ?? null }),
+  // Stage plugins: how visible the open tool's real card is (0 hides it while the wheel spins, 1 shows it).
+  setCardOpacity: (value) => send({ type: 'card-opacity', value }),
   subscribe: (fn) => (appListeners.add(fn), () => appListeners.delete(fn)),
 }
 
@@ -71,8 +73,11 @@ class Boundary extends Component {
 
 let root = null
 
-async function start({ feature, entry, version }) {
+async function start({ feature, entry, version, fill }) {
   try {
+    if (fill) {
+      for (const el of [document.documentElement, document.body, document.getElementById('root')]) el.style.height = '100%'
+    }
     const url = new URL(entry, window.location.href)
     url.searchParams.set('v', String(version))
     const mod = await import(/* webpackIgnore: true */ url.href)

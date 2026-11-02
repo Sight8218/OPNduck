@@ -79,7 +79,7 @@ be treated like any program you downloaded. Read the code first.
 | `repo`        | no*      | Source repository URL. *Required for store listing, so users can inspect the code.* |
 | `permissions` | no       | Array of names from the table below. Default `[]`: the plugin can render and nothing else. |
 | `network`     | with `network` perm | Array of exact hostnames the plugin may contact, e.g. `["api.github.com"]`. |
-| `ui`          | no       | `{ "entry": "ui.js", "slot": "selector" }`: `entry` is a path relative to the plugin folder (v1's top-level `entry` is read as `ui.entry`). `slot` is optional, see [Selector plugins](#selector-plugins). |
+| `ui`          | no       | `{ "entry": "ui.js", "slot": "selector" | "stage" }`: `entry` is a path relative to the plugin folder (v1's top-level `entry` is read as `ui.entry`). `slot` is optional, see [Slot plugins](#slot-plugins-selector-and-stage). |
 | `backend`     | no       | `{ "entry": "backend.cjs" }`: CommonJS file, path relative to the plugin folder. |
 | `tools`       | no       | MCP/TUI tool definitions, see [Tools](#tools). Needs the `tools` permission. |
 | `commands`    | no       | Entries for the command palette: `{ "id", "title" }`. Handled by `opnduck.commands.handle(id, fn)`. |
@@ -202,10 +202,15 @@ api.rpc.call(name, arg)         call a function the backend registered with opnd
 Your **backend** is a different matter: it is Node code running with the user's privileges (see
 [Trust](#trust-verified-and-unverified)). The sandbox covers cards only.
 
-### Selector plugins
+### Slot plugins (selector and stage)
 
-With `"slot": "selector"` the card is not a tile: it replaces the row of tool tiles on Home and draws
-the picker itself (a wheel, a list, a dock...). It needs no `tagline`, `icon` or `scope`, no
+A card with `"slot"` set is not a tile. `"selector"` replaces the row of tool tiles on Home and draws
+the picker itself (a list, a dock...). `"stage"` keeps the tiles and fills the area below them: the
+plugin gets a frame the size of that area, and the open tool's real card is placed in the middle of
+it, on top of the frame. A stage plugin controls how visible that real card is with
+`api.app.setCardOpacity(0..1)` (for example to hide it while a wheel spins, then show it), and the card
+only takes clicks once it is fully visible. A stage plugin can only change that opacity; it cannot
+move or read the card. It needs no `tagline`, `icon` or `scope`, no
 permissions, and the first selector plugin that is on wins; turn it off and the tiles come back. Its
 `api` has one extra part, `api.app`:
 
@@ -213,6 +218,7 @@ permissions, and the first selector plugin that is on wins; turn it off and the 
 api.app.features() -> [{ id, title, tagline, icon, iconSvg }]   the tools on Home; iconSvg is the app's own icon as SVG text
 api.app.selected() -> id | null                                   which tool is open
 api.app.select(id | null)                                         open a tool (or close it with null), like clicking its tile
+api.app.setCardOpacity(0..1)                                      stage plugins only: how visible the open tool's real card is
 api.app.subscribe(fn) -> unsubscribe                              fn() runs when the list or the selection changes
 ```
 
@@ -256,8 +262,9 @@ All four are complete and small; copy one as a starting point.
 - [`plugin-examples/hello-world/`](./plugin-examples/hello-world/): UI only, no permissions.
 - [`plugin-examples/convert-helper/`](./plugin-examples/convert-helper/): UI card + backend that
   starts a real convert job.
-- [`plugin-examples/tool-wheel/`](./plugin-examples/tool-wheel/): a selector plugin: Home's tool
-  picker as a slowly turning wheel that spins to the tool you pick.
+- [`plugin-examples/tool-wheel/`](./plugin-examples/tool-wheel/): a stage plugin: a slowly
+  turning wheel of tool cards under the Home tiles that spins to the tool you pick, with the real tool
+  in the middle.
 - [`plugin-examples/headless-tool/`](./plugin-examples/headless-tool/): backend only, one tool for
   MCP and the TUI.
 

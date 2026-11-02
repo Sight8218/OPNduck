@@ -17,28 +17,29 @@
  */
 import { useSyncExternalStore } from 'react'
 
-/** A running plugin whose card replaces the tile row on Home (manifest `ui.slot: "selector"`). */
-export interface SelectorPlugin {
+/** A running plugin that fills a Home slot (manifest \`ui.slot\`): "selector" replaces the tile row, "stage" surrounds the open tool. */
+export interface SlotPlugin {
   pluginId: string
   name: string
   version: string
   entry: string
 }
+export type SlotName = 'selector' | 'stage'
 
-let current: SelectorPlugin | null = null
+const current: Record<SlotName, SlotPlugin | null> = { selector: null, stage: null }
 const listeners = new Set<() => void>()
 
-/** Called by the plugin loader. The first selector plugin wins; null puts the normal tiles back. */
-export function setSelectorPlugin(next: SelectorPlugin | null): void {
-  const same = current?.pluginId === next?.pluginId && current?.version === next?.version
-  if (same) return
-  current = next
+/** Called by the plugin loader. The first plugin of a slot wins; null puts the normal Home back. */
+export function setSlotPlugin(slot: SlotName, next: SlotPlugin | null): void {
+  const prev = current[slot]
+  if (prev?.pluginId === next?.pluginId && prev?.version === next?.version) return
+  current[slot] = next
   for (const l of listeners) l()
 }
 
-export function useSelectorPlugin(): SelectorPlugin | null {
+export function useSlotPlugin(slot: SlotName): SlotPlugin | null {
   return useSyncExternalStore(
     (cb) => (listeners.add(cb), () => listeners.delete(cb)),
-    () => current,
+    () => current[slot],
   )
 }
