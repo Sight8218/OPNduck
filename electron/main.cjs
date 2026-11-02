@@ -237,6 +237,7 @@ ipcMain.handle('settings:set', async (_e, patch) => {
   if (patch && 'runInTray' in patch) applyTray()
   applyQueueLimits()
   if (patch && 'mcpServer' in patch) await applyMcp()
+  if (patch && ('remoteEnabled' in patch || 'remoteMode' in patch)) platform.emit('remote:changed', null)
   return next
 })
 
@@ -382,6 +383,49 @@ ipcMain.handle('tasks:probe', (_e, req) => {
 
 // Subscriptions (auto-download new uploads) — see subscriptions.cjs. Created once the app is ready
 // because it needs userData; IPC before that point is rejected.
+/* --- Send to OPNduck: links from other devices (see core/remote/) --- */
+// @category: remote/inbox-main
+const { createRemoteInbox } = require('./core/remote/inbox.cjs')
+let remoteInbox = null
+function needRemote() {
+  remoteInbox ??= createRemoteInbox({
+    file: path.join(platform.paths.userData, 'remote.json'),
+    // The only way a received link becomes a job: the normal download handler, tagged so the Library shows "via link".
+    startDownload: async (req, via) => {
+      const id = await startHandlers.get('tasks:start')(null, req)
+      const entry = tasks.get(id)
+      if (entry) entry.state.source = 'link'
+      console.log(`remote: started a download from a link (${via})`)
+      return id
+    },
+    notify: ({ title, body }) => platform.notify({ title, body, onClick: showMainWindow }),
+    onChange: () => platform.emit('remote:changed', null),
+    getSettings,
+    getRecipe: (id) => core.recipes.get(id),
+    runRecipe: (id, input) => core.recipes.run(id, input),
+  })
+  return remoteInbox
+}
+/** An opnduck://send?url=<link> address (from a web page, a launcher or the command line). It only ever waits for a click. */
+function handleOpnduckUrl(raw) {
+  try {
+    const u = new URL(String(raw))
+    if (u.protocol !== 'opnduck:' || u.hostname !== 'send') return
+    const link = u.searchParams.get('url')
+    if (link && needRemote().addLink(link, 'opnduck')) showMainWindow()
+  } catch {
+    /* not a link we understand */
+  }
+}
+const opnduckUrlIn = (argv) => argv.find((a) => typeof a === 'string' && a.startsWith('opnduck://'))
+ipcMain.handle('remote:state', () => {
+  const r = needRemote()
+  const s = getSettings()
+  return { enabled: s.remoteEnabled, mode: s.remoteMode, pending: r.list() }
+})
+ipcMain.handle('remote:accept', (_e, id) => needRemote().accept(String(id)))
+ipcMain.handle('remote:dismiss', (_e, id) => needRemote().dismiss(String(id)))
+
 let subscriptions = null
 function startSubscriptions() {
   subscriptions = createSubscriptionManager({
@@ -1034,7 +1078,17 @@ function startWatchFolder() {
 // One OPNduck per profile: launching it again just brings the open window forward instead of piling up processes.
 const gotSingleInstanceLock = app.requestSingleInstanceLock()
 if (!gotSingleInstanceLock) app.quit()
-else app.on('second-instance', () => showMainWindow())
+else {
+  app.on('second-instance', (_e, argv) => {
+    const link = opnduckUrlIn(argv)
+    if (link && app.isReady()) handleOpnduckUrl(link)
+    showMainWindow()
+  })
+  app.on('open-url', (event, url) => {
+    event.preventDefault() // macOS delivers opnduck:// here
+    if (app.isReady()) handleOpnduckUrl(url)
+  })
+}
 
 trace('main.cjs loaded')
 app.whenReady().then(() => {
@@ -1047,6 +1101,9 @@ app.whenReady().then(() => {
   loadHistory()
   trace('history loaded')
   startSubscriptions()
+  // opnduck:// as a link handler (AppImage and dev builds register it at runtime; the packages also list it in their desktop entry).
+  app.setAsDefaultProtocolClient('opnduck')
+  needRemote()
   trace('subscriptions started')
   void applyMcp()
   // A card runs in a sandboxed iframe on this scheme. Reserved paths (__frame.html, __frame.js, __app/*) are the
@@ -1079,6 +1136,8 @@ app.whenReady().then(() => {
     }
   })
   createWindow()
+  const launchLink = opnduckUrlIn(process.argv) // the app was started by an opnduck:// link
+  if (launchLink) handleOpnduckUrl(launchLink)
   void core.plugins.init() // after the window exists: a plugin's activate() must never delay startup
   applyTray()
   trace('window created')

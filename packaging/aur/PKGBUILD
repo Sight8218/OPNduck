@@ -42,9 +42,10 @@ LAUNCHER
 Type=Application
 Name=OPNduck
 Comment=Local-first media suite
-Exec=opnduck
+Exec=opnduck %u
 Icon=opnduck
 Categories=AudioVideo;
+MimeType=x-scheme-handler/opnduck;
 DESKTOP
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

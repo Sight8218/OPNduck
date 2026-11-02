@@ -145,6 +145,12 @@ export interface AppSettings {
   videoEncoder: 'auto' | 'cpu'
   /** Desktop notification when jobs finish while the window isn't focused. */
   notifyOnFinish: boolean
+  /** Send to OPNduck: accept links from other devices, what happens when one arrives, and what they download as. */
+  remoteEnabled: boolean
+  remoteMode: 'ask' | 'auto'
+  remoteFormat: string
+  remoteVideoQuality: string
+  remoteAudioQuality: string
   /** Tag new audio downloads by themselves (off by default; uses the network). */
   autoTagAudio: boolean
   /** Parallel downloads (1-6) and conversions (1-4). */
@@ -291,6 +297,24 @@ export interface RecipeRun {
   taskIds: string[]
 }
 
+/** A link another device sent that is waiting for a click in the Inbox. */
+export interface InboxLink {
+  id: string
+  url: string
+  /** The sending device's name. */
+  from: string
+  /** How it arrived: direct, ntfy (relay) or opnduck (a link). */
+  channel: string
+  target: string
+  at: number
+}
+
+export interface RemoteState {
+  enabled: boolean
+  mode: 'ask' | 'auto'
+  pending: InboxLink[]
+}
+
 /** What the music tagger knows or proposes about one song. */
 export interface TagFields {
   title: string | null
@@ -423,7 +447,7 @@ export interface TaskState {
   /** Batch this task belongs to, if it was started together with others. */
   group?: BatchInfo | null
   /** 'mcp' when an MCP client (not this window) started the job. */
-  source?: 'mcp'
+  source?: 'mcp' | 'link'
 }
 
 export interface SubscriptionInput {
@@ -592,6 +616,13 @@ export interface Host {
   /** The music tagger needs Chromaprint's fpcalc. */
   checkFpcalc(): Promise<ToolStatus>
   /** Measures a file and suggests settings for a tool, with the reason for each (reads the file; starts no job). */
+  /** Send to OPNduck: links from other devices that wait for a click. Desktop only. */
+  remote: {
+    state(): Promise<RemoteState>
+    accept(id: string): Promise<boolean>
+    dismiss(id: string): Promise<boolean>
+    onChange(listener: () => void): () => void
+  }
   /** Recipes: saved chains of tools. Desktop only. */
   recipes: {
     list(): Promise<Recipe[]>
@@ -689,7 +720,7 @@ export interface Host {
   /** Main-process settings (proxy, login cookies). Desktop shell only. */
   settings?: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; remoteEnabled?: boolean; remoteMode?: 'ask' | 'auto'; remoteFormat?: string; remoteVideoQuality?: string; remoteAudioQuality?: string; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   /** Auto-download new uploads from a channel/playlist (checked while the app is open). Desktop shell only. */
   subscriptions?: {
@@ -1016,6 +1047,12 @@ const browserHost: Host = {
   installYtDlp: async () => ({ ok: false, error: 'Desktop app required' }),
   checkFfmpeg: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkFpcalc: async () => ({ available: false, installHint: 'Desktop app required' }),
+  remote: {
+    state: async () => ({ enabled: false, mode: 'ask', pending: [] }),
+    accept: async () => false,
+    dismiss: async () => false,
+    onChange: () => () => {},
+  },
   recipes: {
     list: async () => [],
     tools: async () => [],

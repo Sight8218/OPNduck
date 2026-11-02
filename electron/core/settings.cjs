@@ -62,6 +62,13 @@ const DEFAULTS = {
   pluginsSafeMode: false,
   /** Look up and tag new audio downloads by themselves (sends each song's fingerprint and title to AcoustID, MusicBrainz and the Cover Art Archive). Off until the user turns it on. */
   autoTagAudio: false,
+  /** Send to OPNduck: accept links from other devices (off until turned on), and what happens when one arrives. */
+  remoteEnabled: false,
+  remoteMode: 'ask',
+  /** What a link sent from another device downloads as. Only the link comes from the sender; these are local choices. */
+  remoteFormat: 'MP4',
+  remoteVideoQuality: 'best',
+  remoteAudioQuality: 'best',
   cookies: {
     /** 'none' | 'browser' (read from an installed browser) | 'file' (Netscape cookies.txt) |
      *  'login' (cookies saved from OPNduck's own sign-in window, see login.cjs). */
@@ -109,6 +116,11 @@ function validate(next) {
   if (typeof next.mcpServer !== 'boolean') throw new Error('Invalid MCP server setting')
   if (typeof next.pluginsSafeMode !== 'boolean') throw new Error('Invalid plugin safe mode setting')
   if (typeof next.autoTagAudio !== 'boolean') throw new Error('Invalid music tagging setting')
+  if (typeof next.remoteEnabled !== 'boolean') throw new Error('Invalid Send to OPNduck setting')
+  if (!['ask', 'auto'].includes(next.remoteMode)) throw new Error('"When a link arrives" must be ask or auto')
+  if (!['MP4', 'MKV', 'WEBM', 'MOV', 'AVI', 'MP3', 'FLAC', 'WAV'].includes(next.remoteFormat)) throw new Error('Invalid format for links from other devices')
+  if (typeof next.remoteVideoQuality !== 'string' || !/^(best|\d{3,4})$/.test(next.remoteVideoQuality)) throw new Error('Invalid video quality for links from other devices')
+  if (typeof next.remoteAudioQuality !== 'string' || !/^(best|\d{1,3}k?)$/i.test(next.remoteAudioQuality)) throw new Error('Invalid audio quality for links from other devices')
   if (typeof next.tuiTheme !== 'string' || !/^[a-z0-9-]{1,40}$/.test(next.tuiTheme)) throw new Error('Invalid terminal theme')
   const c = next.cookies
   if (!c || !['none', 'browser', 'file', 'login'].includes(c.mode)) throw new Error('Invalid cookie source')
@@ -169,6 +181,11 @@ function setSettings(patch) {
     mcpServer: patch.mcpServer !== undefined ? patch.mcpServer : current.mcpServer,
     pluginsSafeMode: patch.pluginsSafeMode !== undefined ? patch.pluginsSafeMode : current.pluginsSafeMode,
     autoTagAudio: patch.autoTagAudio !== undefined ? patch.autoTagAudio : current.autoTagAudio,
+    remoteEnabled: patch.remoteEnabled !== undefined ? patch.remoteEnabled : current.remoteEnabled,
+    remoteMode: patch.remoteMode !== undefined ? patch.remoteMode : current.remoteMode,
+    remoteFormat: patch.remoteFormat !== undefined ? patch.remoteFormat : current.remoteFormat,
+    remoteVideoQuality: patch.remoteVideoQuality !== undefined ? patch.remoteVideoQuality : current.remoteVideoQuality,
+    remoteAudioQuality: patch.remoteAudioQuality !== undefined ? patch.remoteAudioQuality : current.remoteAudioQuality,
     tuiTheme: patch.tuiTheme !== undefined ? patch.tuiTheme : current.tuiTheme,
     cookies: { ...current.cookies, ...(patch.cookies && typeof patch.cookies === 'object' ? patch.cookies : {}) },
   }

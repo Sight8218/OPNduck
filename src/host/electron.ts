@@ -40,6 +40,7 @@ import type {
   GifRequest,
   TagLookup,
   AutoTool,
+  RemoteState,
   Recipe,
   RecipeInput,
   RecipeTool,
@@ -68,6 +69,7 @@ interface ElectronBridge {
   installYtDlp(): Promise<{ ok: boolean; error?: string }>
   checkFfmpeg(): Promise<ToolStatus>
   checkFpcalc(): Promise<ToolStatus>
+  remote: { state(): Promise<RemoteState>; accept(id: string): Promise<boolean>; dismiss(id: string): Promise<boolean>; onChange(listener: () => void): () => void }
   recipes: {
     list(): Promise<Recipe[]>
     /** The tools a step can use, with their settings, for the editor. */
@@ -104,7 +106,7 @@ interface ElectronBridge {
   onInstallProgress(listener: (p: { tool: PythonTool; line: string }) => void): () => void
   settings: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; remoteEnabled?: boolean; remoteMode?: 'ask' | 'auto'; remoteFormat?: string; remoteVideoQuality?: string; remoteAudioQuality?: string; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   subscriptions: {
     list(): Promise<Subscription[]>
@@ -216,6 +218,7 @@ export function detectElectronHost(): Host | null {
     installYtDlp: () => bridge.installYtDlp(),
     checkFfmpeg: () => bridge.checkFfmpeg(),
     checkFpcalc: () => bridge.checkFpcalc(),
+    remote: bridge.remote,
     recipes: bridge.recipes,
     suggestSettings: (tool, filePath, opts) => bridge.suggestSettings(tool, filePath, opts),
     tagger: bridge.tagger,

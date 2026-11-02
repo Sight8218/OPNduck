@@ -1,0 +1,17 @@
+{
+  "note": "HKDF-SHA256 empty salt; AES-256-GCM; AAD opnduck-v1; wire=base64url(iv||ct||tag)",
+  "secretHex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "topic": "opnduck_e9e3003657328bb51baedb338daff79a",
+  "encKeyHex": "1978a6282c5425f36ac28069638c1d783b2279eaadbbb6f45ac7a93de73e088d",
+  "authToken": "0I4svu5nuiB4CtqESvbzwUXHhjXA_bqx3lLKHSknPJ8",
+  "ivHex": "a0a1a2a3a4a5a6a7a8a9aaab",
+  "envelope": {
+    "v": 1,
+    "id": "11111111-2222-4333-8444-555555555555",
+    "ts": 1760000000000,
+    "url": "https://example.com/watch?v=abc",
+    "target": "download",
+    "from": "Test phone"
+  },
+  "wire": "oKGio6SlpqeoqaqrkfJ39CgtFHGeiNi5TrhWvycc5agBCY9s5KH8L79pCGXG-jyHihCxgwMrzX61mfYT1mfY_OE1MHP3gjMH7rXoBMNtDxyPu58i_V0yAShxlKOP_UzdSWaMW6mAy8HHVDVahoiFTLNC1Lbcek-BEoWf8ZINsQrVHtc-xHcJMTpCaKtgdMbBF-xgHLAmK_VTE5yU1JOC6rO9JSP-DfgA1ZEvT0hTOaLB2g"
+}

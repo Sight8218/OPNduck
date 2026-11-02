@@ -19,6 +19,7 @@
 
 import PixelLogo from '../components/PixelLogo'
 import AdaptiveCardGrid from '../components/AdaptiveCardGrid'
+import InboxBanner from '../components/InboxBanner'
 
 export default function Home() {
   return (
@@ -27,6 +28,7 @@ export default function Home() {
         <PixelLogo cell={6} banded />
       </h1>
 
+      <InboxBanner />
       <AdaptiveCardGrid />
     </div>
   )

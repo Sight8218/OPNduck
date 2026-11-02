@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { IconAdjustmentsHorizontal, IconCpu, IconDownload, IconInfoCircle, IconKeyboard } from '@tabler/icons-react'
 import GpuPerformanceCard from '../components/GpuPerformanceCard'
 import MusicTaggingCard from '../components/MusicTaggingCard'
+import SendToOpnduckCard from '../components/SendToOpnduckCard'
 import NotificationsCard from '../components/NotificationsCard'
 import McpCard from '../components/McpCard'
 import PluginSafeMode from '../components/PluginSafeMode'
@@ -159,6 +160,7 @@ export default function Settings() {
             {host.settings && <GpuPerformanceCard />}
             {host.settings && <NotificationsCard />}
             {host.settings && <MusicTaggingCard />}
+            {host.settings && <SendToOpnduckCard />}
             {host.settings && <QueueCard />}
             {host.settings && <WatchFolderCard />}
             {host.mcp && <McpCard />}

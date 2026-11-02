@@ -64,6 +64,14 @@
     },
     "electronLanguages": [
       "en-US"
+    ],
+    "protocols": [
+      {
+        "name": "OPNduck",
+        "schemes": [
+          "opnduck"
+        ]
+      }
     ]
   },
   "devDependencies": {
