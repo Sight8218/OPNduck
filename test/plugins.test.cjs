@@ -576,3 +576,50 @@ test('host: safe mode can be a function that is asked on every init', async () =
   assert.equal((await host.init())[0].status, 'running')
   await host.shutdown()
 })
+
+/* ------------------------------------------------------- audit regressions */
+
+test('ids that name Object.prototype members are refused', () => {
+  for (const id of ['constructor', 'toString', 'hasOwnProperty', '__proto__']) assert.equal(P.validateManifest(valid({ id })).ok, false, id)
+})
+
+test('isInside accepts names that merely start with two dots', () => {
+  const root = tmp()
+  assert.equal(P.isInside(root, path.join(root, '..foo')), true)
+  assert.equal(P.isInside(root, path.join(root, '..', 'x')), false)
+  assert.equal(P.isInside(root, root), true)
+})
+
+test('validateArgs survives a schema with a null property', () => {
+  assert.doesNotThrow(() => P.validateArgs({ properties: { a: null } }, { a: 'x' }))
+})
+
+test('files.write refuses to write through a dangling symlink', async () => {
+  const { api, downloads } = apiFor({}, ['files:write'])
+  const outside = path.join(tmp(), 'target.txt')
+  const link = path.join(downloads, 'link.txt')
+  fs.symlinkSync(outside, link)
+  await assert.rejects(api.call('files.write', [link, 'x']), /symlink/)
+  assert.equal(fs.existsSync(outside), false)
+  await api.call('files.write', [path.join(downloads, 'ok.txt'), 'fine'])
+  assert.equal(fs.readFileSync(path.join(downloads, 'ok.txt'), 'utf8'), 'fine')
+})
+
+test('host: disabling during a slow activation stops cleanly; a double enable starts one worker', async () => {
+  const slow = { manifest: valid({ id: 'slow', permissions: [] }), files: { 'backend.cjs': 'exports.activate = () => new Promise(() => {})' } }
+  const ok = { manifest: valid({ id: 'fine', permissions: [] }), files: { 'backend.cjs': 'exports.activate = async () => {}' } }
+  const { host } = makeHost({ slow, fine: ok })
+  await host.init()
+  const started = Date.now()
+  const pending = host.enable('slow', [])
+  await new Promise((r) => setTimeout(r, 300))
+  const off = await host.disable('slow')
+  await pending
+  assert.equal(off.status, 'disabled')
+  assert.equal(host.list().find((p) => p.id === 'slow').status, 'disabled')
+  assert.ok(Date.now() - started < 5000, 'did not wait for the 10 s activation timeout')
+
+  await Promise.all([host.enable('fine', []), host.enable('fine', [])])
+  assert.equal(host.list().find((p) => p.id === 'fine').status, 'running')
+  await host.shutdown()
+})

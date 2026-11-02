@@ -10,11 +10,7 @@ A plugin is a folder with a `plugin.json` manifest and up to two scripts:
 Either part is optional. A plugin with only a `backend` and `tools` is a "headless" plugin: no
 card, but its tools show up for MCP clients and in the TUI.
 
-> **Status: spec v2 (apiVersion 1).** The host (permissions, backends, tools) and the desktop loader
-> (cards on the Home grid) work today. The in-app plugins page and the store are still being built;
-> until then, enable a plugin by dropping its folder in and approving it from the plugins page when
-> it lands. Fields marked *planned* arrive with the store. Manifests from the old v1 format (single `entry`, no permissions) still load,
-> as a UI-only plugin with no permissions.
+> **Status: spec v2 (apiVersion 1), beta.** Backends, tools, cards, the Plugins page and the store all work. Manifests from the old v1 format (single `entry`, no permissions) still load, as a UI-only plugin with no permissions.
 
 ## Where plugins live
 
@@ -103,7 +99,7 @@ every call. A call without the permission rejects with `PermissionError`.
 | `files:read`  | Read files the user picked for it, and the download folder. |
 | `files:write` | Write files into the download folder or a folder the user picked. |
 | `network`     | `opnduck.net.fetch` to the hostnames listed in `network`. Nothing else. |
-| `exec`        | Run the binaries OPNduck already manages (`ffmpeg`, `yt-dlp`, ...) by name. `exec:any` runs any executable and is called out in red in the UI. |
+| `exec`        | Run the binaries OPNduck already manages (`ffmpeg`, `yt-dlp`, ...) by name, with any arguments. **Treat this as close to `exec:any`**: those programs can read and write any file (`ffmpeg -i` / output paths) and `yt-dlp --exec` runs commands, and the host does not filter their arguments. It starts unticked in the review panel. `exec:any` runs any executable and is called out in red in the UI. |
 | `settings`    | Read and write the plugin's own settings namespace. |
 | `notify`      | Show desktop notifications. |
 | `hooks`       | Subscribe to events (`job:finished`, `job:failed`, `watch-folder:file`). |

@@ -80,6 +80,7 @@ function validateManifest(raw) {
   if (!isPlainObject(raw)) return { ok: false, errors: ['plugin.json must be a JSON object'], manifest: null }
 
   if (!isStr(raw.id, 40) || !ID_RE.test(raw.id)) bad('id must be kebab-case (a-z, 0-9, -), at most 40 characters')
+  else if (raw.id in Object.prototype) bad(`id "${raw.id}" is not allowed`)
   else if (CORE_IDS.includes(raw.id)) bad(`id "${raw.id}" is reserved for a built-in tool`)
   if (!isStr(raw.name, 80)) bad('name is required')
   if (!isStr(raw.version, 64) || !SEMVER_RE.test(raw.version)) bad('version must be SemVer (e.g. 1.2.3)')
@@ -209,7 +210,7 @@ function realResolve(p) {
 
 function isInside(root, target) {
   const rel = path.relative(root, target)
-  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel))
+  return rel === '' || (rel !== '..' && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel))
 }
 
 /** Resolves a manifest-relative entry to a real file inside the plugin folder, or throws. Rejects symlinks that leave it. */
@@ -267,7 +268,7 @@ function validateArgs(schema, args) {
   for (const key of schema.required ?? []) if (a[key] == null) throw new Error(`Missing argument: ${key}`)
   for (const [key, value] of Object.entries(a)) {
     if (value === undefined) continue
-    const spec = props[key]
+    const spec = isPlainObject(props[key]) ? props[key] : {}
     const types = [].concat(spec.type ?? [])
     const actual = value === null ? 'null' : Array.isArray(value) ? 'array' : Number.isInteger(value) ? 'integer' : typeof value
     if (types.length && !(types.includes(actual) || (actual === 'integer' && types.includes('number')))) throw new Error(`Argument ${key} must be ${types.join(' or ')}`)
@@ -459,7 +460,14 @@ function createApi(ctx) {
       if (buf.length > MAX_FILE_BYTES) throw new Error('Data is too large')
       const real = realResolve(p)
       await fs.promises.mkdir(path.dirname(real), { recursive: true })
-      await fs.promises.writeFile(real, buf)
+      // A link at the target (even a dangling one) would send the write somewhere the check did not look.
+      if (fs.lstatSync(real, { throwIfNoEntry: false })?.isSymbolicLink()) throw new PermissionError('Refusing to write through a symlink')
+      const fh = await fs.promises.open(real, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_TRUNC | (fs.constants.O_NOFOLLOW ?? 0), 0o644)
+      try {
+        await fh.writeFile(buf)
+      } finally {
+        await fh.close()
+      }
     },
     'files.pick': async (opts) => {
       const save = Boolean(opts?.save)
@@ -509,6 +517,7 @@ function createApi(ctx) {
         }
         const res = await fetchImpl(current, { method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(30000) })
         if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
+          await res.body?.cancel().catch(() => {})
           current = new URL(res.headers.get('location'), current) // every hop is checked against the allow-list again
           if (res.status === 303 || ((res.status === 301 || res.status === 302) && method === 'POST')) body = undefined
           continue
@@ -598,12 +607,12 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, onChan
       /* a UI that cannot refresh must not break the host */
     }
   }
-  const entryState = (id) => (state.plugins[id] ??= { enabled: false, approved: [], asked: [], version: '', verified: false, source: 'local', settings: {}, lastError: '' })
+  const entryState = (id) => (Object.hasOwn(state.plugins, id) ? state.plugins[id] : (state.plugins[id] = { enabled: false, approved: [], asked: [], version: '', verified: false, source: 'local', settings: {}, lastError: '' }))
 
   const missingApproval = (manifest, st) => manifest.permissions.filter((p) => !st.asked.includes(p))
 
   function newRuntime(entry) {
-    return { entry, status: 'disabled', worker: null, subs: new Set(), registered: { tool: new Set(), command: new Set(), rpc: new Set() }, calls: new Map(), invokes: new Map(), nextId: 1, ownJobs: new Set(), api: null, stopping: false }
+    return { entry, status: 'disabled', worker: null, subs: new Set(), registered: { tool: new Set(), command: new Set(), rpc: new Set() }, calls: new Map(), invokes: new Map(), nextId: 1, ownJobs: new Set(), api: null, stopping: false, gen: 0, abortStart: null }
   }
 
   function failPending(rec, reason) {
@@ -673,6 +682,7 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, onChan
     const entryFile = resolveEntry(pluginDir, manifest.backend.entry)
     rec.status = 'starting'
     rec.stopping = false
+    const gen = ++rec.gen
     // Resolved here, not at startup: a bundled build (the TUI) has no __dirname and passes workerFile instead.
     const w = new Worker(workerFile ?? path.join(__dirname, 'plugin_worker.cjs'), { workerData: { id: manifest.id, version: manifest.version, entry: entryFile }, env: {}, stdout: true, stderr: true, resourceLimits: { maxOldGenerationSizeMb: 256 } })
     rec.worker = w
@@ -681,8 +691,9 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, onChan
     await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('activate() took too long')), ACTIVATE_TIMEOUT_MS)
       const done = (fn, arg) => (clearTimeout(timer), fn(arg))
+      rec.abortStart = () => done(reject, new Error('stopped while starting'))
       w.on('message', (msg) => {
-        if (rec.worker !== w) return // a worker that was replaced or stopped
+        if (rec.worker !== w || !msg || typeof msg !== 'object') return // a worker that was replaced or stopped
         if (msg.type === 'ready') done(resolve)
         else if (msg.type === 'failed') done(reject, Object.assign(new Error(msg.error?.message ?? 'activate failed'), { name: msg.error?.name }))
         else if (msg.type === 'call') {
@@ -701,15 +712,23 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, onChan
       w.on('error', (err) => rec.worker !== w ? undefined : (rec.status === 'starting' ? done(reject, err) : crash(rec, `crashed: ${err.message}`)))
       w.on('exit', (code) => rec.worker !== w ? undefined : (rec.status === 'starting' ? done(reject, new Error(`exited with code ${code} while starting`)) : crash(rec, `exited unexpectedly (code ${code})`)))
     }).catch((err) => {
+      if (rec.gen !== gen) throw Object.assign(err, { stale: true }) // stopped or restarted meanwhile: that call owns the status now
       rec.status = 'starting' // let crash() record it
       crash(rec, `failed to start: ${err.message}`)
       throw err
     })
+    rec.abortStart = null
+    if (rec.gen !== gen) throw Object.assign(new Error('stopped while starting'), { stale: true })
     rec.status = 'running'
   }
 
   async function stopRuntime(rec) {
     rec.stopping = true
+    rec.gen++
+    rec.abortStart?.()
+    rec.abortStart = null
+    for (const jobId of rec.ownJobs) core.engine?.cancelTask?.(jobId) // work the plugin started stops with it
+    rec.ownJobs.clear()
     const w = rec.worker
     rec.worker = null
     rec.subs.clear()
@@ -750,6 +769,7 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, onChan
     try {
       await startBackend(rec)
     } catch (err) {
+      if (err?.stale) return
       if (rec.status !== 'crashed') {
         rec.status = 'starting' // e.g. the entry path check failed before a worker existed
         crash(rec, `failed to start: ${err.message}`)

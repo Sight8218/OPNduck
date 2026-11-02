@@ -64,7 +64,7 @@ function parseIndex(doc) {
     const permsOk = Array.isArray(e.permissions) && e.permissions.every((p) => PERMISSIONS.includes(p))
     const subdirOk = e.subdir === undefined || (str(e.subdir, 200) && isSafeRelPath(e.subdir))
     const netOk = e.network === undefined || (Array.isArray(e.network) && e.network.length <= 50 && e.network.every((h) => str(h, 253)))
-    if (!str(e.id, 40) || !ID_RE.test(e.id) || CORE_IDS.includes(e.id) || seen.has(e.id)) continue
+    if (!str(e.id, 40) || !ID_RE.test(e.id) || CORE_IDS.includes(e.id) || e.id in Object.prototype || seen.has(e.id)) continue
     if (!str(e.name, 80) || !str(e.version, 64) || !SEMVER_RE.test(e.version) || !str(e.author, 80) || !str(e.description, 500)) continue
     if (!m || !COMMIT_RE.test(e.commit ?? '') || !HASH_RE.test(e.sha256 ?? '') || !permsOk || !subdirOk || !netOk) continue
     seen.add(e.id)
@@ -210,14 +210,35 @@ function createPluginStore({ host, fetchImpl = globalThis.fetch, indexUrl = DEFA
   const cacheFile = path.join(host.dir, '.store-index.json')
   let busy = false
 
+  // Redirects are followed by hand: a hop to another host is refused before any request goes out.
   const get = async (url, max) => {
-    const u = new URL(url)
-    const res = await fetchImpl(url, { redirect: 'follow', signal: AbortSignal.timeout(60_000), headers: { 'User-Agent': 'OPNduck' } })
-    if (!res.ok) throw new Error(`Could not download (${res.status})`)
-    // Redirects must stay on the same host, and on https unless the base was set to a local test server.
-    const final = new URL(res.url || url)
-    if (final.host !== u.host || (u.protocol === 'https:' && final.protocol !== 'https:')) throw new Error('Unexpected download location')
-    return readCapped(res, max)
+    const first = new URL(url)
+    let current = first
+    for (let hop = 0; hop <= 5; hop++) {
+      if (current.host !== first.host || (first.protocol === 'https:' && current.protocol !== 'https:')) throw new Error('Unexpected download location')
+      const res = await fetchImpl(current.href, { redirect: 'manual', signal: AbortSignal.timeout(60_000), headers: { 'User-Agent': 'OPNduck' } })
+      if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
+        await res.body?.cancel?.().catch?.(() => {})
+        current = new URL(res.headers.get('location'), current)
+        continue
+      }
+      if (!res.ok) throw new Error(`Could not download (${res.status})`)
+      return readCapped(res, max)
+    }
+    throw new Error('Too many redirects')
+  }
+
+  /** Removes install leftovers from a crash (an hour or older, so another running copy's work is safe). */
+  function sweepStale() {
+    try {
+      for (const d of fs.readdirSync(host.dir, { withFileTypes: true })) {
+        if (!d.isDirectory() || !/^\.(install|old)-/.test(d.name)) continue
+        const full = path.join(host.dir, d.name)
+        if (now() - fs.statSync(full).mtimeMs > 3600_000) fs.rmSync(full, { recursive: true, force: true })
+      }
+    } catch {
+      /* best effort */
+    }
   }
 
   function readCache() {
@@ -268,7 +289,8 @@ function createPluginStore({ host, fetchImpl = globalThis.fetch, indexUrl = DEFA
   async function install(id) {
     if (busy) throw new Error('Another plugin install is running')
     busy = true
-    const tag = `${process.pid}-${crypto.randomBytes(4).toString('hex')}`
+    sweepStale()
+    const tag = crypto.randomBytes(6).toString('hex')
     const tmp = path.join(host.dir, `.install-${tag}`)
     const old = path.join(host.dir, `.old-${tag}`)
     try {
@@ -295,6 +317,7 @@ function createPluginStore({ host, fetchImpl = globalThis.fetch, indexUrl = DEFA
       const same = (a, b) => a.length === b.length && a.every((x) => b.includes(x))
       if (m.id !== entry.id || m.version !== entry.version) throw new Error('The plugin does not match its store entry (id or version)')
       if (!same(m.permissions, entry.permissions)) throw new Error('The plugin asks for different permissions than its store entry says')
+      if (!same(m.network, entry.network)) throw new Error('The plugin lists different network sites than its store entry says')
       for (const e of [m.ui?.entry, m.backend?.entry]) if (e) resolveEntry(tmp, e)
 
       const target = path.join(host.dir, id)

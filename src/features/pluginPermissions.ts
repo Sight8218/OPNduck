@@ -31,7 +31,7 @@ export const PERMISSION_INFO: Record<PluginPermission, PermissionInfo> = {
   'files:read': { label: 'Read files', detail: 'Read files you pick for it, and your download folder.', risk: 'medium' },
   'files:write': { label: 'Write files', detail: 'Write files into your download folder or a folder you pick.', risk: 'medium' },
   network: { label: 'Use the network', detail: 'Contact the websites listed below, and nothing else.', risk: 'medium' },
-  exec: { label: 'Run OPNduck\'s tools', detail: 'Run the programs OPNduck already manages (ffmpeg, yt-dlp, ...).', risk: 'medium' },
+  exec: { label: 'Run OPNduck\'s tools', detail: 'Run ffmpeg, yt-dlp and similar programs with any options it likes. Those can read and write any file and yt-dlp can run commands, so this is nearly the same as running any program.', risk: 'high' },
   'exec:any': { label: 'Run any program', detail: 'Run any program on your computer. Only allow this if you trust the author.', risk: 'high' },
   settings: { label: 'Its own settings', detail: 'Save and read the plugin\'s own settings.', risk: 'low' },
   notify: { label: 'Notifications', detail: 'Show desktop notifications.', risk: 'low' },
@@ -40,7 +40,7 @@ export const PERMISSION_INFO: Record<PluginPermission, PermissionInfo> = {
 }
 
 /** Permissions that start unticked in the review panel. */
-export const OFF_BY_DEFAULT: PluginPermission[] = ['exec:any']
+export const OFF_BY_DEFAULT: PluginPermission[] = ['exec', 'exec:any']
 
 export function permissionInfo(p: string): PermissionInfo {
   return (PERMISSION_INFO as Record<string, PermissionInfo>)[p] ?? { label: p, detail: 'Unknown permission.', risk: 'high' }

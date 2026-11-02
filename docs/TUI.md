@@ -9,6 +9,8 @@ From a release: unpack `opnduck-tui-<version>.tar.gz` and run `./opnduck-tui.mjs
 
 As an npm package: `npm install -g opnduck-tui`, then `opnduck-tui` (or `npx opnduck-tui`). The same build is also published to GitHub Packages as `@sight8218/opnduck-tui`.
 
+On Arch the global npm folder (`/usr`) is root-owned, so `npm install -g` fails with EACCES. Fix it once with `npm config set prefix ~/.local` (and keep `~/.local/bin` on your PATH), or use `npx opnduck-tui`.
+
 Options: `--theme <name>` (any of the 26 themes, also `OPNDUCK_THEME`), `--screen <tools|queue>`, `--start <channel> '<json>'` to start a job when it opens (repeatable), `--help`.
 
 ## Screens
@@ -24,6 +26,10 @@ Options: `--theme <name>` (any of the 26 themes, also `OPNDUCK_THEME`), `--scree
 Tool forms: `↑↓` move, `←→` change a choice, `Tab` completes a path, `Enter` goes to the next field and starts the job on **Start**, `Esc` goes back. Times accept seconds or `m:ss`. While you type in a field the global keys (`q`, `1`-`5`, `Tab`) are off.
 
 `q` quits; with jobs running it asks first, then cancels them.
+
+## Plugins
+
+The TUI loads the plugins you turned on in the desktop app (same plugins folder and approvals) and lists their tools on the Tools screen after the built-in ones. Opening one shows a form made from the tool's schema and prints the result. Installing, approving and removing plugins is done in the desktop app (Plugins page); the TUI has no approval screen.
 
 ## Not in the TUI
 

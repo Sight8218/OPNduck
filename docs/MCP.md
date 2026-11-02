@@ -27,6 +27,10 @@ Any client that can start a stdio MCP server works. Clients that only accept a w
 
 Start tools return a job id right away; poll `job_status` for the result.
 
+## Plugin tools
+
+Tools added by plugins (see `PLUGINS.md`) are listed too, named `<plugin id>__<tool>`, while the plugin is on and approved for the `tools` permission. They run inside the plugin with only the permissions you approved. Unlike the built-in tools they are not limited to jobs: a plugin tool does whatever that plugin's code does within its permissions, so only turn on plugins you trust.
+
 ## Safety
 
 - Listens on `127.0.0.1` only, on a random port, and needs a private token (`mcp.json` in the app's data folder, owner-only).

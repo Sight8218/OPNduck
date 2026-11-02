@@ -104,7 +104,8 @@ function fakeFetch(routes, seen = []) {
     const hit = routes[url]
     if (hit === undefined) return { ok: false, status: 404, url, headers: new Headers(), body: [] }
     const body = Buffer.isBuffer(hit.body) ? hit.body : Buffer.from(hit.body)
-    return { ok: true, status: 200, url: hit.finalUrl ?? url, headers: new Headers(), body: [body] }
+    if (hit.finalUrl) return { ok: false, status: 302, url, headers: new Headers({ location: hit.finalUrl }), body: [] }
+    return { ok: true, status: 200, url, headers: new Headers(), body: [body] }
   }
 }
 
