@@ -67,6 +67,7 @@ export default function CommandPalette() {
     const routes: PaletteItem[] = [
       { id: 'route-', label: 'Home', hint: 'Dashboard', type: 'route', action: () => '/' },
       { id: 'route-/library', label: 'Library', type: 'route', action: () => '/library' },
+      { id: 'route-/recipes', label: 'Recipes', hint: 'Chains of tools', type: 'route', action: () => '/recipes' },
       { id: 'route-/plugins', label: 'Plugins', type: 'route', action: () => '/plugins' },
       { id: 'route-/settings', label: 'Settings', type: 'route', action: () => '/settings' },
     ]

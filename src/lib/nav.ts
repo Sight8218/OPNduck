@@ -1,6 +1,7 @@
 import {
   IconDeviceGamepad2,
   IconHome2,
+  IconChefHat,
   IconLibrary,
   IconPlug,
   IconSettings,
@@ -27,12 +28,13 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { index: 0, to: '/', label: 'Home', end: true, icon: IconHome2 },
   { index: 1, to: '/library', label: 'Library', end: false, icon: IconLibrary },
-  { index: 2, to: '/plugins', label: 'Plugins', end: false, icon: IconPlug },
-  { index: 3, to: '/settings', label: 'Settings', end: false, icon: IconSettings },
+  { index: 2, to: '/recipes', label: 'Recipes', end: false, icon: IconChefHat },
+  { index: 3, to: '/plugins', label: 'Plugins', end: false, icon: IconPlug },
+  { index: 4, to: '/settings', label: 'Settings', end: false, icon: IconSettings },
 ]
 
 /** The secret Arcade page. Always routable; it only appears in the menu once pinned (see arcadeStore). */
-export const ARCADE_ITEM: NavItem = { index: 4, to: '/arcade', label: 'Arcade', end: false, icon: IconDeviceGamepad2 }
+export const ARCADE_ITEM: NavItem = { index: 5, to: '/arcade', label: 'Arcade', end: false, icon: IconDeviceGamepad2 }
 
 export interface SocialItem {
   label: string

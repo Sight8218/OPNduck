@@ -4,7 +4,7 @@ import { useNavItems } from '../lib/useNavItems'
 import { useNavDisplay } from '../lib/navContext'
 import NavIcon, { type NavIconEffect } from './NavIcon'
 
-const EFFECTS: Record<string, NavIconEffect> = { '/': 'hop', '/library': 'books', '/plugins': 'plug', '/settings': 'spin', '/arcade': 'pad' }
+const EFFECTS: Record<string, NavIconEffect> = { '/': 'hop', '/library': 'books', '/recipes': 'books', '/plugins': 'plug', '/settings': 'spin', '/arcade': 'pad' }
 
 /**
  * The four menu cards (Home · Library · Plugins · Settings) with a single
@@ -32,7 +32,7 @@ export default function NavMenuCards({ layoutId = 'nav-active' }: { layoutId?: s
         // it below `xl` keeps 4 full labels + wordmark + socials + window
         // controls from ever needing more width than a normal window has,
         // instead of relying on clipping to save it after the fact.
-        const labelResponsive = navDisplay === 'hybrid' ? 'hidden xl:inline' : ''
+        const labelResponsive = navDisplay === 'hybrid' ? 'hidden 2xl:inline' : ''
         const Icon = item.icon
         return (
           <NavLink

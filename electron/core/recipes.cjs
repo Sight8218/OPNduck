@@ -32,6 +32,8 @@ const MAX_STEPS = 12
 const MAX_RECIPES = 200
 /** The `kind` shown in the Library for each tool (a skipped step is listed under it). */
 const TOOL_KIND = { download: 'download', convert: 'convert', upscale_image: 'upscale', upscale_video: 'upscale', interpolate: 'interpolate', subtitles: 'subtitles', trim: 'trim', compress: 'compress', make_gif: 'gif', tag_music: 'tag', audio_ai: 'audio-ai' }
+/** Starting values for required settings that have no default of their own, so a new step is valid straight away. */
+const START_VALUES = { compress: { targetMB: 20 }, trim: { start: 0 }, convert: { container: 'MP4' }, subtitles: {} }
 const RESERVED_ARGS = ['inputPath', 'url', 'destination', 'batch', 'tags', 'hint']
 
 /** Recipes that ship with OPNduck: read-only, but you can duplicate them. */
@@ -309,7 +311,7 @@ function createRecipes(ctx) {
         accepts: STEP_TYPES[name].accepts,
         required: (def.inputSchema.required ?? []).filter((k) => !RESERVED_ARGS.includes(k)),
         properties,
-        defaults: Object.fromEntries(Object.entries(DEFAULTS[name] ?? {}).filter(([k]) => k in properties)),
+        defaults: Object.fromEntries(Object.entries({ ...(START_VALUES[name] ?? {}), ...(DEFAULTS[name] ?? {}) }).filter(([k]) => k in properties)),
       }
     })
   }

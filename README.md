@@ -1,7 +1,7 @@
 # OPNduck Desktop Suite 🦆
 
 OPNduck is a local-first, open-source media tool. It upscales images and video, interpolates
-frames, downloads, converts, trims, shrinks files to fit a size limit, tags your music, makes GIFs and stickers and transcribes, all on your own GPU/CPU. No subscription,
+frames, downloads, converts, trims, shrinks files to fit a size limit, tags your music, makes GIFs and stickers, chains tools into recipes and transcribes, all on your own GPU/CPU. No subscription,
 no cloud; your files stay on your machine.
 
 This is **v0.5.3-Beta**, which adds the **OPNduck TUI** (the tools in a terminal, about 100 MB of memory) and a first-launch setup wizard. It follows v0.5.2-Beta, a visual follow-up to v0.5.1-Beta and the v0.5.0-Beta performance release: Home is a compact grid of tool tiles with one tool open at a time, there is a themed startup screen, a pixel look, sharper corners, plainer wording, faster engine checks and more developer tools. The v0.5.1-Beta release added control by any MCP-capable AI app (Settings → System, off by default) and animated menu icons. The v0.5.0-Beta release brought the performance work. Video upscaling now streams frames through the GPU

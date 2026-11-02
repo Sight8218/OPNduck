@@ -37,6 +37,7 @@ function hideSplash() {
 // Everything but the landing page loads on first visit, so launch parses less JavaScript.
 const Library = lazy(() => import('./pages/Library'))
 const Plugins = lazy(() => import('./pages/Plugins'))
+const Recipes = lazy(() => import('./pages/Recipes'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Arcade = lazy(() => import('./pages/Arcade'))
 const later = (page: React.ReactNode) => <Suspense fallback={null}>{page}</Suspense>
@@ -85,6 +86,7 @@ export default function App() {
                 <PageTransition>
                   <Route path="/" element={<Home />} />
                   <Route path="/library" element={later(<Library />)} />
+                  <Route path="/recipes" element={later(<Recipes />)} />
                   <Route path="/plugins" element={later(<Plugins />)} />
                   <Route path="/settings" element={later(<Settings />)} />
                   <Route path="/arcade" element={later(<Arcade />)} />
