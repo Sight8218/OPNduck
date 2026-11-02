@@ -33,27 +33,54 @@ const hash = (token) => crypto.createHash('sha256').update(String(token)).digest
 /**
  * @param {object} deps
  * @param {string} deps.file  where devices are kept (written with mode 0600)
+ * @param {string} [deps.codesFile]  where pairing codes are kept, so another process (the server's `pair` command) can make
+ *   them for a running server. Without it they live in memory only. Only hashes of the codes are stored.
  * @param {() => number} [deps.now]
  */
-function createDevices({ file, now = Date.now }) {
+function createDevices({ file, codesFile = null, now = Date.now }) {
   let devices = []
-  const codes = new Map() // code -> expiry
-  try {
-    const list = JSON.parse(fs.readFileSync(file, 'utf8'))?.devices
-    if (Array.isArray(list)) devices = list.filter((d) => d && typeof d.id === 'string' && typeof d.tokenHash === 'string')
-  } catch {
-    /* first run */
+  let loadedAt = -1 // mtime of the devices file we last read: another process may have changed it
+  const codes = new Map() // sha256(code) -> expiry
+
+  function writeSecret(f, data) {
+    fs.mkdirSync(path.dirname(f), { recursive: true })
+    const tmp = `${f}.tmp`
+    fs.writeFileSync(tmp, JSON.stringify(data), { mode: 0o600 })
+    fs.chmodSync(tmp, 0o600)
+    fs.renameSync(tmp, f)
   }
+
+  function load() {
+    try {
+      const mtime = fs.statSync(file).mtimeMs
+      if (mtime === loadedAt) return
+      const list = JSON.parse(fs.readFileSync(file, 'utf8'))?.devices
+      devices = Array.isArray(list) ? list.filter((d) => d && typeof d.id === 'string' && typeof d.tokenHash === 'string') : []
+      loadedAt = mtime
+    } catch {
+      /* first run, or the file is being replaced: keep what we have */
+    }
+  }
+  load()
 
   function save() {
-    fs.mkdirSync(path.dirname(file), { recursive: true })
-    const tmp = `${file}.tmp`
-    fs.writeFileSync(tmp, JSON.stringify({ devices }), { mode: 0o600 })
-    fs.chmodSync(tmp, 0o600)
-    fs.renameSync(tmp, file)
+    writeSecret(file, { devices })
+    loadedAt = fs.statSync(file).mtimeMs
   }
 
+  function loadCodes() {
+    if (!codesFile) return
+    codes.clear()
+    try {
+      for (const [h, exp] of Object.entries(JSON.parse(fs.readFileSync(codesFile, 'utf8')))) if (typeof exp === 'number') codes.set(h, exp)
+    } catch {
+      /* none yet */
+    }
+  }
+  const saveCodes = () => codesFile && writeSecret(codesFile, Object.fromEntries(codes))
+
   function sweep() {
+    loadCodes()
     const t = now()
     for (const [c, exp] of codes) if (exp <= t) codes.delete(c)
   }
@@ -63,15 +90,18 @@ function createDevices({ file, now = Date.now }) {
     sweep()
     while (codes.size >= MAX_CODES) codes.delete(codes.keys().next().value)
     const code = crypto.randomBytes(18).toString('base64url')
-    codes.set(code, now() + CODE_TTL_MS)
+    codes.set(hash(code), now() + CODE_TTL_MS)
+    saveCodes()
     return code
   }
 
   /** Trades a valid code for a device token (shown once). Returns null for a wrong, used or expired code. */
   function pair({ code, deviceName, deviceKind }) {
     sweep()
-    if (typeof code !== 'string' || !codes.has(code)) return null
-    codes.delete(code) // single use, whatever happens next
+    if (typeof code !== 'string' || !codes.has(hash(code))) return null
+    codes.delete(hash(code)) // single use, whatever happens next
+    saveCodes()
+    load()
     if (devices.length >= MAX_DEVICES) throw new Error('Too many paired devices: remove one first')
     const name = typeof deviceName === 'string' ? deviceName.replace(/\p{Cc}/gu, ' ').trim().slice(0, 60) : ''
     const kind = KINDS.includes(deviceKind) ? deviceKind : 'phone'
@@ -84,6 +114,7 @@ function createDevices({ file, now = Date.now }) {
 
   /** The device a bearer token belongs to, or null. */
   function authenticate(token) {
+    load()
     if (typeof token !== 'string' || token.length < 20 || token.length > 100) return null
     const h = Buffer.from(hash(token))
     const found = devices.find((d) => {
@@ -96,9 +127,10 @@ function createDevices({ file, now = Date.now }) {
     return found ?? null
   }
 
-  const list = () => devices.map(({ id, name, kind, createdAt, lastSeen }) => ({ id, name, kind, createdAt, lastSeen }))
+  const list = () => (load(), devices).map(({ id, name, kind, createdAt, lastSeen }) => ({ id, name, kind, createdAt, lastSeen }))
 
   function revoke(id) {
+    load()
     const before = devices.length
     devices = devices.filter((d) => d.id !== id)
     if (devices.length === before) return false

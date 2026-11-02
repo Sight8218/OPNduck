@@ -1,0 +1,21 @@
+# A systemd user unit for OPNduck Server. Install:
+#   mkdir -p ~/.config/systemd/user && cp opnduck-server.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload && systemctl --user enable --now opnduck-server
+#   journalctl --user -u opnduck-server      # the pair link and QR code are printed here on the first start
+#   loginctl enable-linger $USER             # keep it running when you are logged out
+# Settings go in ~/.config/opnduck-server.env (one NAME=value per line, for example OPNDUCK_BIND=100.x.y.z).
+[Unit]
+Description=OPNduck Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/env opnduck-server
+EnvironmentFile=-%h/.config/opnduck-server.env
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

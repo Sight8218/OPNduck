@@ -1,0 +1,13 @@
+node_modules
+dist
+dist-tui
+dist-server
+release-build
+.git
+.github
+docs
+test
+extension
+plugin-examples
+*.md
+!server/README.md

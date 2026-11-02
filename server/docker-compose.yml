@@ -1,0 +1,61 @@
+# OPNduck Server. Copy this file somewhere, pick ONE of the three setups below, then:
+#   docker compose up -d
+#   docker compose logs opnduck        # the pair link and QR code are printed here on the first start
+#   docker compose exec opnduck opnduck-server pair     # another one-time pair link later
+#
+# Reaching it: with OPNDUCK_BIND=0.0.0.0 the port is open to your network. Prefer the Tailscale setup (3): nothing is
+# published on the host at all and only devices on your tailnet can connect.
+
+services:
+  # 1) No GPU, or AMD / Intel GPU (Vulkan through /dev/dri).
+  opnduck:
+    image: ghcr.io/sight8218/opnduck-server:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:47821:47821"        # only this machine; change to "47821:47821" to reach it from your network
+    environment:
+      OPNDUCK_NAME: "Home server"
+      # OPNDUCK_PUBLIC_URL: "http://192.168.1.50:47821"   # what devices should use in the pair link
+      # OPNDUCK_RETENTION_HOURS: "48"
+      # OPNDUCK_MAX_UPLOAD_GB: "8"
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - opnduck-data:/data
+
+  # 2) NVIDIA GPU: replace the "devices" block above with this (needs the NVIDIA Container Toolkit on the host).
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all
+  #             capabilities: [gpu, utility, compute, video, graphics]
+
+  # 3) Tailscale sidecar: the server joins your tailnet itself, with no host setup and no published port.
+  #    Use these two services instead of "opnduck" above. Create an auth key at login.tailscale.com/admin/settings/keys.
+  # tailscale:
+  #   image: tailscale/tailscale:latest
+  #   hostname: opnduck
+  #   environment:
+  #     TS_AUTHKEY: "tskey-auth-REPLACE-ME"
+  #     TS_STATE_DIR: /var/lib/tailscale
+  #   volumes:
+  #     - tailscale-state:/var/lib/tailscale
+  #   devices:
+  #     - /dev/net/tun:/dev/net/tun
+  #   cap_add: [net_admin]
+  #   restart: unless-stopped
+  # opnduck:
+  #   image: ghcr.io/sight8218/opnduck-server:latest
+  #   network_mode: service:tailscale
+  #   restart: unless-stopped
+  #   environment:
+  #     OPNDUCK_NAME: "Home server"
+  #     OPNDUCK_PUBLIC_URL: "http://opnduck:47821"       # the MagicDNS name of the sidecar (tailnet traffic is already encrypted)
+  #   volumes:
+  #     - opnduck-data:/data
+
+volumes:
+  opnduck-data:
+  # tailscale-state:

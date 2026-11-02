@@ -24,6 +24,7 @@
 const http = require('node:http')
 const os = require('node:os')
 const crypto = require('node:crypto')
+const net = require('node:net')
 
 const MAX_BODY = 8 * 1024
 const DEFAULT_PORT = 47821
@@ -39,10 +40,14 @@ const isTailnetIp = (ip) => {
  * Which addresses to listen on for a bind mode. `interfaces` is os.networkInterfaces(), `tailscaleIp` the address
  * `tailscale ip -4` reported (or null). Never 0.0.0.0 unless the mode is 'lan'.
  */
-function bindAddresses(mode, interfaces = os.networkInterfaces(), tailscaleIp = null) {
+function bindAddresses(mode, interfaces = os.networkInterfaces(), tailscaleIp = null, address = '') {
   if (mode === 'off') return []
   if (mode === 'localhost') return ['127.0.0.1']
   if (mode === 'lan') return ['0.0.0.0']
+  if (mode === 'address') {
+    if (!net.isIP(address)) throw new Error(`Not an IP address: ${address}`)
+    return [address] // a server picks its own address (a container needs 0.0.0.0)
+  }
   if (mode === 'tailscale') {
     const found = new Set()
     for (const [name, addrs] of Object.entries(interfaces)) {
@@ -121,9 +126,9 @@ function createEngineApi({ inbox, name, v1 = null, log = () => {} }) {
   }
 
   /** (Re)starts listening for `mode`. Tries `port`, then the next nine, and uses one port on every address. */
-  async function start({ mode, port = DEFAULT_PORT, interfaces, tailscaleIp }) {
+  async function start({ mode, port = DEFAULT_PORT, interfaces, tailscaleIp, address }) {
     await stop()
-    const addresses = bindAddresses(mode, interfaces, tailscaleIp)
+    const addresses = bindAddresses(mode, interfaces, tailscaleIp, address)
     if (addresses.length === 0) return status
     for (let p = port; p < port + 10; p++) {
       const opened = []
