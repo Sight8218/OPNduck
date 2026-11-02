@@ -32,6 +32,7 @@ export default function App() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [offline, setOffline] = useState('')
   const [shared, setShared] = useState('')
+  const [notify, setNotify] = useState(() => store.get('notify') !== '0')
   const [deviceName, setDeviceName] = useState(() => store.get('device-name') ?? 'My phone')
   const host = hosts?.find((h) => h.id === hostId) ?? hosts?.[0] ?? null
 
@@ -52,6 +53,22 @@ export default function App() {
     const sub = native.addListener('shared', take)
     return () => void sub.then((s) => s.remove())
   }, [])
+
+  // A tapped "is ready" notification opens the Done tab.
+  useEffect(() => {
+    const open = () => void native.consumeTab().then((r) => r.tab === 'done' && setTab('done'))
+    open()
+    document.addEventListener('visibilitychange', open)
+    return () => document.removeEventListener('visibilitychange', open)
+  }, [])
+
+  // "Is anything ready?" checks in the background, once a computer is paired and the person has not turned them off.
+  const paired = !!host?.engine
+  useEffect(() => {
+    if (!paired) return
+    if (!notify) return void native.setChecks({ on: false })
+    void native.requestNotifications().then((r) => native.setChecks({ on: r.granted }))
+  }, [paired, notify])
 
   // The queue: asked for every couple of seconds while the app is open and the computer is paired for jobs.
   const refresh = useCallback(async () => {
@@ -108,6 +125,8 @@ export default function App() {
           <Settings
             hosts={hosts}
             deviceName={deviceName}
+            notify={notify}
+            onNotify={(v) => (setNotify(v), store.set('notify', v ? '1' : '0'))}
             onDeviceName={(n) => (setDeviceName(n), store.set('device-name', n))}
             onHosts={setHosts}
             onPaired={(list, added) => (setHosts(list), setHostId(added.id))}
@@ -334,7 +353,7 @@ const NeedEngine = () => (
   </>
 )
 
-function Settings({ hosts, deviceName, onDeviceName, onHosts, onPaired }: { hosts: Host[]; deviceName: string; onDeviceName: (n: string) => void; onHosts: (h: Host[]) => void; onPaired: (list: Host[], added: Host) => void }) {
+function Settings({ hosts, deviceName, notify, onNotify, onDeviceName, onHosts, onPaired }: { hosts: Host[]; deviceName: string; notify: boolean; onNotify: (v: boolean) => void; onDeviceName: (n: string) => void; onHosts: (h: Host[]) => void; onPaired: (list: Host[], added: Host) => void }) {
   const [adding, setAdding] = useState(false)
   return (
     <>
@@ -343,6 +362,14 @@ function Settings({ hosts, deviceName, onDeviceName, onHosts, onPaired }: { host
         <label htmlFor="dn">This phone's name</label>
         <input id="dn" value={deviceName} maxLength={40} onChange={(e) => onDeviceName(e.target.value)} />
       </div>
+      <label className="panel" style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <input type="checkbox" style={{ width: 20, height: 20 }} checked={notify} onChange={(e) => onNotify(e.target.checked)} />
+        <span>
+          Tell me when a job is ready
+          <br />
+          <small>Checks every 15 minutes while your computer is reachable.</small>
+        </span>
+      </label>
       {hosts.map((h) => (
         <div className="panel" key={h.id}>
           <div className="top task">

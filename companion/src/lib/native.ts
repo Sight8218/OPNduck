@@ -6,6 +6,10 @@ interface OpnduckNativePlugin {
   secureRemove(o: { key: string }): Promise<void>
   consumeShared(): Promise<{ text: string }>
   download(o: { url: string; fileName: string }): Promise<{ id: number }>
+  setChecks(o: { on: boolean }): Promise<void>
+  checkNow(): Promise<void>
+  requestNotifications(): Promise<{ granted: boolean }>
+  consumeTab(): Promise<{ tab: string }>
   addListener(event: 'shared', fn: (e: { text: string }) => void): Promise<{ remove(): void }>
 }
 
@@ -19,6 +23,10 @@ const web: OpnduckNativePlugin = {
     window.open(url, '_blank')
     return { id: 0 }
   },
+  setChecks: async () => {},
+  checkNow: async () => {},
+  requestNotifications: async () => ({ granted: false }),
+  consumeTab: async () => ({ tab: '' }),
   addListener: async () => ({ remove() {} }),
 }
 
