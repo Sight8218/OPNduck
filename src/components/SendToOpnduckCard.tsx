@@ -258,6 +258,10 @@ function DirectAndPairing({ settings, onChange }: { settings: AppSettings; onCha
                     HTTPS is not switched on for your tailnet. Turn on HTTPS certificates in the Tailscale admin page (DNS tab) to use the direct path from a phone web page; the relay works without it.
                   </span>
                 )}
+                <span>
+                  If your computer has a firewall (for example ufw), allow the link server's port on the Tailscale interface or
+                  your other devices will fall back to the relay: <code>sudo ufw allow in on tailscale0 to any port {settings.remotePort} proto tcp</code>
+                </span>
               </>
             )}
             {msg && (

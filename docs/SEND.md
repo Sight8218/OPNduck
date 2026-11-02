@@ -46,6 +46,10 @@ To use the direct path from a phone, the phone page (https) needs an https addre
 choose "This computer and Tailscale", turn on HTTPS certificates for your tailnet in the Tailscale admin page (DNS
 tab), and press **Enable HTTPS over Tailscale**. If that is not possible, the relay works without it.
 
+If your computer runs a firewall, it may block the link server on the Tailscale interface; the senders then quietly
+use the relay instead. With ufw, allow just that port on that interface (default port 47821):
+`sudo ufw allow in on tailscale0 to any port 47821 proto tcp`.
+
 ## Browser extension
 
 `npm run build:extension` makes `dist-extension/opnduck-extension-chrome-<version>.zip` and `...-firefox-...zip`.
