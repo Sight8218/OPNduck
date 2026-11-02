@@ -234,9 +234,32 @@ All three are complete and tiny; copy one as a starting point.
 - [`plugin-examples/headless-tool/`](./plugin-examples/headless-tool/): backend only, one tool for
   MCP and the TUI.
 
-## Publishing (planned)
+## Publishing
 
-Plugins are published through the `opnduck-plugins` index repository: a pull request adds an
-entry with your repo, a pinned commit and the SHA256 of the archive. After review it is listed
-as Verified; entries that skip review appear under Community (unverified). Details land with the
-store.
+Plugins are published through the `opnduck-plugins` index repository (`Sight8218/opnduck-plugins`).
+Its `index.json` lists each plugin:
+
+```json
+{ "plugins": [ {
+  "id": "convert-helper", "name": "Convert Helper", "version": "0.1.0",
+  "author": "Your Name", "description": "...",
+  "repo": "https://github.com/you/opnduck-convert-helper",
+  "commit": "<full 40-character commit>",
+  "sha256": "<sha256 of the uncompressed tar of that commit>",
+  "permissions": ["jobs", "files:read"], "network": [], "verified": false
+} ] }
+```
+
+- `repo` must be a `https://github.com/<owner>/<name>` URL. An optional `subdir` names a folder
+  inside the repo when the plugin is not at the top.
+- `sha256` is the hash of the **uncompressed** tar, since gzip output is not byte-stable:
+  `curl -L https://codeload.github.com/<owner>/<name>/tar.gz/<commit> | gunzip | sha256sum`
+- `permissions` and `version` must match the plugin's own `plugin.json` exactly, or the install is
+  refused.
+- `verified` is set only when the maintainer has reviewed that commit and merged it.
+
+On install OPNduck downloads the archive of the pinned commit, discards it if the hash differs,
+unpacks it (only regular files and folders; links, `..`, absolute paths and oversized archives are
+refused), and puts the plugin in place **switched off**. You review its permissions and turn it on
+from the Installed tab. An update replaces the folder and switches the plugin off again; only
+permissions it did not ask for before need approval.

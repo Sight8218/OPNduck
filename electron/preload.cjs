@@ -46,6 +46,8 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     disable: (id) => ipcRenderer.invoke('plugins:disable', id),
     remove: (id) => ipcRenderer.invoke('plugins:remove', id),
     rescan: () => ipcRenderer.invoke('plugins:rescan'),
+    storeList: (force) => ipcRenderer.invoke('plugins:storeList', force === true),
+    storeInstall: (id) => ipcRenderer.invoke('plugins:storeInstall', id),
     openFolder: () => ipcRenderer.invoke('plugins:openFolder'),
     call: (id, method, args) => ipcRenderer.invoke('plugins:call', id, method, args),
     onChanged: (listener) => {

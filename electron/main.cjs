@@ -193,6 +193,8 @@ ipcMain.handle('plugins:enable', (_e, id, approved) => core.plugins.enable(Strin
 ipcMain.handle('plugins:disable', (_e, id) => core.plugins.disable(String(id)))
 ipcMain.handle('plugins:remove', (_e, id) => core.plugins.remove(String(id)))
 ipcMain.handle('plugins:rescan', () => core.plugins.init())
+ipcMain.handle('plugins:storeList', (_e, force) => core.pluginStore.list({ force: force === true }))
+ipcMain.handle('plugins:storeInstall', (_e, id) => core.pluginStore.install(String(id)))
 // A card's calls: only the card-safe part of the plugin API is reachable from here (see UI_METHODS in plugins.cjs).
 ipcMain.handle('plugins:call', (_e, id, method, args) => core.plugins.callFromUi(String(id), String(method), Array.isArray(args) ? args : []))
 ipcMain.handle('plugins:openFolder', () => {

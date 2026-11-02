@@ -406,6 +406,29 @@ export interface PluginSummary {
   lastError: string
 }
 
+/** One plugin in the store index. `installed` is the installed version ('' when not installed). */
+export interface PluginStoreEntry {
+  id: string
+  name: string
+  version: string
+  author: string
+  description: string
+  repo: string
+  permissions: PluginPermission[]
+  network: string[]
+  verified: boolean
+  installed: string
+  installedFrom: string
+}
+
+export interface PluginStoreList {
+  entries: PluginStoreEntry[]
+  fetchedAt: number
+  /** True when the index could not be fetched and the saved copy (or nothing) is shown. */
+  offline: boolean
+  error: string
+}
+
 export interface HostPlugins {
   list(): Promise<PluginSummary[]>
   /** Turns a plugin on with the permissions the user approved (a subset of what it asks for). */
@@ -415,6 +438,10 @@ export interface HostPlugins {
   remove(id: string): Promise<void>
   /** Re-reads the plugins folder. */
   rescan(): Promise<PluginSummary[]>
+  /** The store index with what is installed. Cached for an hour unless `force`. */
+  storeList(force?: boolean): Promise<PluginStoreList>
+  /** Downloads, checks the SHA-256 and installs a store plugin. It lands off; turn it on from Installed. */
+  storeInstall(id: string): Promise<PluginSummary>
   openFolder(): Promise<void>
   /** A plugin card's call into the host. Only the card-safe part of the plugin API answers. */
   call(id: string, method: string, args: unknown[]): Promise<unknown>

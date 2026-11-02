@@ -821,6 +821,24 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, onChan
       changed()
       return summary(rec)
     },
+    /**
+     * Picks up a plugin folder the store just put in place (new or replacing an older version): stops
+     * the old one, re-reads the folder, records where it came from, and leaves it OFF. It still needs
+     * the user's approval, and permissions it was not shown before count as new.
+     */
+    async adopt(id, { verified, source }) {
+      const old = runtime.get(id)
+      if (old) await stopRuntime(old)
+      const entry = scanPlugins(dir).find((e) => e.id === id)
+      if (!entry) throw new Error(`Plugin folder not found: ${id}`)
+      const rec = newRuntime(entry)
+      runtime.set(id, rec)
+      Object.assign(entryState(id), { enabled: false, verified: verified === true, source: String(source).slice(0, 40), lastError: '' })
+      persist()
+      await reconcile(rec)
+      changed()
+      return summary(rec)
+    },
     /** Stops a plugin and deletes its folder and state. Refuses symlinked folders. */
     async remove(id) {
       const rec = need(id)
@@ -910,7 +928,7 @@ function createPluginHost({ core, platform, pluginsDir, safeMode = false, onChan
 }
 
 module.exports = {
-  API_VERSION, PERMISSIONS, EVENTS, NAMED_BINARIES, UI_METHODS, PermissionError,
+  API_VERSION, ID_RE, SEMVER_RE, CORE_IDS, PERMISSIONS, EVENTS, NAMED_BINARIES, UI_METHODS, PermissionError,
   validateManifest, isSafeRelPath, realResolve, isInside, resolveEntry, createFileAccess, createGuard, validateArgs,
   loadState, saveState, scanPlugins, createApi, createPluginHost,
 }

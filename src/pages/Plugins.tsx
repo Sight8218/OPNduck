@@ -17,7 +17,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { IconArrowRight } from '@tabler/icons-react'
-import { host, type PluginStatus, type PluginSummary } from '../host'
+import { host, type PluginStatus, type PluginStoreEntry, type PluginStoreList, type PluginSummary } from '../host'
 import type { PluginPermission } from '../features/registry'
 import { OFF_BY_DEFAULT, permissionInfo } from '../features/pluginPermissions'
 import Tag from '../components/Tag'
@@ -74,11 +74,138 @@ export default function Plugins() {
           {tab === 'installed' ? (
             <Installed />
           ) : (
-            <div className="glass rounded-3xl p-8 text-center text-sm text-[var(--text-dim)]">
-              The plugin store is coming soon. For now, drop a plugin folder into the plugins folder and turn it on from the Installed tab.
-            </div>
+            <Store onInstalled={() => setTab('installed')} />
           )}
         </>
+      )}
+    </div>
+  )
+}
+
+function Store({ onInstalled }: { onInstalled: () => void }) {
+  const plugins = host.plugins!
+  const [data, setData] = useState<PluginStoreList | null>(null)
+  const [error, setError] = useState('')
+
+  const load = useCallback(
+    async (force: boolean) => {
+      try {
+        setData(await plugins.storeList(force))
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e))
+      }
+    },
+    [plugins],
+  )
+  useEffect(() => {
+    void load(false)
+    return plugins.onChanged(() => void load(false))
+  }, [plugins, load])
+
+  const verified = data?.entries.filter((e) => e.verified) ?? []
+  const community = data?.entries.filter((e) => !e.verified) ?? []
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <button type="button" className="glass-btn" onClick={() => void load(true)}>
+          Refresh
+        </button>
+        {data?.fetchedAt ? <span className="text-[11px] text-[var(--text-faint)]">Updated {new Date(data.fetchedAt).toLocaleString()}</span> : null}
+      </div>
+      {data?.offline && (
+        <p className="text-xs text-[var(--text-dim)]">
+          Could not reach the store{data.error ? ` (${data.error})` : ''}. {data.entries.length ? 'Showing the last saved list.' : 'Nothing saved yet.'}
+        </p>
+      )}
+      {error && <p className="text-xs text-red-400">{error}</p>}
+      {data && data.entries.length === 0 && !data.offline && (
+        <div className="glass rounded-3xl p-8 text-center text-sm text-[var(--text-dim)]">The store has no plugins yet.</div>
+      )}
+      {verified.length > 0 && <h2 className="mt-1 text-sm font-bold">Verified</h2>}
+      {verified.map((e) => (
+        <StoreRow key={e.id} entry={e} onInstalled={onInstalled} onError={setError} />
+      ))}
+      {community.length > 0 && <h2 className="mt-1 text-sm font-bold">Community (unverified)</h2>}
+      {community.map((e) => (
+        <StoreRow key={e.id} entry={e} onInstalled={onInstalled} onError={setError} />
+      ))}
+    </div>
+  )
+}
+
+function StoreRow({ entry, onInstalled, onError }: { entry: PluginStoreEntry; onInstalled: () => void; onError: (message: string) => void }) {
+  const plugins = host.plugins!
+  const [confirming, setConfirming] = useState(false)
+  const [understood, setUnderstood] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const fromFolder = entry.installed !== '' && entry.installedFrom !== 'store'
+  const upToDate = entry.installed === entry.version
+  const label = entry.installed ? 'Update' : 'Install'
+
+  async function install() {
+    setBusy(true)
+    onError('')
+    try {
+      await plugins.storeInstall(entry.id)
+      setConfirming(false)
+      onInstalled()
+    } catch (e) {
+      onError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="glass rounded-3xl p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-base font-bold">{entry.name}</h3>
+            <span className="text-[11px] text-[var(--text-faint)]">v{entry.version}</span>
+            <Tag>{entry.verified ? 'Verified' : 'Unverified'}</Tag>
+            {entry.installed && <Tag>{upToDate ? 'Installed' : `Installed v${entry.installed}`}</Tag>}
+          </div>
+          <p className="mt-1 text-xs text-[var(--text-dim)]">
+            {entry.description} <span className="text-[var(--text-faint)]">by {entry.author}</span>
+          </p>
+          <p className="mt-1 text-[11px] text-[var(--text-faint)]">
+            Asks for: {entry.permissions.length ? entry.permissions.map((p) => permissionInfo(p).label).join(', ') : 'nothing'}
+            {entry.network.length > 0 && ` (sites: ${entry.network.join(', ')})`}
+          </p>
+          <a href={entry.repo} target="_blank" rel="noreferrer" className="text-[11px] text-[var(--accent)] underline underline-offset-2">
+            Inspect the code
+          </a>
+        </div>
+        <div className="flex gap-2">
+          {fromFolder ? (
+            <span className="text-[11px] text-[var(--text-faint)]">Already installed from a folder</span>
+          ) : !upToDate && !confirming ? (
+            <button type="button" className="glass-btn" disabled={busy} onClick={() => (entry.verified ? void install() : setConfirming(true))}>
+              {busy ? 'Installing…' : label}
+            </button>
+          ) : null}
+        </div>
+      </div>
+      {confirming && (
+        <div className="mt-3 flex flex-col gap-2 border-t border-[var(--glass-border)] pt-3">
+          <p className="rounded-lg bg-[var(--input-bg)] p-2 text-xs text-red-400">
+            This plugin is not verified. OPNduck takes no responsibility for what it does. Its code was not reviewed, so read it on GitHub before you install it.
+          </p>
+          <label className="flex cursor-pointer items-start gap-3 py-1">
+            <input type="checkbox" className="mt-0.5 accent-[var(--accent)]" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
+            <span className="text-sm font-medium">I understand and want to download it</span>
+          </label>
+          <div className="flex gap-2">
+            <button type="button" className="glass-btn" disabled={busy || !understood} onClick={() => void install()}>
+              {busy ? 'Installing…' : label}
+            </button>
+            <button type="button" className="glass-btn" onClick={() => setConfirming(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

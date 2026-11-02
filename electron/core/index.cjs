@@ -97,6 +97,13 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
     workerFile: pluginWorkerFile,
     log: (line) => process.stderr.write(`${line}\n`),
   })
+  // The store client. The two env vars point it at a local test server (see test/plugin_store.test.cjs).
+  core.pluginStore = require('./plugin_store.cjs').createPluginStore({
+    host: plugins,
+    indexUrl: process.env.OPNDUCK_PLUGIN_INDEX || undefined,
+    archiveBase: process.env.OPNDUCK_PLUGIN_ARCHIVES || undefined,
+    log: (line) => process.stderr.write(`${line}\n`),
+  })
   return core
 }
 
