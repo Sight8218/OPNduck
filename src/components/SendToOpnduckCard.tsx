@@ -18,7 +18,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import QRCode from 'qrcode'
-import { host, type AppSettings, type RemoteServer, type TailscaleStatus } from '../host'
+import { host, type AppSettings, type RemoteRelay, type RemoteServer, type TailscaleStatus } from '../host'
 
 const FORMATS = ['MP4', 'MKV', 'WEBM', 'MOV', 'AVI', 'MP3', 'FLAC', 'WAV']
 const QUALITIES = [
@@ -40,7 +40,7 @@ export default function SendToOpnduckCard() {
     host.settings?.get().then(setSettings)
   }, [])
 
-  async function change(patch: Partial<Pick<AppSettings, 'remoteEnabled' | 'remoteMode' | 'remoteFormat' | 'remoteVideoQuality' | 'remoteBind' | 'remotePort'>>) {
+  async function change(patch: Partial<Pick<AppSettings, 'remoteEnabled' | 'remoteMode' | 'remoteFormat' | 'remoteVideoQuality' | 'remoteBind' | 'remotePort' | 'remoteRelay'>>) {
     setError('')
     try {
       const next = await host.settings!.set(patch)
@@ -105,6 +105,7 @@ export default function SendToOpnduckCard() {
           </div>
         </div>
       )}
+      {settings.remoteEnabled && <RelaySection settings={settings} onChange={change} />}
       {settings.remoteEnabled && <DirectAndPairing settings={settings} onChange={change} />}
       {error && <span className="mt-2 block text-xs text-red-400">{error}</span>}
     </div>
@@ -273,6 +274,77 @@ function DirectAndPairing({ settings, onChange }: { settings: AppSettings; onCha
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+const STATE_TEXT: Record<RemoteRelay['status']['state'], string> = { off: 'Off', connecting: 'Connecting…', connected: 'Connected', reconnecting: 'Reconnecting…', error: 'Problem' }
+
+function RelaySection({ settings, onChange }: { settings: AppSettings; onChange: (p: Partial<Pick<AppSettings, 'remoteRelay'>>) => Promise<void> }) {
+  const [relay, setRelay] = useState<RemoteRelay | null>(null)
+  const [server, setServer] = useState('')
+  const [token, setToken] = useState('')
+  const [error, setError] = useState('')
+
+  const refresh = useCallback(async () => {
+    const r = await host.remote.relay()
+    setRelay(r)
+    setServer((cur) => (cur === '' ? r.server : cur))
+    setToken((cur) => (cur === '' ? r.token : cur))
+  }, [])
+
+  useEffect(() => {
+    void refresh()
+    return host.remote.onChange(() => void refresh())
+  }, [refresh, settings.remoteRelay])
+
+  async function save() {
+    setError('')
+    try {
+      await host.remote.setRelay(server.trim(), token.trim())
+      await refresh()
+    } catch (e) {
+      setError((e instanceof Error ? e.message : String(e)).replace(/^Error invoking remote method '[^']*': (Error: )?/, ''))
+    }
+  }
+
+  return (
+    <div className="mt-3 flex flex-col gap-2 border-t border-[var(--glass-border)] pt-3">
+      <label className="flex cursor-pointer items-start gap-3">
+        <input type="checkbox" className="mt-0.5 accent-[var(--accent)]" checked={settings.remoteRelay} onChange={(e) => void onChange({ remoteRelay: e.target.checked })} />
+        <span>
+          <span className="text-sm font-medium">Receive links through the relay</span>
+          <span className="block text-[11px] text-[var(--text-dim)]">
+            Works from anywhere, with no setup beyond scanning the code. OPNduck listens to a private channel on a free ntfy server. Every message is encrypted on your phone and only OPNduck can read it; the server sees random text and when it was sent. Links sent while OPNduck was closed arrive the next time it starts (ntfy.sh keeps them for 12 hours).
+          </span>
+        </span>
+      </label>
+      {settings.remoteRelay && relay && (
+        <div className="flex flex-col gap-2">
+          <span className={`text-[11px] ${relay.status.state === 'error' ? 'text-red-400' : 'text-[var(--text-dim)]'}`}>
+            {STATE_TEXT[relay.status.state]}
+            {relay.status.server ? ` · ${relay.status.server}` : ''}
+            {relay.status.error ? ` · ${relay.status.error}` : ''}
+          </span>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <label htmlFor="relay-server" className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Server (your own ntfy, optional)</label>
+              <input id="relay-server" className="glass-input" placeholder={relay.defaultServer} value={server} onChange={(e) => setServer(e.target.value)} />
+            </div>
+            <div>
+              <label htmlFor="relay-token" className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Access token (only if your server needs one)</label>
+              <input id="relay-token" className="glass-input" type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button" className="glass-btn" onClick={() => void save()}>
+              Save relay settings
+            </button>
+            <span className="text-[11px] text-[var(--text-faint)]">After changing the server, pair your devices again so they use it.</span>
+          </div>
+          {error && <span className="text-xs text-red-400">{error}</span>}
+        </div>
+      )}
     </div>
   )
 }

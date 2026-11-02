@@ -57,7 +57,7 @@ const parseUrl = (s) => {
  * @param {() => number} [deps.now]
  */
 function createRemoteInbox({ file, startDownload, notify, onChange, getSettings, getRecipe, runRecipe, now = Date.now }) {
-  let state = { secret: '', lastIds: [], pending: [] }
+  let state = { secret: '', lastIds: [], pending: [], relay: { server: '', token: '', lastId: '' } }
   const stamps = []
   let overRateLogged = false
 
@@ -66,6 +66,7 @@ function createRemoteInbox({ file, startDownload, notify, onChange, getSettings,
     state = {
       secret: typeof s.secret === 'string' ? s.secret : '',
       lastIds: Array.isArray(s.lastIds) ? s.lastIds.filter((x) => typeof x === 'string').slice(-MAX_SEEN) : [],
+      relay: { server: String(s.relay?.server ?? ''), token: String(s.relay?.token ?? ''), lastId: String(s.relay?.lastId ?? '') },
       pending: Array.isArray(s.pending) ? s.pending.filter((p) => p && parseUrl(p.url) && typeof p.id === 'string').slice(-MAX_PENDING) : [],
     }
   } catch {
@@ -93,6 +94,7 @@ function createRemoteInbox({ file, startDownload, notify, onChange, getSettings,
   function resetPairing() {
     state.secret = E.newSecret().toString('base64url')
     state.lastIds = []
+    state.relay.lastId = '' // the topic changes with the secret, so the old position means nothing
     save()
     onChange()
   }
@@ -218,7 +220,19 @@ function createRemoteInbox({ file, startDownload, notify, onChange, getSettings,
     return state.pending.length !== before
   }
 
-  return { receive, addLink, list, accept, dismiss, secret, resetPairing, keys: () => E.deriveKeys(secret()) }
+  /** The relay's own bits, kept next to the secret in the same private file. */
+  const relay = {
+    get: () => ({ server: state.relay.server, token: state.relay.token }),
+    set: ({ server, token }) => {
+      state.relay.server = String(server ?? '')
+      state.relay.token = String(token ?? '')
+      state.relay.lastId = ''
+      save()
+    },
+    lastId: { get: () => state.relay.lastId, set: (id) => ((state.relay.lastId = String(id).slice(0, 64)), save()) },
+  }
+
+  return { relay, receive, addLink, list, accept, dismiss, secret, resetPairing, keys: () => E.deriveKeys(secret()) }
 }
 
 module.exports = { createRemoteInbox, parseUrl, MAX_URL, RATE_PER_MIN }

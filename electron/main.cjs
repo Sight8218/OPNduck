@@ -239,6 +239,7 @@ ipcMain.handle('settings:set', async (_e, patch) => {
   if (patch && 'mcpServer' in patch) await applyMcp()
   if (patch && ('remoteEnabled' in patch || 'remoteMode' in patch)) platform.emit('remote:changed', null)
   if (patch && ('remoteEnabled' in patch || 'remoteBind' in patch || 'remotePort' in patch)) await applyEngineApi()
+  if (patch && ('remoteEnabled' in patch || 'remoteRelay' in patch)) applyRelay()
   return next
 })
 
@@ -440,11 +441,32 @@ async function applyEngineApi() {
   }
   platform.emit('remote:changed', null)
 }
+const { createNtfyRelay, validateServer, DEFAULT_SERVER } = require('./core/remote/ntfy.cjs')
+let ntfyRelay = null
+/** Starts or stops the relay listener to match the settings; call after any change to them or to the relay address. */
+function applyRelay() {
+  const inbox = needRemote()
+  ntfyRelay ??= createNtfyRelay({
+    inbox,
+    getConfig: () => ({ enabled: getSettings().remoteEnabled && getSettings().remoteRelay, ...inbox.relay.get() }),
+    lastId: inbox.relay.lastId,
+    onStatus: () => platform.emit('remote:changed', null),
+  })
+  ntfyRelay.apply()
+}
+ipcMain.handle('remote:relay', () => ({ ...needRemote().relay.get(), status: ntfyRelay?.status() ?? { state: 'off', error: '', server: '' }, defaultServer: DEFAULT_SERVER }))
+ipcMain.handle('remote:setRelay', (_e, server, token) => {
+  const clean = server ? validateServer(server) : ''
+  needRemote().relay.set({ server: clean === DEFAULT_SERVER ? '' : clean, token: String(token ?? '').slice(0, 200) })
+  applyRelay()
+  return true
+})
 ipcMain.handle('remote:server', () => ({ ...(engineApi?.status() ?? { running: false, port: null, addresses: [], error: '' }), bind: getSettings().remoteBind }))
 // The pair link holds the secret: it only goes to this app's own window, to show as a QR code or be copied by the user.
-ipcMain.handle('remote:pairing', () => ({ link: buildPairLink({ secret: needRemote().secret(), relay: 'https://ntfy.sh', relayToken: '', direct: getSettings().remoteDirectUrl, name: os.hostname() }) }))
+ipcMain.handle('remote:pairing', () => ({ link: buildPairLink({ secret: needRemote().secret(), relay: needRemote().relay.get().server || DEFAULT_SERVER, relayToken: needRemote().relay.get().token, direct: getSettings().remoteDirectUrl, name: os.hostname() }) }))
 ipcMain.handle('remote:resetPairing', () => {
   needRemote().resetPairing()
+  applyRelay() // the topic changed with the secret
   return true
 })
 ipcMain.handle('remote:tailscale', () => tailscale.status())
@@ -1145,6 +1167,7 @@ app.whenReady().then(() => {
   app.setAsDefaultProtocolClient('opnduck')
   needRemote()
   void applyEngineApi()
+  applyRelay()
   trace('subscriptions started')
   void applyMcp()
   // A card runs in a sandboxed iframe on this scheme. Reserved paths (__frame.html, __frame.js, __app/*) are the
@@ -1196,6 +1219,7 @@ app.whenReady().then(() => {
 app.on('before-quit', () => {
   subscriptions?.stop()
   void engineApi?.stop()
+  ntfyRelay?.stop()
   void mcp?.stop()
   void core.plugins.shutdown()
 })

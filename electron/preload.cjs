@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   checkFpcalc: () => ipcRenderer.invoke('system:checkFpcalc'),
   remote: {
     state: () => ipcRenderer.invoke('remote:state'),
+    relay: () => ipcRenderer.invoke('remote:relay'),
+    setRelay: (server, token) => ipcRenderer.invoke('remote:setRelay', server, token),
     server: () => ipcRenderer.invoke('remote:server'),
     pairing: () => ipcRenderer.invoke('remote:pairing'),
     resetPairing: () => ipcRenderer.invoke('remote:resetPairing'),

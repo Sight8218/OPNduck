@@ -148,6 +148,7 @@ export interface AppSettings {
   /** Send to OPNduck: accept links from other devices, what happens when one arrives, and what they download as. */
   remoteEnabled: boolean
   remoteMode: 'ask' | 'auto'
+  remoteRelay: boolean
   remoteBind: 'off' | 'localhost' | 'tailscale' | 'lan'
   remotePort: number
   remoteDirectUrl: string
@@ -318,6 +319,14 @@ export interface RemoteServer {
   addresses: string[]
   error: string
   bind: 'off' | 'localhost' | 'tailscale' | 'lan'
+}
+
+export interface RemoteRelay {
+  /** Empty means the default, https://ntfy.sh. */
+  server: string
+  token: string
+  defaultServer: string
+  status: { state: 'off' | 'connecting' | 'connected' | 'reconnecting' | 'error'; error: string; server: string }
 }
 
 export interface TailscaleStatus {
@@ -646,6 +655,9 @@ export interface Host {
     accept(id: string): Promise<boolean>
     dismiss(id: string): Promise<boolean>
     onChange(listener: () => void): () => void
+    /** The relay (ntfy) address, token and live status. */
+    relay(): Promise<RemoteRelay>
+    setRelay(server: string, token: string): Promise<boolean>
     /** The link server: is it listening, where, and why not. */
     server(): Promise<RemoteServer>
     /** The pair link (it holds the secret): shown as a QR code or copied by the user. */
@@ -753,7 +765,7 @@ export interface Host {
   /** Main-process settings (proxy, login cookies). Desktop shell only. */
   settings?: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; remoteEnabled?: boolean; remoteMode?: 'ask' | 'auto'; remoteBind?: 'off' | 'localhost' | 'tailscale' | 'lan'; remotePort?: number; remoteFormat?: string; remoteVideoQuality?: string; remoteAudioQuality?: string; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; remoteEnabled?: boolean; remoteMode?: 'ask' | 'auto'; remoteRelay?: boolean; remoteBind?: 'off' | 'localhost' | 'tailscale' | 'lan'; remotePort?: number; remoteFormat?: string; remoteVideoQuality?: string; remoteAudioQuality?: string; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   /** Auto-download new uploads from a channel/playlist (checked while the app is open). Desktop shell only. */
   subscriptions?: {
@@ -1085,6 +1097,8 @@ const browserHost: Host = {
     accept: async () => false,
     dismiss: async () => false,
     onChange: () => () => {},
+    relay: async () => ({ server: '', token: '', defaultServer: 'https://ntfy.sh', status: { state: 'off', error: '', server: '' } }),
+    setRelay: async () => false,
     server: async () => ({ running: false, port: null, addresses: [], error: '', bind: 'off' }),
     pairing: async () => ({ link: '' }),
     resetPairing: async () => false,
