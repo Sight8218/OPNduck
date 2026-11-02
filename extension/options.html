@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Send to OPNduck: options</title>
+<style>
+  body { margin: 0; padding: 24px; background: #131110; color: #ede6d9; font: 15px/1.5 ui-monospace, Menlo, Consolas, monospace; }
+  main { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+  input { width: 100%; box-sizing: border-box; background: #0d0b0a; color: #ede6d9; border: 1px solid #3a3430; border-radius: 10px; padding: 11px; font: inherit; }
+  button { background: #e1892f; color: #131110; border: 0; border-radius: 10px; padding: 11px 16px; font: inherit; font-weight: 700; cursor: pointer; }
+  button.ghost { background: transparent; color: #ede6d9; border: 1px solid #3a3430; }
+  label, small { color: #a79d8f; font-size: 13px; } #msg.ok { color: #86efac; } #msg.bad { color: #f87171; }
+  .row { display: flex; gap: 8px; }
+</style></head>
+<body><main>
+  <h1>Send to OPNduck</h1>
+  <small>In OPNduck open <b>Settings → Send to OPNduck</b>, press <b>Copy pair link</b>, and paste it here. The link holds a private key: keep it to your own devices.</small>
+  <label for="link">Pair link</label>
+  <input id="link" autocomplete="off" spellcheck="false" placeholder="https://sight8218.github.io/OPNduck/send/#p=…">
+  <label for="device">This browser's name</label>
+  <input id="device" maxlength="40" placeholder="Laptop browser">
+  <label for="port">Port of OPNduck on this computer</label>
+  <input id="port" inputmode="numeric" placeholder="47821">
+  <div class="row"><button id="save" type="button">Save</button><button id="unpair" class="ghost" type="button">Unpair</button></div>
+  <div id="msg" role="status" aria-live="polite"></div>
+  <small>Order tried: OPNduck on this computer, then over Tailscale, then the encrypted relay. The extension asks permission for a custom relay or Tailscale address when you save.</small>
+</main><script type="module" src="options.js"></script></body></html>

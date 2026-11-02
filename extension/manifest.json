@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Send to OPNduck",
+  "version": "0.1.0",
+  "description": "Send a link, page, video or audio to OPNduck on your computer. Encrypted end to end; only the link is sent.",
+  "homepage_url": "https://github.com/Sight8218/OPNduck",
+  "icons": { "48": "icons/icon-48.png", "128": "icons/icon-128.png" },
+  "action": { "default_title": "Send this page to OPNduck", "default_popup": "popup.html", "default_icon": { "48": "icons/icon-48.png" } },
+  "options_ui": { "page": "options.html", "open_in_tab": true },
+  "background": { "service_worker": "background.js", "scripts": ["background.js"], "type": "module" },
+  "permissions": ["contextMenus", "storage", "activeTab"],
+  "host_permissions": ["http://127.0.0.1/*", "https://ntfy.sh/*"],
+  "optional_host_permissions": ["https://*/*", "http://localhost/*"],
+  "content_security_policy": { "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'" },
+  "browser_specific_settings": { "gecko": { "id": "send-to-opnduck@sight8218.github.io", "strict_min_version": "121.0" } }
+}

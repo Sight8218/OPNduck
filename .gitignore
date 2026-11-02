@@ -53,3 +53,4 @@ __pycache__/
 .dev-session.pid
 dist-tui
 electron/plugin_frame/frame.js
+dist-extension

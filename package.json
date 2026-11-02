@@ -27,7 +27,8 @@
     "tui": "node scripts/build-tui.mjs && node dist-tui/opnduck-tui.mjs",
     "tui:pack": "node scripts/pack-tui.mjs",
     "tui:npm": "node scripts/pack-npm.mjs",
-    "test": "node --test test/"
+    "test": "node --test test/",
+    "build:extension": "node scripts/build-extension.mjs"
   },
   "build": {
     "appId": "dev.opnduck.desktop",

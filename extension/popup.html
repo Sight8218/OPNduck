@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Send to OPNduck</title>
+<style>
+  body { margin: 0; padding: 14px; width: 280px; background: #131110; color: #ede6d9; font: 14px ui-monospace, Menlo, Consolas, monospace; }
+  button { width: 100%; background: #e1892f; color: #131110; border: 0; border-radius: 10px; padding: 11px; font: inherit; font-weight: 700; cursor: pointer; }
+  button:disabled { opacity: .5; }
+  p { margin: 8px 0 0; color: #a79d8f; font-size: 12px; word-break: break-word; }
+  a { color: #e1892f; }
+  #msg.ok { color: #86efac; } #msg.bad { color: #f87171; }
+</style></head>
+<body>
+  <button id="send" type="button">Send this page to OPNduck</button>
+  <p id="page"></p>
+  <p id="msg" role="status" aria-live="polite"></p>
+  <p><a id="opts" href="#">Options</a></p>
+  <script type="module" src="popup.js"></script>
+</body></html>
