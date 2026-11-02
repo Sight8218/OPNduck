@@ -327,6 +327,14 @@ body {
       0 4px 22px -6px var(--card-glow);
   }
 
+  /* Home's small tool tiles: the same glow as the card above, without its bigger lift. */
+  .tile-glow-hover:hover {
+    box-shadow:
+      var(--glass-shadow),
+      inset 0 0 0 1px var(--glass-border-inner),
+      0 4px 22px -6px var(--card-glow);
+  }
+
   /* Fully opaque variant — same border/shadow language as .glass, but a
      solid theme color and no backdrop-filter, for surfaces (like dropdown
      menus) that shouldn't show the blurred background through them. */

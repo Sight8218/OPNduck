@@ -35,7 +35,7 @@ export default function AdaptiveCardGrid() {
               type="button"
               onClick={() => choose(active ? null : f.id)}
               aria-pressed={active}
-              className={`glass pop-in flex items-center gap-3 rounded-2xl p-3 text-left transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 ${
+              className={`glass tile-glow-hover pop-in flex items-center gap-3 rounded-2xl p-3 text-left transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 ${
                 active ? 'border-[var(--accent)] shadow-[0_0_0_1px_var(--accent)]' : ''
               }`}
               style={{ ['--pop-delay' as string]: `${i * 40}ms` }}
