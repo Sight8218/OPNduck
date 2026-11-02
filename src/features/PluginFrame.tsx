@@ -63,7 +63,7 @@ interface Props {
 
 function appPayload(app: AppView) {
   return {
-    features: app.features.map((f) => ({ id: f.id, title: f.title, tagline: f.tagline, icon: f.icon, iconSvg: iconSvg(f.icon) })),
+    features: app.features.map((f) => ({ id: f.id, title: f.title, tagline: f.tagline, description: f.description, icon: f.icon, iconSvg: iconSvg(f.icon) })),
     selected: app.selected,
   }
 }
