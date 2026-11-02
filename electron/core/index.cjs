@@ -16,6 +16,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+const path = require('node:path')
+
 /**
  * Builds the whole job core (tools, task engine, every job module) around a platform object.
  * The desktop app and the terminal app both call this, so there is one wiring and one code path.
@@ -41,8 +43,21 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
     onFinished: (state, req) => {
       onFinished(state, req)
       plugins?.emit(state.status === 'error' ? 'job:failed' : 'job:finished', { id: state.id, kind: state.kind, status: state.status, label: state.label })
+      autoTag(state)
     },
   })
+
+  /**
+   * After an audio download finishes, tag it by itself, but only when the user turned that on in Settings (it sends the
+   * song's fingerprint and title to AcoustID, MusicBrainz and the Cover Art Archive). Never for the tagger's own jobs.
+   */
+  function autoTag(state) {
+    if (state.status !== 'done' || state.kind !== 'download' || !getSettings().autoTagAudio) return
+    const entry = engine.tasks.get(state.id)
+    const file = entry?.finalPath
+    if (!file || !['mp3', 'flac', 'm4a', 'ogg', 'opus'].includes(path.extname(file).slice(1).toLowerCase())) return
+    Promise.resolve(core.startJob('tasks:startTag', { inputPath: file, minConfidence: 0.9, ...(entry.spotify ? { hint: entry.spotify } : {}) })).catch(() => {})
+  }
 
   /** Registers a job-start function through the engine's wrapper (see wrapStart). */
   function handleStart(channel, fn) {

@@ -353,6 +353,7 @@ function createTagger(ctx) {
     }
     if (!st.isFile()) throw new Error('inputPath is not a regular file')
     const tags = req.tags == null ? null : validateTags(req.tags)
+    const hint = req.hint == null ? null : validateTags({ artist: req.hint.artist, title: req.hint.title })
     const minConfidence = req.minConfidence == null ? 0.9 : Number(req.minConfidence)
     if (!(minConfidence >= 0.5 && minConfidence <= 1)) throw new Error('minConfidence must be between 0.5 and 1')
     const id = crypto.randomUUID()
@@ -374,11 +375,11 @@ function createTagger(ctx) {
       finalPath: req.inputPath,
     })
     broadcastTasks()
-    runInPool(convertPool, id, () => tagJob(id, req, tags, minConfidence, ext)).catch((err) => updateTask(id, { status: 'error', error: `Tagging failed to start: ${err.message}` }))
+    runInPool(convertPool, id, () => tagJob(id, req, tags, minConfidence, ext, hint)).catch((err) => updateTask(id, { status: 'error', error: `Tagging failed to start: ${err.message}` }))
     return id
   })
 
-  async function tagJob(id, req, givenTags, minConfidence, ext) {
+  async function tagJob(id, req, givenTags, minConfidence, ext, hint = null) {
     const entry = tasks.get(id)
     updateTask(id, { status: 'running' })
     const input = req.inputPath
@@ -394,13 +395,24 @@ function createTagger(ctx) {
       let tags = givenTags
       let confidence = null
       if (!tags) {
-        const r = await identifyFile(deps, input)
-        if (isCanceled(id)) return
-        confidence = r.confidence
-        if (!r.found || r.source === 'none' || r.source === 'filename' || r.confidence < minConfidence) {
-          return updateTask(id, { status: 'done', progress: 1, label: `${path.basename(input)} (not changed)`, quality: r.found ? `Not sure enough (${Math.round(r.confidence * 100)}%)` : 'No match' })
+        let r = null
+        try {
+          r = await identifyFile(deps, input)
+        } catch (err) {
+          if (!hint) throw err // offline and nothing else to go on
         }
-        tags = validateTags(r.found)
+        if (isCanceled(id)) return
+        const sure = r?.found && r.source === 'acoustid' && r.confidence >= minConfidence
+        if (sure) {
+          tags = validateTags(r.found)
+          confidence = r.confidence
+        } else if (hint) {
+          // The fingerprint was not sure, but the link the song came from named it (Spotify): use that, tags only.
+          tags = validateTags(hint)
+          confidence = 1
+        } else {
+          return updateTask(id, { status: 'done', progress: 1, label: `${path.basename(input)} (not changed)`, quality: r?.found ? `Not sure enough (${Math.round(r.confidence * 100)}%)` : 'No match' })
+        }
       }
       updateTask(id, { progress: 0.2 })
 

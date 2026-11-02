@@ -365,6 +365,12 @@ function createTaskEngine({ platform, getSettings, onFinished }) {
   }
 
   /** Shows a task's output in the file manager, or its folder when the file is gone. */
+  /** The output file of a finished task, if it still exists (for "Fix tags" in the Library). */
+  function taskFile(id) {
+    const f = tasks.get(id)?.finalPath
+    return f && fs.existsSync(f) ? f : null
+  }
+
   function revealTask(id) {
     const entry = tasks.get(id)
     if (!entry) return
@@ -408,7 +414,7 @@ function createTaskEngine({ platform, getSettings, onFinished }) {
   }
 
   return {
-    cancelTask, rerunTask, revealTask, removeTasks, clearFinished,
+    cancelTask, rerunTask, revealTask, taskFile, removeTasks, clearFinished,
     tasks, startHandlers, allPools, pools: { convertPool, gpuPool, whisperPool, downloadPool },
     logWatched, logPending, TERMINAL, MAX_HISTORY,
     addTask, appendLog, jobLog, attachLog, defaultDownloadDir, broadcastTasks,

@@ -20,6 +20,7 @@ import ProgressBar from '../components/ProgressBar'
 import TaskLogs from '../components/TaskLogs'
 import { memo, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { IconChevronDown, IconX } from '@tabler/icons-react'
 import GlassSelect from '../components/GlassSelect'
@@ -29,6 +30,7 @@ import Tag from '../components/Tag'
 import Thumbnail from '../components/Thumbnail'
 import { host, type ImportedTask, type TaskState } from '../host'
 import { formatBytes } from '../lib/formatBytes'
+import { setTagHandoff } from '../lib/tagHandoff'
 import {
   DEFAULT_VIEW,
   applyView,
@@ -95,7 +97,10 @@ function AnotherMatchDialog({ onConfirm, onClose }: { onConfirm: () => void; onC
   )
 }
 
+const AUDIO_FORMATS = ['MP3', 'FLAC', 'M4A', 'OGG', 'OPUS']
+
 function TaskRowImpl({ task }: { task: TaskState }) {
+  const navigate = useNavigate()
   const running = task.status === 'queued' || task.status === 'running'
   const [askMatch, setAskMatch] = useState(false)
   // A failed Spotify match: "Run again" offers a different video instead of repeating the same search.
@@ -120,6 +125,21 @@ function TaskRowImpl({ task }: { task: TaskState }) {
           {task.status === 'done' && (
             <button type="button" className="glass-btn px-2 py-1 text-xs" onClick={() => host.tasks.openFolder(task.id)}>
               Open folder
+            </button>
+          )}
+          {task.status === 'done' && task.kind !== 'tag' && AUDIO_FORMATS.includes(String(task.format).toUpperCase()) && (
+            <button
+              type="button"
+              className="glass-btn px-2 py-1 text-xs"
+              title="Open this song in the Music Tagger to fill in its tags and cover"
+              onClick={async () => {
+                const file = await host.tasks.fileOf(task.id)
+                if (!file) return
+                setTagHandoff([file])
+                navigate('/?tool=tagger')
+              }}
+            >
+              Fix tags
             </button>
           )}
           {task.status === 'queued' && (

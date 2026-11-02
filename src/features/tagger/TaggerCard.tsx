@@ -23,6 +23,7 @@ import TaskLogs from '../../components/TaskLogs'
 import Tag from '../../components/Tag'
 import { host, type TagLookup, type ToolStatus } from '../../host'
 import { startBatch } from '../../lib/startBatch'
+import { takeTagHandoff } from '../../lib/tagHandoff'
 import { useSubmittedIds } from '../../lib/submittedTasks'
 import { useTasks } from '../../lib/useTasks'
 import type { FeatureDefinition } from '../registry'
@@ -61,6 +62,9 @@ export default function TaggerCard({ feature }: { feature: FeatureDefinition }) 
 
   useEffect(() => {
     void host.checkFpcalc().then(setFpcalc)
+    const handed = takeTagHandoff()
+    if (handed?.length) void addPaths(handed)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function addPaths(paths: string[]) {

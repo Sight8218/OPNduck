@@ -145,6 +145,8 @@ export interface AppSettings {
   videoEncoder: 'auto' | 'cpu'
   /** Desktop notification when jobs finish while the window isn't focused. */
   notifyOnFinish: boolean
+  /** Tag new audio downloads by themselves (off by default; uses the network). */
+  autoTagAudio: boolean
   /** Parallel downloads (1-6) and conversions (1-4). */
   /** New media files in this folder are converted automatically (checked every 10 seconds while OPNduck runs). */
   watchFolder: { enabled: boolean; path: string; container: string }
@@ -444,6 +446,8 @@ export interface HostTasks {
   watchLog(taskId: string, listener: (p: { lines: string[]; replaceLast: boolean }) => void): () => void
   /** Reveals a finished task's output (or its destination folder) in the file manager. */
   openFolder(taskId: string): Promise<void>
+  /** The finished task's output file, or null when it is gone. */
+  fileOf(taskId: string): Promise<string | null>
   /** Removes every finished/failed/canceled task from the history. */
   clearFinished(): Promise<void>
   /** Removes specific finished tasks (running ones are ignored). Resolves to how many went. */
@@ -635,7 +639,7 @@ export interface Host {
   /** Main-process settings (proxy, login cookies). Desktop shell only. */
   settings?: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   /** Auto-download new uploads from a channel/playlist (checked while the app is open). Desktop shell only. */
   subscriptions?: {
@@ -931,6 +935,7 @@ const browserTasks: HostTasks = {
   logs: async () => [],
   watchLog: () => () => {},
   openFolder: async () => {},
+  fileOf: async () => null,
   clearFinished: async () => {},
   remove: async () => 0,
   list: () => browserTaskList,

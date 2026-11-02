@@ -352,7 +352,7 @@ const {
   addTask, jobLog, defaultDownloadDir, broadcastTasks,
   scheduleHistorySave, saveHistory, loadHistory, markHistoryChanged, sanitizeBatch,
   updateTask, setQueuePaused, applyQueueLimits, killTask, isCanceled,
-  cancelTask, rerunTask, revealTask, removeTasks, clearFinished,
+  cancelTask, rerunTask, revealTask, taskFile, removeTasks, clearFinished,
 } = engine
 ipcMain.handle('queue:state', () => ({ paused: engine.queuePaused }))
 ipcMain.handle('queue:setPaused', (_e, paused) => setQueuePaused(paused))
@@ -432,6 +432,7 @@ ipcMain.on('tasks:cancel', (_e, id) => {
 })
 ipcMain.handle('tasks:rerun', (_e, id, opts) => rerunTask(id, opts))
 ipcMain.handle('tasks:openFolder', (_e, id) => revealTask(id))
+ipcMain.handle('tasks:file', (_e, id) => taskFile(String(id)))
 // Removes specific finished tasks from the history (running ones are never touched).
 ipcMain.handle('tasks:remove', (_e, ids) => removeTasks(ids))
 ipcMain.handle('tasks:clearFinished', () => clearFinished())

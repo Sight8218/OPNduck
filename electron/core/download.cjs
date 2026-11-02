@@ -73,7 +73,7 @@ function createDownload(ctx) {
       return { error: "Couldn't read this track's info from Spotify — the page format may have changed." }
     }
 
-    return { query: `ytsearch1:${artist} - ${title}`, search: `${artist} - ${title}`, label: `${artist} - ${title}` }
+    return { query: `ytsearch1:${artist} - ${title}`, search: `${artist} - ${title}`, label: `${artist} - ${title}`, artist, title }
   }
 
   const AUDIO_EXT = { MP3: 'mp3', FLAC: 'flac', WAV: 'wav' }
@@ -498,7 +498,12 @@ function createDownload(ctx) {
         })
       }
     }
-    if (spotify) updateTask(id, { label: spotify.label, experimentalMatch: 'YT Match (Experimental)' })
+    if (spotify) {
+      updateTask(id, { label: spotify.label, experimentalMatch: 'YT Match (Experimental)' })
+      // Kept for the tagger: if the audio fingerprint finds nothing, the Spotify artist and title still name the song.
+      const e = tasks.get(id)
+      if (e) e.spotify = { artist: spotify.artist, title: spotify.title }
+    }
 
     // Backfill size/thumbnail if the renderer's own preview never got to run
     // (Run Task clicked before that ~700ms debounce), or came back empty. This

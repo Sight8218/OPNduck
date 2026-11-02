@@ -201,3 +201,16 @@ test('the MCP tool tag_music validates its arguments and defaults', () => {
   assert.throws(() => buildStartRequest('tag_music', { inputPath: '/x/a.mp3', minConfidence: 0.1 }))
   assert.throws(() => buildStartRequest('tag_music', { inputPath: '/x/a.mp3', tags: { title: 'x' } }), 'tags are not accepted from MCP callers')
 })
+
+test('autoTagAudio defaults to off, accepts only booleans, and persists', () => {
+  const fs2 = require('node:fs')
+  const os2 = require('node:os')
+  const dir = fs2.mkdtempSync(path.join(os2.tmpdir(), 'opnduck-set-'))
+  const settings = require('../electron/core/settings.cjs')
+  settings.configure({ paths: { userData: dir, downloads: dir } })
+  assert.equal(settings.getSettings().autoTagAudio, false)
+  assert.equal(settings.setSettings({ autoTagAudio: true }).autoTagAudio, true)
+  assert.throws(() => settings.setSettings({ autoTagAudio: 'yes' }), /Invalid music tagging setting/)
+  assert.equal(settings.getSettings().autoTagAudio, true)
+  settings.setSettings({ autoTagAudio: false })
+})

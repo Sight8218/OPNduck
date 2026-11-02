@@ -60,6 +60,8 @@ const DEFAULTS = {
   mcpServer: false,
   /** Start with every plugin skipped (applies on the next start). */
   pluginsSafeMode: false,
+  /** Look up and tag new audio downloads by themselves (sends each song's fingerprint and title to AcoustID, MusicBrainz and the Cover Art Archive). Off until the user turns it on. */
+  autoTagAudio: false,
   cookies: {
     /** 'none' | 'browser' (read from an installed browser) | 'file' (Netscape cookies.txt) |
      *  'login' (cookies saved from OPNduck's own sign-in window, see login.cjs). */
@@ -106,6 +108,7 @@ function validate(next) {
   if (!['auto', 'cpu'].includes(next.videoEncoder)) throw new Error('Invalid video encoder')
   if (typeof next.mcpServer !== 'boolean') throw new Error('Invalid MCP server setting')
   if (typeof next.pluginsSafeMode !== 'boolean') throw new Error('Invalid plugin safe mode setting')
+  if (typeof next.autoTagAudio !== 'boolean') throw new Error('Invalid music tagging setting')
   if (typeof next.tuiTheme !== 'string' || !/^[a-z0-9-]{1,40}$/.test(next.tuiTheme)) throw new Error('Invalid terminal theme')
   const c = next.cookies
   if (!c || !['none', 'browser', 'file', 'login'].includes(c.mode)) throw new Error('Invalid cookie source')
@@ -165,6 +168,7 @@ function setSettings(patch) {
     videoEncoder: patch.videoEncoder !== undefined ? patch.videoEncoder : current.videoEncoder,
     mcpServer: patch.mcpServer !== undefined ? patch.mcpServer : current.mcpServer,
     pluginsSafeMode: patch.pluginsSafeMode !== undefined ? patch.pluginsSafeMode : current.pluginsSafeMode,
+    autoTagAudio: patch.autoTagAudio !== undefined ? patch.autoTagAudio : current.autoTagAudio,
     tuiTheme: patch.tuiTheme !== undefined ? patch.tuiTheme : current.tuiTheme,
     cookies: { ...current.cookies, ...(patch.cookies && typeof patch.cookies === 'object' ? patch.cookies : {}) },
   }

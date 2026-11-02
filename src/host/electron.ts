@@ -88,7 +88,7 @@ interface ElectronBridge {
   onInstallProgress(listener: (p: { tool: PythonTool; line: string }) => void): () => void
   settings: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   subscriptions: {
     list(): Promise<Subscription[]>
@@ -128,6 +128,7 @@ interface ElectronBridge {
     startTrim(req: TrimRequest): Promise<string>
     startCompress(req: CompressRequest): Promise<string>
     startTag(req: TagRequest): Promise<string>
+    fileOf(taskId: string): Promise<string | null>
     startGif(req: GifRequest): Promise<string>
     cancel(taskId: string): void
     rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
@@ -265,6 +266,7 @@ export function detectElectronHost(): Host | null {
       startTrim: (req) => bridge.tasks.startTrim(req),
       startCompress: (req) => bridge.tasks.startCompress(req),
       startTag: (req) => bridge.tasks.startTag(req),
+      fileOf: (id) => bridge.tasks.fileOf(id),
       startGif: (req) => bridge.tasks.startGif(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
       runNext: (taskId) => bridge.tasks.runNext(taskId),
