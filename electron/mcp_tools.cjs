@@ -152,6 +152,25 @@ const TOOLS = [
     },
   },
   {
+    name: 'list_recipes',
+    description: 'List the saved recipes (chains of tools), with what each starts from and its steps. Read-only.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'run_recipe',
+    description: 'Run a saved recipe on a file (or a link, for a recipe that starts from a link). Each step feeds the next, and the steps show up as one group in the Library. Returns the run and job ids.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recipe: { type: 'string', description: 'The recipe id from list_recipes.' },
+        input: { type: 'string', description: 'An absolute file path, or a full http(s) link for a recipe that starts from a link.' },
+        keepIntermediate: { type: 'boolean', description: 'Keep the files the middle steps make. Default false.' },
+      },
+      required: ['recipe', 'input'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'suggest_settings',
     description: 'Look at a media file and suggest the best settings for a tool (model, scale, frame rate multiplier, remux or re-encode, subtitle model), with the reason for each. Read-only; does not start a job.',
     inputSchema: {
@@ -256,6 +275,35 @@ const TOOLS = [
   },
 ]
 
+/**
+ * What each start tool takes and gives, for chaining tools into a recipe. Types: url, video, audio, image, subtitle
+ * (a subtitle file is a dead end: no tool takes one). `produces` is a type, or a function of (args, inputType) for tools
+ * whose output depends on their settings. Kept next to TOOLS, and out of publicTools().
+ */
+const AUDIO_CONTAINERS = ['MP3', 'FLAC', 'WAV', 'OGG', 'M4A', 'OPUS']
+const IMAGE_CONTAINERS = ['PNG', 'JPG', 'WEBP', 'AVIF', 'BMP', 'TIFF', 'ICO']
+const same = (_args, inputType) => inputType
+const STEP_TYPES = {
+  download: { accepts: ['url'], produces: (a) => (AUDIO_CONTAINERS.includes(String(a.format ?? DEFAULTS.download.format).toUpperCase()) ? 'audio' : 'video') },
+  convert: { accepts: ['video', 'audio', 'image'], produces: (a) => (AUDIO_CONTAINERS.includes(a.container) ? 'audio' : IMAGE_CONTAINERS.includes(a.container) ? 'image' : ['PDF', 'DOCX', 'ODT', 'RTF', 'TXT', 'HTML'].includes(a.container) ? 'document' : 'video') },
+  upscale_image: { accepts: ['image'], produces: 'image' },
+  upscale_video: { accepts: ['video'], produces: 'video' },
+  interpolate: { accepts: ['video'], produces: 'video' },
+  subtitles: { accepts: ['video', 'audio'], produces: 'subtitle' },
+  trim: { accepts: ['video', 'audio'], produces: same },
+  compress: { accepts: ['video', 'audio'], produces: same },
+  make_gif: { accepts: ['video'], produces: 'image' },
+  tag_music: { accepts: ['audio'], produces: 'audio' },
+  audio_ai: { accepts: ['audio', 'video'], produces: 'audio' },
+}
+
+/** The type a step leaves behind, given its arguments and what it was fed. */
+function producesFor(tool, args, inputType) {
+  const t = STEP_TYPES[tool]
+  if (!t) return null
+  return typeof t.produces === 'function' ? t.produces(args ?? {}, inputType) : t.produces
+}
+
 /** What the bridge advertises to MCP clients. */
 function publicTools() {
   return TOOLS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema }))
@@ -305,4 +353,4 @@ function buildStartRequest(name, args) {
   return { channel: tool.channel, req }
 }
 
-module.exports = { TOOLS, DEFAULTS, publicTools, buildStartRequest }
+module.exports = { TOOLS, DEFAULTS, STEP_TYPES, producesFor, publicTools, buildStartRequest }

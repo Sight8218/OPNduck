@@ -270,6 +270,13 @@ ipcMain.handle('system:checkFfmpeg', () => tools.checkFfmpeg())
 ipcMain.handle('system:checkFpcalc', () => tools.checkFpcalc())
 // Music tagger: look one file up (read-only; the card calls it file by file), and list the audio in a folder.
 // Auto settings: measure a file and suggest settings for a tool, with reasons (read-only, nothing is started).
+// Recipes (chains of tools): the Recipes page lists, edits and runs them.
+ipcMain.handle('recipes:list', () => core.recipes.list())
+ipcMain.handle('recipes:save', (_e, recipe) => core.recipes.save(recipe))
+ipcMain.handle('recipes:remove', (_e, id) => core.recipes.remove(String(id)))
+ipcMain.handle('recipes:duplicate', (_e, id) => core.recipes.duplicate(String(id)))
+ipcMain.handle('recipes:run', (_e, id, input, opts) => core.recipes.run(String(id), String(input), { destination: typeof opts?.destination === 'string' ? opts.destination : undefined, keepIntermediate: opts?.keepIntermediate === true }))
+ipcMain.handle('recipes:resume', (_e, runId) => core.recipes.resume(String(runId)))
 ipcMain.handle('auto:suggest', async (_e, tool, filePath, opts) => {
   if (typeof tool !== 'string' || typeof filePath !== 'string' || !path.isAbsolute(filePath)) throw new Error('Invalid request')
   const facts = await modules.analyze.analyzeMedia(filePath)
@@ -587,6 +594,7 @@ function needMcp() {
     setQueuePaused,
     probeMedia,
     analyzeMedia: modules.analyze.analyzeMedia,
+    recipes: core.recipes,
     plugins: core.plugins,
     log: (m) => console.log(m),
   })

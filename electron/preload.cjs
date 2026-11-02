@@ -36,6 +36,14 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   installYtDlp: () => ipcRenderer.invoke('system:installYtDlp'),
   checkFfmpeg: () => ipcRenderer.invoke('system:checkFfmpeg'),
   checkFpcalc: () => ipcRenderer.invoke('system:checkFpcalc'),
+  recipes: {
+    list: () => ipcRenderer.invoke('recipes:list'),
+    save: (recipe) => ipcRenderer.invoke('recipes:save', recipe),
+    remove: (id) => ipcRenderer.invoke('recipes:remove', id),
+    duplicate: (id) => ipcRenderer.invoke('recipes:duplicate', id),
+    run: (id, input, opts) => ipcRenderer.invoke('recipes:run', id, input, opts ?? null),
+    resume: (runId) => ipcRenderer.invoke('recipes:resume', runId),
+  },
   suggestSettings: (tool, filePath, opts) => ipcRenderer.invoke('auto:suggest', tool, filePath, opts ?? null),
   tagger: {
     identify: (filePath) => ipcRenderer.invoke('tagger:identify', filePath),

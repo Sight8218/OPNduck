@@ -40,6 +40,8 @@ import type {
   GifRequest,
   TagLookup,
   AutoTool,
+  Recipe,
+  RecipeRun,
   AutoSuggestion,
   MediaInfo,
   McpInfo,
@@ -64,6 +66,14 @@ interface ElectronBridge {
   installYtDlp(): Promise<{ ok: boolean; error?: string }>
   checkFfmpeg(): Promise<ToolStatus>
   checkFpcalc(): Promise<ToolStatus>
+  recipes: {
+    list(): Promise<Recipe[]>
+    save(recipe: Omit<Recipe, 'id' | 'output' | 'builtIn'> & { id?: string }): Promise<Recipe>
+    remove(id: string): Promise<boolean>
+    duplicate(id: string): Promise<Recipe>
+    run(id: string, input: string, opts?: { destination?: string; keepIntermediate?: boolean }): Promise<RecipeRun>
+    resume(runId: string): Promise<RecipeRun>
+  }
   suggestSettings(tool: AutoTool, filePath: string, opts?: { container?: string }): Promise<AutoSuggestion>
   tagger: { identify(filePath: string): Promise<TagLookup>; listAudio(folder: string): Promise<string[]> }
   checkLibreOffice(): Promise<ToolStatus>
@@ -200,6 +210,7 @@ export function detectElectronHost(): Host | null {
     installYtDlp: () => bridge.installYtDlp(),
     checkFfmpeg: () => bridge.checkFfmpeg(),
     checkFpcalc: () => bridge.checkFpcalc(),
+    recipes: bridge.recipes,
     suggestSettings: (tool, filePath, opts) => bridge.suggestSettings(tool, filePath, opts),
     tagger: bridge.tagger,
     checkLibreOffice: () => bridge.checkLibreOffice(),

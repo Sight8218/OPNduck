@@ -86,6 +86,7 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
   add('gif', require('./gif.cjs').createGif)
   add('compress', require('./compress.cjs').createCompress) // after gpu: it uses the NVENC check from there
   add('download', require('./download.cjs').createDownload)
+  add('recipes', require('./recipes.cjs').createRecipes) // last: it starts steps through the handlers above
 
   /** Starts a job by its channel name (the same names the desktop IPC uses), without a UI. */
   function startJob(channel, req) {
@@ -105,7 +106,7 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
     engine.saveHistory()
   }
 
-  const core = { platform, settings, tools, engine, modules, ctx, startJob, shutdown }
+  const core = { platform, settings, tools, engine, modules, ctx, startJob, shutdown, recipes: modules.recipes.recipes }
   // Not started here: the shell calls `core.plugins.init()` once it is ready (after its windows and dialogs exist).
   plugins = core.plugins = require('./plugins.cjs').createPluginHost({
     core,

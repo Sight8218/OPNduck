@@ -255,6 +255,32 @@ export interface AutoSuggestion {
   notes: { level: 'info' | 'warn'; text: string }[]
 }
 
+export type RecipeInput = 'url' | 'video' | 'audio' | 'image'
+
+export interface RecipeStep {
+  /** A start-tool name from the MCP tool list (download, convert, upscale_video, ...). */
+  tool: string
+  /** The tool's settings, without the input file or link (the recipe fills that in). */
+  args: Record<string, unknown>
+}
+
+export interface Recipe {
+  id: string
+  name: string
+  input: RecipeInput
+  steps: RecipeStep[]
+  /** What the last step leaves behind (video, audio, image, subtitle...). */
+  output?: string
+  /** Shipped with OPNduck: read-only, duplicate it to change it. */
+  builtIn?: boolean
+}
+
+export interface RecipeRun {
+  runId: string
+  batchId: string | null
+  taskIds: string[]
+}
+
 /** What the music tagger knows or proposes about one song. */
 export interface TagFields {
   title: string | null
@@ -556,6 +582,16 @@ export interface Host {
   /** The music tagger needs Chromaprint's fpcalc. */
   checkFpcalc(): Promise<ToolStatus>
   /** Measures a file and suggests settings for a tool, with the reason for each (reads the file; starts no job). */
+  /** Recipes: saved chains of tools. Desktop only. */
+  recipes: {
+    list(): Promise<Recipe[]>
+    /** Saves a new recipe (no id) or updates one (with its id). Throws a readable message when the chain can't work. */
+    save(recipe: Omit<Recipe, 'id' | 'output' | 'builtIn'> & { id?: string }): Promise<Recipe>
+    remove(id: string): Promise<boolean>
+    duplicate(id: string): Promise<Recipe>
+    run(id: string, input: string, opts?: { destination?: string; keepIntermediate?: boolean }): Promise<RecipeRun>
+    resume(runId: string): Promise<RecipeRun>
+  }
   suggestSettings(tool: AutoTool, filePath: string, opts?: { container?: string }): Promise<AutoSuggestion>
   /** Music tagger lookups. They contact AcoustID, MusicBrainz and the Cover Art Archive, only when called. */
   tagger: {
@@ -966,6 +1002,22 @@ const browserHost: Host = {
   installYtDlp: async () => ({ ok: false, error: 'Desktop app required' }),
   checkFfmpeg: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkFpcalc: async () => ({ available: false, installHint: 'Desktop app required' }),
+  recipes: {
+    list: async () => [],
+    save: async () => {
+      throw new Error('Desktop app required')
+    },
+    remove: async () => false,
+    duplicate: async () => {
+      throw new Error('Desktop app required')
+    },
+    run: async () => {
+      throw new Error('Desktop app required')
+    },
+    resume: async () => {
+      throw new Error('Desktop app required')
+    },
+  },
   suggestSettings: async () => {
     throw new Error('Desktop app required')
   },

@@ -61,6 +61,7 @@ function requireFile(p, what) {
  * @param {(paused: boolean) => void} deps.setQueuePaused
  * @param {(p: string) => Promise<any>} deps.probeMedia
  * @param {(p: string) => Promise<any>} [deps.analyzeMedia]  facts for suggest_settings
+ * @param {object} [deps.recipes]  core.recipes (list_recipes, run_recipe)
  * @param {{ tools(): object[], callTool(name: string, args: unknown): Promise<unknown> }} [deps.plugins]  running plugins' tools (`<id>__<tool>`)
  * @param {(msg: string) => void} [deps.log]
  */
@@ -132,6 +133,13 @@ function createMcpServer(deps) {
       case 'queue_resume':
         deps.setQueuePaused(tool === 'queue_pause')
         return { paused: tool === 'queue_pause' }
+      case 'list_recipes':
+        return (deps.recipes?.list() ?? []).map((r) => ({ id: r.id, name: r.name, input: r.input, builtIn: !!r.builtIn, output: r.output, steps: r.steps.map((s) => ({ tool: s.tool, args: s.args })) }))
+      case 'run_recipe': {
+        if (!deps.recipes) throw new Error('This build cannot run recipes')
+        if (activeMcpJobs() >= MAX_ACTIVE) throw new Error(`Too many MCP jobs waiting or running (limit ${MAX_ACTIVE})`)
+        return deps.recipes.run(String(a.recipe), String(a.input), { keepIntermediate: a.keepIntermediate === true })
+      }
       case 'suggest_settings': {
         requireFile(a.inputPath, 'inputPath')
         if (!deps.analyzeMedia) throw new Error('This build cannot analyze media')
