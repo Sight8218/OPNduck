@@ -1,0 +1,11 @@
+{
+  "id": "tool-wheel",
+  "name": "Tool Wheel",
+  "version": "0.1.0",
+  "apiVersion": 1,
+  "author": "Aaron Jonsson",
+  "description": "Replaces the tool tiles on Home with a wheel. With nothing picked the cards turn slowly and sit dimmed; pick one and the wheel spins smoothly to it.",
+  "repo": "https://github.com/Sight8218/OPNduck",
+  "permissions": [],
+  "ui": { "entry": "ui.js", "slot": "selector" }
+}

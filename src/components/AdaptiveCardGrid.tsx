@@ -1,6 +1,8 @@
 import { useSearchParams } from 'react-router-dom'
 import { useFeatures } from '../features/useFeatures'
 import { FeatureIcon } from './featureIcons'
+import PluginFrame from '../features/PluginFrame'
+import { useSelectorPlugin } from '../features/selectorStore'
 
 /**
  * Home launcher. Every enabled feature in the registry gets a small tile (icon, title,
@@ -11,6 +13,7 @@ import { FeatureIcon } from './featureIcons'
 export default function AdaptiveCardGrid() {
   const [params, setParams] = useSearchParams()
   const features = useFeatures().filter((f) => f.enabled)
+  const selector = useSelectorPlugin()
 
   if (features.length === 0) {
     return (
@@ -26,6 +29,16 @@ export default function AdaptiveCardGrid() {
 
   return (
     <div className="flex flex-col gap-6">
+      {selector ? (
+        <PluginFrame
+          key={`${selector.pluginId}-${selector.version}`}
+          pluginId={selector.pluginId}
+          version={selector.version}
+          entry={selector.entry}
+          feature={{ id: selector.pluginId, title: selector.name, tagline: '', description: '', scope: 'universal', icon: '', enabled: true, render: () => null, source: 'plugin' }}
+          app={{ features, selected: openId, onSelect: choose }}
+        />
+      ) : (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {features.map((f, i) => {
           const active = f.id === open?.id
@@ -51,6 +64,7 @@ export default function AdaptiveCardGrid() {
           )
         })}
       </div>
+      )}
 
       {open ? (
         <div key={open.id} className="pop-in mx-auto w-full max-w-3xl">

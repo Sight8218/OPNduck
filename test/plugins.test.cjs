@@ -623,3 +623,12 @@ test('host: disabling during a slow activation stops cleanly; a double enable st
   assert.equal(host.list().find((p) => p.id === 'fine').status, 'running')
   await host.shutdown()
 })
+
+test('ui.slot "selector" is accepted without tile fields; other slots are refused', () => {
+  const sel = valid({ ui: { entry: 'ui.js', slot: 'selector' }, backend: undefined })
+  const r = P.validateManifest(sel)
+  assert.equal(r.ok, true)
+  assert.equal(r.manifest.ui.slot, 'selector')
+  assert.equal(P.validateManifest({ ...sel, ui: { entry: 'ui.js', slot: 'footer' } }).ok, false)
+  assert.equal(P.validateManifest({ ...sel, ui: { entry: 'ui.js' } }).ok, false, 'a plain card still needs tagline, icon and scope')
+})

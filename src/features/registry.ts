@@ -78,7 +78,7 @@ export interface PluginManifest {
   /** Exact hostnames the plugin may contact; used with the `network` permission. */
   network?: string[]
   /** Card entry, path relative to the plugin's own folder — e.g. "index.js". */
-  ui?: { entry: string }
+  ui?: { entry: string; /** "selector": replaces the tile row on Home (see PLUGINS.md). */ slot?: 'selector' }
   /** Backend entry (CommonJS, runs in a worker), path relative to the plugin's own folder. */
   backend?: { entry: string }
   /** MCP/TUI tool definitions, same shape as electron/mcp_tools.cjs TOOLS. */

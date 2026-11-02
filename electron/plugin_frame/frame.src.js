@@ -46,6 +46,16 @@ const api = {
   rpc: { call: (name, arg) => call('rpc.call', name, arg) },
 }
 
+// For a selector plugin (manifest ui.slot): the app's tools and which one is open. Others see an empty list.
+const appState = { features: [], selected: null }
+const appListeners = new Set()
+api.app = {
+  features: () => appState.features,
+  selected: () => appState.selected,
+  select: (id) => send({ type: 'select', id: id ?? null }),
+  subscribe: (fn) => (appListeners.add(fn), () => appListeners.delete(fn)),
+}
+
 class Boundary extends Component {
   state = { error: null }
   static getDerivedStateFromError(err) {
@@ -81,7 +91,11 @@ window.addEventListener('message', (event) => {
   const m = event.data
   if (!m || m.opnduckPlugin !== 1) return
   if (m.type === 'init') void start(m)
-  else if (m.type === 'theme') {
+  else if (m.type === 'app') {
+    appState.features = Array.isArray(m.features) ? m.features : []
+    appState.selected = typeof m.selected === 'string' ? m.selected : null
+    for (const fn of [...appListeners]) fn()
+  } else if (m.type === 'theme') {
     // The app's theme: the data-theme attribute and its inline colour variables, so the card follows the theme.
     const el = document.documentElement
     if (typeof m.dataTheme === 'string') el.setAttribute('data-theme', m.dataTheme)

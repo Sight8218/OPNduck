@@ -1,5 +1,6 @@
 import { host, type PluginSummary } from '../host'
 import PluginFrame from './PluginFrame'
+import { setSelectorPlugin } from './selectorStore'
 import { featureRegistry, registerFeatures, unregisterFeature, type FeatureDefinition } from './registry'
 
 function definitionFor(p: PluginSummary): FeatureDefinition {
@@ -37,7 +38,11 @@ async function doSync(): Promise<void> {
     console.error('plugins: could not list plugins', err)
     return
   }
-  const wanted = list.filter((p) => p.status === 'running' && p.manifest?.ui)
+  const running = list.filter((p) => p.status === 'running' && p.manifest?.ui)
+  // A selector plugin replaces the tile row on Home instead of being a tile; the first one wins.
+  const selector = running.find((p) => p.manifest!.ui!.slot === 'selector')
+  setSelectorPlugin(selector ? { pluginId: selector.id, name: selector.manifest!.name, version: selector.manifest!.version, entry: selector.manifest!.ui!.entry } : null)
+  const wanted = running.filter((p) => p.manifest!.ui!.slot !== 'selector')
   for (const f of [...featureRegistry]) {
     if (f.source === 'plugin' && !wanted.some((p) => p.id === f.id)) {
       unregisterFeature(f.id)

@@ -79,7 +79,7 @@ be treated like any program you downloaded. Read the code first.
 | `repo`        | no*      | Source repository URL. *Required for store listing, so users can inspect the code.* |
 | `permissions` | no       | Array of names from the table below. Default `[]`: the plugin can render and nothing else. |
 | `network`     | with `network` perm | Array of exact hostnames the plugin may contact, e.g. `["api.github.com"]`. |
-| `ui`          | no       | `{ "entry": "ui.js" }`: path relative to the plugin folder. v1's top-level `entry` is read as `ui.entry`. |
+| `ui`          | no       | `{ "entry": "ui.js", "slot": "selector" }`: `entry` is a path relative to the plugin folder (v1's top-level `entry` is read as `ui.entry`). `slot` is optional, see [Selector plugins](#selector-plugins). |
 | `backend`     | no       | `{ "entry": "backend.cjs" }`: CommonJS file, path relative to the plugin folder. |
 | `tools`       | no       | MCP/TUI tool definitions, see [Tools](#tools). Needs the `tools` permission. |
 | `commands`    | no       | Entries for the command palette: `{ "id", "title" }`. Handled by `opnduck.commands.handle(id, fn)`. |
@@ -202,6 +202,23 @@ api.rpc.call(name, arg)         call a function the backend registered with opnd
 Your **backend** is a different matter: it is Node code running with the user's privileges (see
 [Trust](#trust-verified-and-unverified)). The sandbox covers cards only.
 
+### Selector plugins
+
+With `"slot": "selector"` the card is not a tile: it replaces the row of tool tiles on Home and draws
+the picker itself (a wheel, a list, a dock...). It needs no `tagline`, `icon` or `scope`, no
+permissions, and the first selector plugin that is on wins; turn it off and the tiles come back. Its
+`api` has one extra part, `api.app`:
+
+```
+api.app.features() -> [{ id, title, tagline, icon, iconSvg }]   the tools on Home; iconSvg is the app's own icon as SVG text
+api.app.selected() -> id | null                                   which tool is open
+api.app.select(id | null)                                         open a tool (or close it with null), like clicking its tile
+api.app.subscribe(fn) -> unsubscribe                              fn() runs when the list or the selection changes
+```
+
+The open tool still shows underneath. A selector can only pick one of the listed tools; it cannot start
+jobs or read anything else. See [`plugin-examples/tool-wheel/`](./plugin-examples/tool-wheel/).
+
 ## Tools
 
 `tools` entries use the same shape as the built-in tools in `electron/mcp_tools.cjs`:
@@ -234,11 +251,13 @@ startup.
 
 ## Examples
 
-All three are complete and tiny; copy one as a starting point.
+All four are complete and small; copy one as a starting point.
 
 - [`plugin-examples/hello-world/`](./plugin-examples/hello-world/): UI only, no permissions.
 - [`plugin-examples/convert-helper/`](./plugin-examples/convert-helper/): UI card + backend that
   starts a real convert job.
+- [`plugin-examples/tool-wheel/`](./plugin-examples/tool-wheel/): a selector plugin: Home's tool
+  picker as a slowly turning wheel that spins to the tool you pick.
 - [`plugin-examples/headless-tool/`](./plugin-examples/headless-tool/): backend only, one tool for
   MCP and the TUI.
 
