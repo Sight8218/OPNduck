@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
+import AutoSettings from '../../components/AutoSettings'
 import FeatureCard from '../../components/FeatureCard'
 import ProgressBar from '../../components/ProgressBar'
 import SlidingSelector from '../../components/SlidingSelector'
@@ -144,6 +145,7 @@ export default function CompressCard({ feature }: { feature: FeatureDefinition }
           <input id="compress-custom" className="glass-input w-28" inputMode="decimal" value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="e.g. 8" disabled={running} />
         </div>
       </div>
+      <AutoSettings tool="compress" file={file} disabled={running} onApply={(s) => (s.quality === 'fast' || s.quality === 'best') && setQuality(s.quality)} />
       <div>
         <SlidingSelector id="compress-quality" options={QUALITIES} value={quality} onChange={setQuality} className="w-full grid-cols-2" />
         <span className="mt-1 block text-[11px] text-[var(--text-faint)]">

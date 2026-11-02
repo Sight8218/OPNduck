@@ -152,6 +152,20 @@ const TOOLS = [
     },
   },
   {
+    name: 'suggest_settings',
+    description: 'Look at a media file and suggest the best settings for a tool (model, scale, frame rate multiplier, remux or re-encode, subtitle model), with the reason for each. Read-only; does not start a job.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tool: { type: 'string', enum: ['upscale_image', 'upscale_video', 'interpolate', 'convert', 'compress', 'subtitles'], description: 'The tool to suggest settings for.' },
+        inputPath: FILE,
+        container: { type: 'string', description: 'For convert: the target format, such as MP4 or MKV.' },
+      },
+      required: ['tool', 'inputPath'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'make_gif',
     description: 'Turn a section of a video into a GIF, an animated WebP, or a Telegram or Discord sticker (sizes and lengths are fitted to the sticker limits). Returns a job id.',
     channel: 'tasks:startGif',

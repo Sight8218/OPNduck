@@ -269,6 +269,13 @@ ipcMain.handle('system:checkLibreOffice', () => tools.checkLibreOffice())
 ipcMain.handle('system:checkFfmpeg', () => tools.checkFfmpeg())
 ipcMain.handle('system:checkFpcalc', () => tools.checkFpcalc())
 // Music tagger: look one file up (read-only; the card calls it file by file), and list the audio in a folder.
+// Auto settings: measure a file and suggest settings for a tool, with reasons (read-only, nothing is started).
+ipcMain.handle('auto:suggest', async (_e, tool, filePath, opts) => {
+  if (typeof tool !== 'string' || typeof filePath !== 'string' || !path.isAbsolute(filePath)) throw new Error('Invalid request')
+  const facts = await modules.analyze.analyzeMedia(filePath)
+  if (!facts) throw new Error("Couldn't read that file.")
+  return { facts, ...require('./core/autosettings.cjs').suggest(tool, facts, { container: typeof opts?.container === 'string' ? opts.container : undefined }) }
+})
 ipcMain.handle('tagger:identify', (_e, filePath) => (typeof filePath === 'string' ? modules.tagger.identifyTrack(filePath) : Promise.reject(new Error('Invalid path'))))
 ipcMain.handle('tagger:listAudio', (_e, folder) => (typeof folder === 'string' && path.isAbsolute(folder) ? modules.tagger.listAudioFiles(folder) : []))
 ipcMain.handle('system:checkRealesrgan', () => tools.checkRealesrgan())
@@ -578,6 +585,7 @@ function needMcp() {
     cancelTask,
     setQueuePaused,
     probeMedia,
+    analyzeMedia: modules.analyze.analyzeMedia,
     plugins: core.plugins,
     log: (m) => console.log(m),
   })

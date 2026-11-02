@@ -244,6 +244,15 @@ export interface GifRequest {
   destination?: string
 }
 
+export type AutoTool = 'upscale_image' | 'upscale_video' | 'interpolate' | 'convert' | 'compress' | 'subtitles'
+
+/** What Auto decided: the settings to apply, why each was chosen, and things worth knowing about the file. */
+export interface AutoSuggestion {
+  settings: Record<string, string | number | boolean>
+  reasons: { setting: string; value: unknown; because: string }[]
+  notes: { level: 'info' | 'warn'; text: string }[]
+}
+
 /** What the music tagger knows or proposes about one song. */
 export interface TagFields {
   title: string | null
@@ -542,6 +551,8 @@ export interface Host {
   checkFfmpeg(): Promise<ToolStatus>
   /** The music tagger needs Chromaprint's fpcalc. */
   checkFpcalc(): Promise<ToolStatus>
+  /** Measures a file and suggests settings for a tool, with the reason for each (reads the file; starts no job). */
+  suggestSettings(tool: AutoTool, filePath: string, opts?: { container?: string }): Promise<AutoSuggestion>
   /** Music tagger lookups. They contact AcoustID, MusicBrainz and the Cover Art Archive, only when called. */
   tagger: {
     identify(filePath: string): Promise<TagLookup>
@@ -950,6 +961,9 @@ const browserHost: Host = {
   installYtDlp: async () => ({ ok: false, error: 'Desktop app required' }),
   checkFfmpeg: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkFpcalc: async () => ({ available: false, installHint: 'Desktop app required' }),
+  suggestSettings: async () => {
+    throw new Error('Desktop app required')
+  },
   tagger: {
     identify: async () => {
       throw new Error('Desktop app required')

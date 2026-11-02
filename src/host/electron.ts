@@ -39,6 +39,8 @@ import type {
   TagRequest,
   GifRequest,
   TagLookup,
+  AutoTool,
+  AutoSuggestion,
   MediaInfo,
   McpInfo,
   HostPlugins,
@@ -62,6 +64,7 @@ interface ElectronBridge {
   installYtDlp(): Promise<{ ok: boolean; error?: string }>
   checkFfmpeg(): Promise<ToolStatus>
   checkFpcalc(): Promise<ToolStatus>
+  suggestSettings(tool: AutoTool, filePath: string, opts?: { container?: string }): Promise<AutoSuggestion>
   tagger: { identify(filePath: string): Promise<TagLookup>; listAudio(folder: string): Promise<string[]> }
   checkLibreOffice(): Promise<ToolStatus>
   checkRealesrgan(): Promise<ToolStatus>
@@ -196,6 +199,7 @@ export function detectElectronHost(): Host | null {
     installYtDlp: () => bridge.installYtDlp(),
     checkFfmpeg: () => bridge.checkFfmpeg(),
     checkFpcalc: () => bridge.checkFpcalc(),
+    suggestSettings: (tool, filePath, opts) => bridge.suggestSettings(tool, filePath, opts),
     tagger: bridge.tagger,
     checkLibreOffice: () => bridge.checkLibreOffice(),
     checkRealesrgan: () => bridge.checkRealesrgan(),

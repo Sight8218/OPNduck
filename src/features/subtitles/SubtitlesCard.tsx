@@ -5,6 +5,7 @@ import InstallToolPanel from '../../components/InstallToolPanel'
 import FeatureCard from '../../components/FeatureCard'
 import GlassSelect from '../../components/GlassSelect'
 import Tag from '../../components/Tag'
+import AutoSettings from '../../components/AutoSettings'
 import { host, type SubtitleFormat, type ToolStatus, type WhisperModel } from '../../host'
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
@@ -179,6 +180,16 @@ export default function SubtitlesCard({ feature }: { feature: FeatureDefinition 
           ))}
         </div>
       )}
+
+      <AutoSettings
+        tool="subtitles"
+        file={files[0] ?? null}
+        disabled={anyRunning}
+        onApply={(s) => {
+          if (typeof s.model === 'string') setModel(s.model as WhisperModel)
+          if (typeof s.language === 'string') setLanguage(s.language)
+        }}
+      />
 
       <div>
         <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Model</span>

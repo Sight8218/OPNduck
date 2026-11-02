@@ -5,6 +5,7 @@ import FeatureCard from '../../components/FeatureCard'
 import GlassSelect from '../../components/GlassSelect'
 import Tag from '../../components/Tag'
 import { host, type UpscaleModel, type UpscaleScale } from '../../host'
+import AutoSettings from '../../components/AutoSettings'
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
 import PresetBar from '../../components/PresetBar'
@@ -138,6 +139,16 @@ export default function ImageUpscalerCard({ feature }: { feature: FeatureDefinit
           ))}
         </div>
       )}
+
+      <AutoSettings
+        tool="upscale_image"
+        file={files[0] ?? null}
+        disabled={anyRunning}
+        onApply={(s) => {
+          if (typeof s.model === 'string') setModel(s.model as UpscaleModel)
+          if (typeof s.scale === 'number') setScale(s.scale as UpscaleScale)
+        }}
+      />
 
       <div className="grid grid-cols-2 gap-3">
         <div>

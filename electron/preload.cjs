@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   installYtDlp: () => ipcRenderer.invoke('system:installYtDlp'),
   checkFfmpeg: () => ipcRenderer.invoke('system:checkFfmpeg'),
   checkFpcalc: () => ipcRenderer.invoke('system:checkFpcalc'),
+  suggestSettings: (tool, filePath, opts) => ipcRenderer.invoke('auto:suggest', tool, filePath, opts ?? null),
   tagger: {
     identify: (filePath) => ipcRenderer.invoke('tagger:identify', filePath),
     listAudio: (folder) => ipcRenderer.invoke('tagger:listAudio', folder),

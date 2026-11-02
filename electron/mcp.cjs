@@ -30,6 +30,7 @@ const fs = require('node:fs')
 const http = require('node:http')
 const path = require('node:path')
 const { buildStartRequest, TOOLS } = require('./mcp_tools.cjs')
+const { suggest } = require('./core/autosettings.cjs')
 
 const MAX_ACTIVE = 20
 const MAX_BODY = 64 * 1024
@@ -59,6 +60,7 @@ function requireFile(p, what) {
  * @param {(id: string) => boolean} deps.cancelTask
  * @param {(paused: boolean) => void} deps.setQueuePaused
  * @param {(p: string) => Promise<any>} deps.probeMedia
+ * @param {(p: string) => Promise<any>} [deps.analyzeMedia]  facts for suggest_settings
  * @param {{ tools(): object[], callTool(name: string, args: unknown): Promise<unknown> }} [deps.plugins]  running plugins' tools (`<id>__<tool>`)
  * @param {(msg: string) => void} [deps.log]
  */
@@ -130,6 +132,13 @@ function createMcpServer(deps) {
       case 'queue_resume':
         deps.setQueuePaused(tool === 'queue_pause')
         return { paused: tool === 'queue_pause' }
+      case 'suggest_settings': {
+        requireFile(a.inputPath, 'inputPath')
+        if (!deps.analyzeMedia) throw new Error('This build cannot analyze media')
+        const facts = await deps.analyzeMedia(a.inputPath)
+        if (!facts) return { error: 'Could not read that file' }
+        return { facts, ...suggest(String(a.tool), facts, { container: a.container }) }
+      }
       case 'probe_media':
         requireFile(a.path, 'path')
         return (await deps.probeMedia(a.path)) ?? { error: 'Could not read that file' }

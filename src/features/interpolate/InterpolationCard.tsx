@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import FeatureCard from '../../components/FeatureCard'
 import GlassSelect from '../../components/GlassSelect'
 import Tag from '../../components/Tag'
+import AutoSettings from '../../components/AutoSettings'
 import { host, type InterpolateMultiplier } from '../../host'
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
@@ -119,6 +120,15 @@ export default function InterpolationCard({ feature }: { feature: FeatureDefinit
           ))}
         </div>
       )}
+
+      <AutoSettings
+        tool="interpolate"
+        file={files[0] ?? null}
+        disabled={anyRunning}
+        onApply={(s) => {
+          if (s.multiplier === 2 || s.multiplier === 4) setMultiplier(s.multiplier)
+        }}
+      />
 
       <div>
         <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Frame rate multiplier</span>
