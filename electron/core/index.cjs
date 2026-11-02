@@ -66,6 +66,7 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
   add('audioAi', require('./audio_ai.cjs').createAudioAi)
   add('subtitles', require('./subtitles.cjs').createSubtitles)
   add('gpu', require('./gpu_jobs.cjs').createGpuJobs)
+  add('compress', require('./compress.cjs').createCompress) // after gpu: it uses the NVENC check from there
   add('download', require('./download.cjs').createDownload)
 
   /** Starts a job by its channel name (the same names the desktop IPC uses), without a UI. */

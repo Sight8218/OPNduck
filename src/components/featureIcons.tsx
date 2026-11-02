@@ -4,6 +4,7 @@ import {
   IconMovie,
   IconPhotoUp,
   IconPlayerTrackNext,
+  IconArrowsMinimize,
   IconScissors,
   IconTextCaption,
   IconTransform,
@@ -20,6 +21,7 @@ const FEATURE_ICONS: Record<string, Icon> = {
   subtitles: IconTextCaption,
   'audio-ai': IconMicrophone2,
   trim: IconScissors,
+  compress: IconArrowsMinimize,
 }
 
 export function FeatureIcon({ name, size = 22 }: { name: string; size?: number }) {

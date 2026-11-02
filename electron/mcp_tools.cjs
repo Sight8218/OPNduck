@@ -137,6 +137,21 @@ const TOOLS = [
     },
   },
   {
+    name: 'compress',
+    description: 'Make a video or audio file land just under a size (for example 10 MB for Discord). Returns a job id.',
+    channel: 'tasks:startCompress',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        inputPath: FILE,
+        targetMB: { type: 'number', minimum: 0.5, description: 'The size to stay under, in megabytes.' },
+        quality: { type: 'string', enum: ['fast', 'best'], description: 'fast uses the GPU encoder when there is one; best is a slower two-pass x264 encode. Default fast.' },
+      },
+      required: ['inputPath', 'targetMB'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'audio_ai',
     description: 'Remove vocals / isolate the voice / clean up audio (Demucs, or ffmpeg for echo). Returns a job id.',
     channel: 'tasks:startAudioAi',
@@ -207,6 +222,7 @@ const DEFAULTS = {
   interpolate: { multiplier: 2 },
   subtitles: { model: 'tiny', language: 'auto', translate: false, format: 'srt' },
   trim: { end: null, mode: 'fast' },
+  compress: { quality: 'fast' },
   audio_ai: { format: 'MP3', keepVideo: false },
 }
 

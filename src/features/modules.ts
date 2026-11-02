@@ -25,6 +25,7 @@ import AudioAiCard from './audio-ai/AudioAiCard'
 import SubtitlesCard from './subtitles/SubtitlesCard'
 import ImageUpscalerCard from './upscaler/ImageUpscalerCard'
 import VideoUpscalerCard from './upscaler/VideoUpscalerCard'
+import CompressCard from './compress/CompressCard'
 import TrimCard from './trim/TrimCard'
 
 /**
@@ -121,6 +122,17 @@ export function registerCoreFeatures(): void {
       icon: 'trim',
       enabled: true,
       render: TrimCard,
+      source: 'core',
+    },
+    {
+      id: 'compress',
+      title: 'Compress',
+      tagline: 'Fit under a size limit',
+      description: 'Shrink a video or audio file so it lands just under a size, like 20 MB for Discord.',
+      scope: 'desktop-exclusive',
+      icon: 'compress',
+      enabled: true,
+      render: CompressCard,
       source: 'core',
     },
   ])

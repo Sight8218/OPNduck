@@ -20,6 +20,7 @@ Any client that can start a stdio MCP server works. Clients that only accept a w
 | `interpolate` | RIFE frame interpolation (2x/4x) |
 | `subtitles` | Whisper subtitles (SRT/VTT, optional translate to English) |
 | `trim` | cut a section out of a file |
+| `compress` | make a file land under a size in MB (Discord, email), two-pass x264 or GPU |
 | `audio_ai` | vocal removal / voice isolation / cleanup |
 | `list_jobs`, `job_status` | progress, output path, last log lines |
 | `cancel_job`, `queue_pause`, `queue_resume` | control |

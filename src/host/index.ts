@@ -225,6 +225,20 @@ export type AudioAiFormat = 'MP3' | 'FLAC' | 'WAV'
 
 export type TrimMode = 'fast' | 'precise'
 
+export type CompressQuality = 'fast' | 'best'
+
+export interface CompressRequest {
+  /** Set by the card when it starts several jobs at once. */
+  batch?: BatchInfo
+  inputPath: string
+  /** The size to stay under, in megabytes. */
+  targetMB: number
+  /** 'fast' uses the GPU encoder when there is one; 'best' is a slower two-pass x264 encode. */
+  quality: CompressQuality
+  /** Overrides the Settings default destination for this one job. */
+  destination?: string
+}
+
 export interface TrimRequest {
   /** Set by the card when it starts several jobs at once. */
   batch?: BatchInfo
@@ -244,6 +258,10 @@ export interface MediaInfo {
   width: number | null
   height: number | null
   hasVideo: boolean
+  /** Present when the desktop app probed the file (the compressor uses these). */
+  hasAudio?: boolean
+  fps?: number | null
+  bitrate?: number | null
 }
 
 export interface AudioAiRequest {
@@ -273,7 +291,7 @@ export interface SubtitlesRequest {
   destination?: string
 }
 
-export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim'
+export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress'
 export type TaskStatus = 'queued' | 'running' | 'done' | 'error' | 'canceled'
 
 export interface TaskState {
@@ -352,6 +370,7 @@ export interface HostTasks {
   startSubtitles(req: SubtitlesRequest): Promise<string>
   startAudioAi(req: AudioAiRequest): Promise<string>
   startTrim(req: TrimRequest): Promise<string>
+  startCompress(req: CompressRequest): Promise<string>
   cancel(taskId: string): void
   /** Replays a finished task's original request as a new task. Resolves to the new id (null if it can't be replayed). */
   rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
@@ -715,6 +734,28 @@ const browserTasks: HostTasks = {
         label: 'Trimming requires the desktop app',
         error: 'Desktop app required',
         format: req.mode,
+        quality: '',
+        sizeBytes: null,
+        sizeIsEstimate: false,
+        thumbnailUrl: null,
+        experimentalMatch: null,
+      },
+      ...browserTaskList,
+    ]
+    browserListeners.forEach((l) => l(browserTaskList))
+    return id
+  },
+  startCompress: async (req) => {
+    const id = crypto.randomUUID()
+    browserTaskList = [
+      {
+        id,
+        kind: 'compress',
+        status: 'error',
+        progress: 0,
+        label: 'Compressing requires the desktop app',
+        error: 'Desktop app required',
+        format: `Under ${req.targetMB} MB`,
         quality: '',
         sizeBytes: null,
         sizeIsEstimate: false,

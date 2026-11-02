@@ -12,6 +12,7 @@ const MCP_NAME = {
   subtitles: 'subtitles',
   'audio-ai': 'audio_ai',
   trim: 'trim',
+  compress: 'compress',
 }
 
 const LABELS = {
@@ -30,6 +31,8 @@ const LABELS = {
   end: 'End at',
   mode: 'Mode',
   keepVideo: 'Keep the video',
+  targetMB: 'Target size (MB)',
+  quality: 'Speed',
 }
 
 const TIME_KEYS = ['start', 'end']

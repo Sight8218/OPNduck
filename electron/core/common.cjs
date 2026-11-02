@@ -309,7 +309,17 @@ function createCommon(ctx) {
           const v = info.streams?.find((x) => x.codec_type === 'video' && x.disposition?.attached_pic !== 1)
           const duration = Number.parseFloat(info.format?.duration)
           if (!Number.isFinite(duration)) return resolve(null)
-          resolve({ duration, width: v?.width ?? null, height: v?.height ?? null, hasVideo: !!v })
+          const rate = (v?.avg_frame_rate ?? '').split('/').map(Number)
+          const fps = rate.length === 2 && rate[1] > 0 && rate[0] > 0 ? rate[0] / rate[1] : null
+          resolve({
+            duration,
+            width: v?.width ?? null,
+            height: v?.height ?? null,
+            hasVideo: !!v,
+            hasAudio: !!info.streams?.some((x) => x.codec_type === 'audio'),
+            fps,
+            bitrate: Number.parseInt(info.format?.bit_rate, 10) || null,
+          })
         } catch {
           resolve(null)
         }

@@ -148,6 +148,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     startInterpolate: (req) => ipcRenderer.invoke('tasks:startInterpolate', req),
     startAudioAi: (req) => ipcRenderer.invoke('tasks:startAudioAi', req),
     startTrim: (req) => ipcRenderer.invoke('tasks:startTrim', req),
+    startCompress: (req) => ipcRenderer.invoke('tasks:startCompress', req),
     startSubtitles: (req) => ipcRenderer.invoke('tasks:startSubtitles', req),
     cancel: (taskId) => ipcRenderer.send('tasks:cancel', taskId),
     rerun: (taskId, opts) => ipcRenderer.invoke('tasks:rerun', taskId, opts),

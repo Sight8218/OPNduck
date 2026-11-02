@@ -35,6 +35,7 @@ import type {
   ToolStatus,
   UpscaleRequest,
   TrimRequest,
+  CompressRequest,
   MediaInfo,
   McpInfo,
   HostPlugins,
@@ -117,6 +118,7 @@ interface ElectronBridge {
     startSubtitles(req: SubtitlesRequest): Promise<string>
     startAudioAi(req: AudioAiRequest): Promise<string>
     startTrim(req: TrimRequest): Promise<string>
+    startCompress(req: CompressRequest): Promise<string>
     cancel(taskId: string): void
     rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
     openFolder(taskId: string): Promise<void>
@@ -248,6 +250,7 @@ export function detectElectronHost(): Host | null {
       startSubtitles: (req) => bridge.tasks.startSubtitles(req),
       startAudioAi: (req) => bridge.tasks.startAudioAi(req),
       startTrim: (req) => bridge.tasks.startTrim(req),
+      startCompress: (req) => bridge.tasks.startCompress(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
       runNext: (taskId) => bridge.tasks.runNext(taskId),
       logs: (taskId) => bridge.tasks.logs(taskId),
