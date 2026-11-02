@@ -22,6 +22,7 @@ import { host } from '../host'
 import type { FeatureDefinition } from '../features/registry'
 import { useReduceMotion } from '../lib/motionPrefs'
 import { FeatureIcon } from './featureIcons'
+import RunOnSelector from './RunOnSelector'
 
 /**
  * Shared chrome for every tool card: glass body, header (icon, title, tagline) and
@@ -102,6 +103,7 @@ export default function FeatureCard({
             <p className="text-xs text-[var(--text-dim)]">{feature.tagline}</p>
           </div>
         </div>
+        <RunOnSelector featureId={feature.id} />
       </div>
 
       <p className="mb-4 text-sm leading-relaxed text-[var(--text-dim)]">{feature.description}</p>

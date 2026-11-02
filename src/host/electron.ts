@@ -55,6 +55,7 @@ import type {
   HostPlugins,
 } from './index'
 import type { OmarchyTheme } from '../themes/omarchySync'
+import { withRunOn } from '../lib/runOn'
 
 /**
  * The bridge exposed by electron/preload.cjs via contextIsolation.
@@ -294,18 +295,18 @@ export function detectElectronHost(): Host | null {
       subscribe: (listener) => bridge.omarchy.subscribe(listener),
     },
     tasks: {
-      startDownload: (req) => bridge.tasks.startDownload(req),
-      startConvert: (req) => bridge.tasks.startConvert(req),
-      startUpscale: (req) => bridge.tasks.startUpscale(req),
-      startVideoUpscale: (req) => bridge.tasks.startVideoUpscale(req),
-      startInterpolate: (req) => bridge.tasks.startInterpolate(req),
-      startSubtitles: (req) => bridge.tasks.startSubtitles(req),
-      startAudioAi: (req) => bridge.tasks.startAudioAi(req),
-      startTrim: (req) => bridge.tasks.startTrim(req),
-      startCompress: (req) => bridge.tasks.startCompress(req),
+      startDownload: (req) => bridge.tasks.startDownload(withRunOn('download', req)),
+      startConvert: (req) => bridge.tasks.startConvert(withRunOn('convert', req)),
+      startUpscale: (req) => bridge.tasks.startUpscale(withRunOn('upscale_image', req)),
+      startVideoUpscale: (req) => bridge.tasks.startVideoUpscale(withRunOn('upscale_video', req)),
+      startInterpolate: (req) => bridge.tasks.startInterpolate(withRunOn('interpolate', req)),
+      startSubtitles: (req) => bridge.tasks.startSubtitles(withRunOn('subtitles', req)),
+      startAudioAi: (req) => bridge.tasks.startAudioAi(withRunOn('audio_ai', req)),
+      startTrim: (req) => bridge.tasks.startTrim(withRunOn('trim', req)),
+      startCompress: (req) => bridge.tasks.startCompress(withRunOn('compress', req)),
       startTag: (req) => bridge.tasks.startTag(req),
       fileOf: (id) => bridge.tasks.fileOf(id),
-      startGif: (req) => bridge.tasks.startGif(req),
+      startGif: (req) => bridge.tasks.startGif(withRunOn('make_gif', req)),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
       runNext: (taskId) => bridge.tasks.runNext(taskId),
       logs: (taskId) => bridge.tasks.logs(taskId),

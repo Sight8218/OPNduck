@@ -202,3 +202,7 @@ mount (`hideSplash()`).
    artifact signing (deferred).
 3. Tauri stays postponed until the WebKitGTK/NVIDIA/Wayland issue is fixed upstream,
    or if packaging only for Windows (WebView2) / non-NVIDIA Linux.
+
+## Servers and the Engine API
+
+`engine-api/` is the network face of the job core (pairing, tasks, uploads, files; see `docs/SERVER.md`). `server/` runs the same core headless (`opnduck-server`, Docker). The desktop app can share its own engine and can run jobs on a server through mirror tasks (`electron/core/remote/hosts.cjs`), chosen per tool card (`RunOnSelector`) or by default in Settings > Servers.
