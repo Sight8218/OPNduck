@@ -67,6 +67,7 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
   add('subtitles', require('./subtitles.cjs').createSubtitles)
   add('gpu', require('./gpu_jobs.cjs').createGpuJobs)
   add('tagger', require('./tagger.cjs').createTagger)
+  add('gif', require('./gif.cjs').createGif)
   add('compress', require('./compress.cjs').createCompress) // after gpu: it uses the NVENC check from there
   add('download', require('./download.cjs').createDownload)
 

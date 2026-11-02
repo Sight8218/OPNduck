@@ -432,7 +432,7 @@ ipcMain.handle('tasks:clearFinished', () => clearFinished())
  * Export writes the finished tasks (with the requests needed to run them again) as JSON. Import
  * reads such a file back: every field is re-validated here — a hand-edited or hostile file must
  * never smuggle in a channel, path or value the app wouldn't accept from its own UI. */
-const TASK_KINDS = ['download', 'convert', 'upscale', 'interpolate', 'subtitles', 'audio-ai', 'trim', 'compress', 'tag']
+const TASK_KINDS = ['download', 'convert', 'upscale', 'interpolate', 'subtitles', 'audio-ai', 'trim', 'compress', 'tag', 'gif']
 
 function sanitizeImported(rows) {
   if (!Array.isArray(rows)) return []

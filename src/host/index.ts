@@ -225,6 +225,25 @@ export type AudioAiFormat = 'MP3' | 'FLAC' | 'WAV'
 
 export type TrimMode = 'fast' | 'precise'
 
+export type GifPreset = 'gif' | 'webp' | 'telegram' | 'discord'
+
+export interface GifRequest {
+  /** Set by the card when it starts several jobs at once. */
+  batch?: BatchInfo
+  inputPath: string
+  preset: GifPreset
+  /** Seconds from the start of the file. */
+  start: number
+  /** Seconds; null = as long as the preset allows. */
+  end: number | null
+  /** GIF and WebP only (stickers use their own size). */
+  width?: number
+  fps?: number
+  loop?: boolean
+  /** Overrides the Settings default destination for this one job. */
+  destination?: string
+}
+
 /** What the music tagger knows or proposes about one song. */
 export interface TagFields {
   title: string | null
@@ -323,7 +342,7 @@ export interface SubtitlesRequest {
   destination?: string
 }
 
-export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress' | 'tag'
+export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress' | 'tag' | 'gif'
 export type TaskStatus = 'queued' | 'running' | 'done' | 'error' | 'canceled'
 
 export interface TaskState {
@@ -404,6 +423,7 @@ export interface HostTasks {
   startTrim(req: TrimRequest): Promise<string>
   startCompress(req: CompressRequest): Promise<string>
   startTag(req: TagRequest): Promise<string>
+  startGif(req: GifRequest): Promise<string>
   cancel(taskId: string): void
   /** Replays a finished task's original request as a new task. Resolves to the new id (null if it can't be replayed). */
   rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
@@ -797,6 +817,28 @@ const browserTasks: HostTasks = {
         label: 'Compressing requires the desktop app',
         error: 'Desktop app required',
         format: `Under ${req.targetMB} MB`,
+        quality: '',
+        sizeBytes: null,
+        sizeIsEstimate: false,
+        thumbnailUrl: null,
+        experimentalMatch: null,
+      },
+      ...browserTaskList,
+    ]
+    browserListeners.forEach((l) => l(browserTaskList))
+    return id
+  },
+  startGif: async (req) => {
+    const id = crypto.randomUUID()
+    browserTaskList = [
+      {
+        id,
+        kind: 'gif',
+        status: 'error',
+        progress: 0,
+        label: 'Making a GIF requires the desktop app',
+        error: 'Desktop app required',
+        format: req.preset,
         quality: '',
         sizeBytes: null,
         sizeIsEstimate: false,

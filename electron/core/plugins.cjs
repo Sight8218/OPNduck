@@ -32,7 +32,7 @@ const { Worker } = require('node:worker_threads')
 const { buildStartRequest } = require('../mcp_tools.cjs')
 
 const API_VERSION = 1
-const CORE_IDS = ['downloader', 'converter', 'image-upscaler', 'video-upscaler', 'frame-interpolation', 'subtitles', 'audio-ai', 'trim', 'compress', 'tag', 'tagger', 'music-tagger', 'upscaler', 'interpolation', 'trimmer', 'compressor']
+const CORE_IDS = ['downloader', 'converter', 'image-upscaler', 'video-upscaler', 'frame-interpolation', 'subtitles', 'audio-ai', 'trim', 'compress', 'gif', 'sticker', 'tag', 'tagger', 'music-tagger', 'upscaler', 'interpolation', 'trimmer', 'compressor']
 const PERMISSIONS = ['jobs', 'files:read', 'files:write', 'network', 'exec', 'exec:any', 'settings', 'notify', 'hooks', 'tools']
 const EVENTS = ['job:finished', 'job:failed', 'watch-folder:file']
 const SCOPES = ['universal', 'desktop-exclusive']

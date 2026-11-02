@@ -155,6 +155,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     startTrim: (req) => ipcRenderer.invoke('tasks:startTrim', req),
     startCompress: (req) => ipcRenderer.invoke('tasks:startCompress', req),
     startTag: (req) => ipcRenderer.invoke('tasks:startTag', req),
+    startGif: (req) => ipcRenderer.invoke('tasks:startGif', req),
     startSubtitles: (req) => ipcRenderer.invoke('tasks:startSubtitles', req),
     cancel: (taskId) => ipcRenderer.send('tasks:cancel', taskId),
     rerun: (taskId, opts) => ipcRenderer.invoke('tasks:rerun', taskId, opts),

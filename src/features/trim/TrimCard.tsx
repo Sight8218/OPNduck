@@ -22,7 +22,9 @@ import ProgressBar from '../../components/ProgressBar'
 import SlidingSelector from '../../components/SlidingSelector'
 import Tag from '../../components/Tag'
 import TaskLogs from '../../components/TaskLogs'
+import { useSearchParams } from 'react-router-dom'
 import { host, type MediaInfo, type TrimMode } from '../../host'
+import { setClipHandoff } from '../../lib/clipHandoff'
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
 import { useSubmittedIds } from '../../lib/submittedTasks'
@@ -50,6 +52,7 @@ export default function TrimCard({ feature }: { feature: FeatureDefinition }) {
   const [error, setError] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [submittedIds, setSubmittedIds] = useSubmittedIds('trim')
+  const [, setParams] = useSearchParams()
 
   const tasks = useTasks()
   const submitted = tasks.filter((t) => submittedIds.includes(t.id))
@@ -148,6 +151,10 @@ export default function TrimCard({ feature }: { feature: FeatureDefinition }) {
           info={info}
           initial={{ start: parseTime(start) ?? 0, end: parseTime(end) ?? info.duration, mode }}
           onClose={() => setModalOpen(false)}
+          onExportClip={(s, e) => {
+            setClipHandoff({ file, start: s, end: e })
+            setParams({ tool: 'gif' }, { replace: true })
+          }}
           onConfirm={(s, e, m) => {
             setModalOpen(false)
             setStart(formatTime(s))

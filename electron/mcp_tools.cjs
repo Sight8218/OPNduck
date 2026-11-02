@@ -152,6 +152,25 @@ const TOOLS = [
     },
   },
   {
+    name: 'make_gif',
+    description: 'Turn a section of a video into a GIF, an animated WebP, or a Telegram or Discord sticker (sizes and lengths are fitted to the sticker limits). Returns a job id.',
+    channel: 'tasks:startGif',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        inputPath: FILE,
+        preset: { type: 'string', enum: ['gif', 'webp', 'telegram', 'discord'], description: 'gif, webp, telegram (WebM, 512 px, up to 3 s, 256 KB) or discord (APNG, 320 px, 512 KB). Default gif.' },
+        start: { type: 'number', minimum: 0, description: 'Seconds from the start. Default 0.' },
+        end: { type: ['number', 'null'], description: 'Seconds; omit or null for the preset limit after the start.' },
+        width: { type: 'integer', minimum: 64, maximum: 1920, description: 'Width in pixels for gif and webp. Default 480. Stickers use their own size.' },
+        fps: { type: 'integer', minimum: 5, maximum: 30, description: 'Frames per second. Default depends on the preset.' },
+        loop: { type: 'boolean', description: 'Loop forever (gif and webp). Default true.' },
+      },
+      required: ['inputPath'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'tag_music',
     description: 'Look up a song by its audio fingerprint (AcoustID, MusicBrainz, Cover Art Archive) and write artist, title, album, year, track and cover into the file. It changes the file only when it is sure enough. Returns a job id.',
     channel: 'tasks:startTag',
@@ -238,6 +257,7 @@ const DEFAULTS = {
   subtitles: { model: 'tiny', language: 'auto', translate: false, format: 'srt' },
   trim: { end: null, mode: 'fast' },
   compress: { quality: 'fast' },
+  make_gif: { preset: 'gif', start: 0, end: null, loop: true },
   tag_music: { organize: false, minConfidence: 0.9 },
   audio_ai: { format: 'MP3', keepVideo: false },
 }

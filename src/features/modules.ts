@@ -26,6 +26,7 @@ import SubtitlesCard from './subtitles/SubtitlesCard'
 import ImageUpscalerCard from './upscaler/ImageUpscalerCard'
 import VideoUpscalerCard from './upscaler/VideoUpscalerCard'
 import CompressCard from './compress/CompressCard'
+import GifCard from './gif/GifCard'
 import TaggerCard from './tagger/TaggerCard'
 import TrimCard from './trim/TrimCard'
 
@@ -145,6 +146,17 @@ export function registerCoreFeatures(): void {
       icon: 'tag',
       enabled: true,
       render: TaggerCard,
+      source: 'core',
+    },
+    {
+      id: 'gif',
+      title: 'GIF & Stickers',
+      tagline: 'Clip to GIF, WebP or sticker',
+      description: 'Turn a section of a video into a GIF, an animated WebP, or a Telegram or Discord sticker that fits their size limits.',
+      scope: 'desktop-exclusive',
+      icon: 'gif',
+      enabled: true,
+      render: GifCard,
       source: 'core',
     },
   ])

@@ -41,6 +41,9 @@ export default function TrimModal({
   initial,
   onClose,
   onConfirm,
+  confirmLabel = 'Trim this part',
+  hideMode = false,
+  onExportClip,
 }: {
   open: boolean
   file: string
@@ -48,6 +51,12 @@ export default function TrimModal({
   initial: { start: number; end: number; mode: TrimMode }
   onClose: () => void
   onConfirm: (start: number, end: number, mode: TrimMode) => void
+  /** Text of the main button (default "Trim this part"). */
+  confirmLabel?: string
+  /** Hide the Fast/Precise switch (for callers that only want a start and an end). */
+  hideMode?: boolean
+  /** When set, a button hands the chosen part to the GIF/sticker maker. */
+  onExportClip?: (start: number, end: number) => void
 }) {
   const duration = info.duration
   const [start, setStart] = useState(initial.start)
@@ -272,19 +281,26 @@ export default function TrimModal({
               </div>
             </div>
 
+            {!hideMode && (
             <div>
               <SlidingSelector id="trim-modal-mode" options={MODES} value={mode} onChange={setMode} className="w-full grid-cols-2" />
               <span className="mt-1 block text-[11px] text-[var(--text-faint)]">
                 {mode === 'fast' ? 'Instant, no quality loss; the cut snaps to the nearest keyframe.' : 'Re-encodes so the cut lands on the exact frame (slower).'}
               </span>
             </div>
+            )}
 
             <div className="flex justify-end gap-2">
               <button type="button" className="glass-btn px-4 py-2 text-sm" onClick={onClose}>
                 Cancel
               </button>
+              {onExportClip && (
+                <button type="button" className="glass-btn px-4 py-2 text-sm" onClick={() => onExportClip(start, end)}>
+                  Make a GIF or sticker of this part
+                </button>
+              )}
               <button type="button" className="glass-btn px-4 py-2 text-sm" onClick={() => onConfirm(start, end, mode)}>
-                Trim this part
+                {confirmLabel}
               </button>
             </div>
           </motion.div>

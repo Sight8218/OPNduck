@@ -37,6 +37,7 @@ import type {
   TrimRequest,
   CompressRequest,
   TagRequest,
+  GifRequest,
   TagLookup,
   MediaInfo,
   McpInfo,
@@ -124,6 +125,7 @@ interface ElectronBridge {
     startTrim(req: TrimRequest): Promise<string>
     startCompress(req: CompressRequest): Promise<string>
     startTag(req: TagRequest): Promise<string>
+    startGif(req: GifRequest): Promise<string>
     cancel(taskId: string): void
     rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
     openFolder(taskId: string): Promise<void>
@@ -259,6 +261,7 @@ export function detectElectronHost(): Host | null {
       startTrim: (req) => bridge.tasks.startTrim(req),
       startCompress: (req) => bridge.tasks.startCompress(req),
       startTag: (req) => bridge.tasks.startTag(req),
+      startGif: (req) => bridge.tasks.startGif(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
       runNext: (taskId) => bridge.tasks.runNext(taskId),
       logs: (taskId) => bridge.tasks.logs(taskId),

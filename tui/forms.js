@@ -13,6 +13,7 @@ const MCP_NAME = {
   'audio-ai': 'audio_ai',
   trim: 'trim',
   compress: 'compress',
+  gif: 'make_gif',
   tagger: 'tag_music',
 }
 
@@ -35,6 +36,10 @@ const LABELS = {
   targetMB: 'Target size (MB)',
   quality: 'Speed',
   organize: 'Move to Artist/Album/',
+  preset: 'Make a',
+  width: 'Width (px)',
+  fps: 'Frames per second',
+  loop: 'Loop forever',
   minConfidence: 'Needs to be this sure (0.5-1)',
 }
 
