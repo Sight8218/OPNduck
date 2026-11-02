@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Envelope test</title>
+<body style="font:14px monospace;background:#111;color:#eee">
+<pre id="out">running…</pre>
+<script type="module">
+import { deriveKeys, seal, open } from './envelope.mjs'
+const fromHex = (h) => Uint8Array.from(h.match(/../g).map((x) => parseInt(x, 16)))
+const v = await (await fetch('vector.json')).json()
+const keys = await deriveKeys(fromHex(v.secretHex))
+const results = []
+const check = (name, ok) => results.push((ok ? 'PASS ' : 'FAIL ') + name)
+check('topic', keys.topic === v.topic)
+check('auth token', keys.authToken === v.authToken)
+check('seal matches the committed wire', (await seal(v.envelope, keys.encKey, fromHex(v.ivHex))) === v.wire)
+check('open the committed wire', JSON.stringify(await open(v.wire, keys.encKey)) === JSON.stringify(v.envelope))
+document.getElementById('out').textContent = results.join('\n') + '\n' + (results.every((r) => r.startsWith('PASS')) ? 'ALL PASS' : 'FAILED')
+</script>
