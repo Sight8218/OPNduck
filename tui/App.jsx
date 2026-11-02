@@ -38,6 +38,8 @@ export default function App({ core, theme: initialTheme, start = 'home' }) {
   const onTyping = useCallback((v) => setTyping(v), [])
   const [confirmQuit, setConfirmQuit] = useState(false)
   useCoreEvents(core.platform)
+  // Tools of plugins that are on and approved; the desktop app is where plugins get approved.
+  const pluginTools = core.plugins.tools().map((t) => ({ id: t.name, title: t.name, tagline: t.description, def: t }))
   const running = [...core.engine.tasks.values()].filter((t) => t.state.status === 'running').length
   const waiting = [...core.engine.tasks.values()].filter((t) => t.state.status === 'queued').length
 
@@ -71,7 +73,7 @@ export default function App({ core, theme: initialTheme, start = 'home' }) {
             key={tool.id}
             theme={theme}
             core={core}
-            toolId={tool.id}
+            tool={tool}
             onTyping={onTyping}
             onBack={() => setScreen('home')}
             onStarted={(msg) => (setNote(msg), setScreen('queue'))}
@@ -80,6 +82,7 @@ export default function App({ core, theme: initialTheme, start = 'home' }) {
           <Home
             theme={theme}
             note={note}
+            pluginTools={pluginTools}
             onOpen={(t) => (setTool(t), setScreen('form'))}
           />
         ) : screen === 'library' ? (

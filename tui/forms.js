@@ -53,8 +53,24 @@ export function buildForm(toolId) {
   return { toolId, mcpName: name, channel: def.channel, fields }
 }
 
-/** Checks the filled-in form and returns { channel, req } to start, or { error }. */
-export function requestFromForm(form, values, { exists, toAbsolute, parseTime }) {
+/** The fields of a plugin tool's form, generated from the JSON schema the plugin declared. */
+export function buildPluginForm(def) {
+  const props = def.inputSchema?.properties ?? {}
+  const required = def.inputSchema?.required ?? []
+  const fields = Object.entries(props).map(([key, spec]) => {
+    const types = [].concat(spec.type)
+    const common = { key, label: key, required: required.includes(key), help: spec.description ?? '' }
+    if (spec.enum) return { ...common, kind: 'choice', options: spec.enum, index: Math.max(0, spec.enum.indexOf(spec.default ?? spec.enum[0])) }
+    if (types.includes('boolean')) return { ...common, kind: 'toggle', value: spec.default ?? false }
+    if (/path$/i.test(key)) return { ...common, kind: 'path', value: '' }
+    if (types.includes('number') || types.includes('integer')) return { ...common, kind: 'number', value: '' }
+    return { ...common, kind: 'text', value: '' }
+  })
+  return { toolId: def.name, fields }
+}
+
+/** Reads the filled-in form into tool arguments: { args } or { error }. */
+function collectArgs(form, values, { exists, toAbsolute, parseTime }) {
   const args = {}
   for (const f of form.fields) {
     const raw = values[f.key]
@@ -80,9 +96,21 @@ export function requestFromForm(form, values, { exists, toAbsolute, parseTime })
       } else args[f.key] = text
     }
   }
+  return { args }
+}
+
+/** Checks the filled-in form and returns { channel, req } to start, or { error }. */
+export function requestFromForm(form, values, helpers) {
+  const { args, error } = collectArgs(form, values, helpers)
+  if (error) return { error }
   try {
     return buildStartRequest(form.mcpName, args)
   } catch (err) {
     return { error: err.message }
   }
+}
+
+/** Same for a plugin tool: { args } to pass to `core.plugins.callTool`, or { error }. */
+export function argsFromPluginForm(form, values, helpers) {
+  return collectArgs(form, values, helpers)
 }

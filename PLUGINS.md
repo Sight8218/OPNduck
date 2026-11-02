@@ -214,6 +214,11 @@ default component from the entry; it is loaded as an ES module.
 Tool names are prefixed with the plugin id by the host (`<id>__<name>`) so two plugins can never
 shadow each other or a built-in. Register the handler with `opnduck.tools.handle(name, fn)`.
 
+Tools are listed for MCP clients (the MCP server must be on, and the desktop app running) and on
+the TUI home screen, only while the plugin is on and holds the `tools` permission. Plugins are
+approved in the desktop app's Plugins page; the TUI runs the ones approved there and has no
+approval screen of its own.
+
 ## Safe mode
 
 *Settings → Safe mode* starts OPNduck with all plugins skipped. Use it if a plugin breaks

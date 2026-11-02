@@ -1,17 +1,16 @@
 import fs from 'node:fs'
 import { useEffect, useMemo, useState } from 'react'
 import { Box, Text, useInput } from 'ink'
-import { buildForm, requestFromForm } from '../forms.js'
+import { argsFromPluginForm, buildForm, buildPluginForm, requestFromForm } from '../forms.js'
 import { absolutePath, completePath, parseTime } from '../paths.js'
-import { TOOLS } from '../tools.js'
 
 const TEXT_KINDS = ['path', 'text', 'number', 'time']
 const display = (f, v) => (f.kind === 'choice' ? String(f.options[v ?? f.index]) : f.kind === 'toggle' ? (v ? 'yes' : 'no') : (v ?? ''))
 
 /** A tool's screen: its options as a form, generated from the job definition. Enter on "Start" runs the job. */
-export default function Form({ theme, core, toolId, onStarted, onBack, onTyping }) {
-  const form = useMemo(() => buildForm(toolId), [toolId])
-  const tool = TOOLS.find((t) => t.id === toolId)
+export default function Form({ theme, core, tool, onStarted, onBack, onTyping }) {
+  const form = useMemo(() => (tool.def ? buildPluginForm(tool.def) : buildForm(tool.id)), [tool])
+  const [result, setResult] = useState('')
   const [focus, setFocus] = useState(0)
   const [values, setValues] = useState(() => Object.fromEntries(form.fields.map((f) => [f.key, f.kind === 'choice' ? f.index : f.value])))
   const [error, setError] = useState('')
@@ -28,7 +27,20 @@ export default function Form({ theme, core, toolId, onStarted, onBack, onTyping 
   const set = (key, v) => setValues((s) => ({ ...s, [key]: v }))
 
   function start() {
-    const res = requestFromForm(form, values, { exists: (p) => fs.existsSync(p), toAbsolute: absolutePath, parseTime })
+    const helpers = { exists: (p) => fs.existsSync(p), toAbsolute: absolutePath, parseTime }
+    if (tool.def) {
+      // A plugin tool is not a job: it answers with a result, shown under the form.
+      const r = argsFromPluginForm(form, values, helpers)
+      if (r.error) return setError(r.error)
+      setError('')
+      setResult('Running…')
+      Promise.resolve(core.plugins.callTool(tool.def.name, r.args)).then(
+        (out) => setResult(JSON.stringify(out ?? null, null, 2).slice(0, 4000)),
+        (err) => (setResult(''), setError(err.message)),
+      )
+      return
+    }
+    const res = requestFromForm(form, values, helpers)
     if (res.error) return setError(res.error)
     Promise.resolve(core.startJob(res.channel, res.req)).then(
       () => onStarted(`${tool.title}: started.`),
@@ -106,8 +118,13 @@ export default function Form({ theme, core, toolId, onStarted, onBack, onTyping 
           ))}
         </Box>
       ) : null}
+      {result ? (
+        <Box paddingX={1} marginTop={1}>
+          <Text color={theme.text}>{result}</Text>
+        </Box>
+      ) : null}
       <Box paddingX={1}>
-        {error ? <Text color={theme.err}>{error}</Text> : <Text color={theme.dim}>{f?.help ?? 'Enter to start the job.'}</Text>}
+        {error ? <Text color={theme.err}>{error}</Text> : <Text color={theme.dim}>{f?.help ?? 'Enter to start.'}</Text>}
       </Box>
     </Box>
   )

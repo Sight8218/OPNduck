@@ -59,6 +59,7 @@ function requireFile(p, what) {
  * @param {(id: string) => boolean} deps.cancelTask
  * @param {(paused: boolean) => void} deps.setQueuePaused
  * @param {(p: string) => Promise<any>} deps.probeMedia
+ * @param {{ tools(): object[], callTool(name: string, args: unknown): Promise<unknown> }} [deps.plugins]  running plugins' tools (`<id>__<tool>`)
  * @param {(msg: string) => void} [deps.log]
  */
 function createMcpServer(deps) {
@@ -82,6 +83,8 @@ function createMcpServer(deps) {
 
   async function call(tool, args) {
     const def = TOOLS.find((t) => t.name === tool)
+    // Plugin tools are named `<plugin id>__<tool>`; the plugin host checks the name and the arguments.
+    if (!def && deps.plugins && tool.includes('__')) return deps.plugins.callTool(tool, args)
     if (!def) throw new Error(`Unknown tool: ${tool}`)
     if (def.channel) {
       const { channel, req } = buildStartRequest(tool, args)
@@ -141,7 +144,7 @@ function createMcpServer(deps) {
     }
     // A browser always sends Origin on cross-site requests; the bridge never does.
     if (req.headers.origin) return reply(403, { error: 'Browser requests are not allowed' })
-    if (req.method !== 'POST' || req.url !== '/call') return reply(404, { error: 'Not found' })
+    if (req.method !== 'POST' || (req.url !== '/call' && req.url !== '/tools')) return reply(404, { error: 'Not found' })
     const auth = String(req.headers.authorization ?? '')
     if (!auth.startsWith('Bearer ') || !tokenMatches(auth.slice(7), token)) return reply(401, { error: 'Bad token' })
     let size = 0
@@ -155,6 +158,10 @@ function createMcpServer(deps) {
     })
     req.on('end', async () => {
       if (res.writableEnded) return
+      if (req.url === '/tools') {
+        const tools = (deps.plugins?.tools() ?? []).map(({ name, description, inputSchema }) => ({ name, description, inputSchema }))
+        return reply(200, { ok: true, result: tools })
+      }
       try {
         const body = JSON.parse(Buffer.concat(chunks).toString('utf8'))
         if (!body || typeof body.tool !== 'string') throw new Error('Missing tool name')

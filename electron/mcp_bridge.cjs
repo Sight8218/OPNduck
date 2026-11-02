@@ -34,7 +34,7 @@ function send(msg) {
 }
 
 /** Posts one tool call to the app; mcp.json is re-read every time so an app restart or token reset is followed. */
-function callApp(tool, args) {
+function callApp(tool, args, route = '/call') {
   return new Promise((resolve, reject) => {
     let info
     try {
@@ -47,7 +47,7 @@ function callApp(tool, args) {
       {
         host: '127.0.0.1',
         port: info.port,
-        path: '/call',
+        path: route,
         method: 'POST',
         headers: { Authorization: `Bearer ${info.token}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
         timeout: 120000,
@@ -85,11 +85,15 @@ async function handle(msg) {
         })
       case 'ping':
         return send({ id, result: {} })
-      case 'tools/list':
-        return send({ id, result: { tools: publicTools() } })
+      case 'tools/list': {
+        // Plugin tools come from the running app; if it is not reachable, the built-in tools still list.
+        const extra = await callApp(null, null, '/tools').catch(() => [])
+        return send({ id, result: { tools: [...publicTools(), ...(Array.isArray(extra) ? extra : [])] } })
+      }
       case 'tools/call': {
         const name = params?.name
-        if (!publicTools().some((t) => t.name === name)) return send({ id, error: { code: -32602, message: `Unknown tool: ${name}` } })
+        // `<plugin>__<tool>` names are checked by the app, which knows which plugins are running.
+        if (typeof name !== 'string' || (!name.includes('__') && !publicTools().some((t) => t.name === name))) return send({ id, error: { code: -32602, message: `Unknown tool: ${name}` } })
         try {
           const result = await callApp(name, params.arguments)
           return send({ id, result: { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] } })

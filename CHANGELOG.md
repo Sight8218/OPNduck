@@ -7,7 +7,7 @@ history; entries are curated for readability.
 ## [Unreleased]
 
 ### Added
-- **Plugin system** (beta): plugins can add a card to Home and/or a background script that starts jobs, reads files, uses the network and adds tools, each behind permissions you approve. New Plugins page (Installed tab) to review permissions, turn plugins on and off, remove them and open the plugins folder, plus a Safe mode switch that skips every plugin. Plugins that are not verified show a warning first. Permissions are not a sandbox; see `PLUGINS.md`. The plugin store tab is a placeholder for now.
+- **Plugin system** (beta): plugins can add a card to Home and/or a background script that starts jobs, reads files, uses the network and adds tools, each behind permissions you approve. New Plugins page (Installed tab) to review permissions, turn plugins on and off, remove them and open the plugins folder, plus a Safe mode switch that skips every plugin. Plugins that are not verified show a warning first. Permissions are not a sandbox; see `PLUGINS.md`. Tools a plugin adds show up for MCP clients (as `<plugin>__<tool>`) and on the TUI home screen, where they open a form and show the result. Plugins are approved in the desktop app; the TUI only runs the ones already approved there. The plugin store tab is a placeholder for now.
 
 ## [0.5.3-Beta] - 2026-10-31
 

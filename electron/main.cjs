@@ -572,6 +572,7 @@ function needMcp() {
     cancelTask,
     setQueuePaused,
     probeMedia,
+    plugins: core.plugins,
     log: (m) => console.log(m),
   })
   return mcp
