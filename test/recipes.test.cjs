@@ -238,3 +238,13 @@ test('runner: a step whose output file is gone fails the run instead of feeding 
   assert.equal(h.started.length, 1)
   assert.equal(h.added.length, 1)
 })
+
+test('accepts: a file fits a recipe only when it is the media the recipe starts from', async () => {
+  const h = harness()
+  const video = h.recipes.get('builtin:discord-ready')
+  const link = h.recipes.get('builtin:download-mp3-and-tag')
+  assert.equal(h.recipes.accepts(video, '/x/clip.MP4'), true)
+  assert.equal(h.recipes.accepts(video, '/x/song.mp3'), false)
+  assert.equal(h.recipes.accepts(link, '/x/clip.mp4'), false)
+  assert.equal(h.recipes.accepts(null, '/x/clip.mp4'), false)
+})

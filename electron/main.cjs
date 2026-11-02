@@ -1117,6 +1117,12 @@ function pollWatchFolder() {
     seen.add(key)
     changed = true
     core.plugins.emit('watch-folder:file', { name })
+    const recipe = w.recipe ? core.recipes.get(w.recipe) : null
+    if (recipe) {
+      // A recipe takes over from the plain conversion; a file it can't take (wrong kind of media) is left alone.
+      if (core.recipes.accepts(recipe, full)) core.recipes.run(recipe.id, full, { destination: path.join(w.path, 'recipe-results') }).catch(() => {})
+      continue
+    }
     const mode = FORMATS[w.container].kind === 'video' ? 'remux' : 'transcode'
     start(null, { inputPath: full, container: w.container, mode, destination: path.join(w.path, 'converted') }).catch(() => {
       /* a file that can't be converted shows up as a failed job if it got that far */

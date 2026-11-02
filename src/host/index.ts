@@ -159,7 +159,7 @@ export interface AppSettings {
   autoTagAudio: boolean
   /** Parallel downloads (1-6) and conversions (1-4). */
   /** New media files in this folder are converted automatically (checked every 10 seconds while OPNduck runs). */
-  watchFolder: { enabled: boolean; path: string; container: string }
+  watchFolder: { enabled: boolean; path: string; container: string; recipe: string }
   maxDownloads: number
   maxConversions: number
   /** Closing the window keeps OPNduck running in the system tray. */

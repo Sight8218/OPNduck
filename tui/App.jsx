@@ -7,12 +7,14 @@ import Form from './screens/Form.jsx'
 import Library from './screens/Library.jsx'
 import Settings from './screens/Settings.jsx'
 import Setup from './screens/Setup.jsx'
+import Recipes from './screens/Recipes.jsx'
 import { makeTheme } from './theme.js'
 import { useCoreEvents } from './hooks.js'
 
 const SCREENS = [
   { id: 'home', label: 'Tools' },
   { id: 'queue', label: 'Queue' },
+  { id: 'recipes', label: 'Recipes' },
   { id: 'library', label: 'Library' },
   { id: 'settings', label: 'Settings' },
   { id: 'setup', label: 'Setup' },
@@ -20,6 +22,7 @@ const SCREENS = [
 
 const KEYS = {
   home: '↑↓ move   enter open   tab queue   q quit',
+  recipes: '↑↓ move   enter run on a link or file   d remove   tab next   q quit',
   library: '↑↓ move  o folder  r again  d remove  x clear history  tab next  q quit',
   settings: '↑↓ move   ←→ change   enter edit (proxy)   tab next   q quit',
   setup: '↑↓ move   space tick   i install ticked   r recheck   tab next   q quit',
@@ -85,6 +88,8 @@ export default function App({ core, theme: initialTheme, start = 'home' }) {
             pluginTools={pluginTools}
             onOpen={(t) => (setTool(t), setScreen('form'))}
           />
+        ) : screen === 'recipes' ? (
+          <Recipes theme={theme} core={core} onTyping={onTyping} onStarted={(msg) => (setNote(msg), setScreen('queue'))} />
         ) : screen === 'library' ? (
           <Library theme={theme} core={core} />
         ) : screen === 'settings' ? (

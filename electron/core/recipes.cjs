@@ -351,7 +351,13 @@ function createRecipes(ctx) {
     return r ? { runId, recipe: r.recipe.name, steps: r.recipe.steps.length, done: r.done, failedAt: r.failedAt, taskIds: [...r.ids] } : null
   }
 
-  return { recipes: { list, get, save, remove, duplicate, run, resume, status, tools, filesIn, validate: validateRecipe } }
+  /** True when a file is the kind of media the recipe starts from (a recipe that starts from a link never takes a file). */
+  function accepts(recipe, file) {
+    const exts = recipe && EXTS[recipe.input]
+    return !!exts && exts.includes(path.extname(String(file)).slice(1).toLowerCase())
+  }
+
+  return { recipes: { list, get, save, remove, duplicate, run, resume, status, tools, filesIn, accepts, validate: validateRecipe } }
 }
 
 module.exports = { createRecipes, validateRecipe, BUILT_IN, INPUT_TYPES, TOOL_KIND, MAX_STEPS }

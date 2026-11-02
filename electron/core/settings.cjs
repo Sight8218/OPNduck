@@ -49,7 +49,7 @@ const DEFAULTS = {
   runInTray: false,
   /** Parallel yt-dlp downloads / ffmpeg+LibreOffice conversions. */
   /** Watch folder: new media files dropped in `path` are converted to `container` (into a "converted" subfolder). */
-  watchFolder: { enabled: false, path: '', container: 'MP4' },
+  watchFolder: { enabled: false, path: '', container: 'MP4', recipe: '' },
   maxDownloads: 3,
   maxConversions: 2,
   /** Encoder for AI video jobs: 'auto' = GPU (NVENC) when it works, 'cpu' = x264. */
@@ -116,6 +116,7 @@ function validate(next) {
   if (!Number.isInteger(next.maxConversions) || next.maxConversions < 1 || next.maxConversions > 4) throw new Error('Parallel conversions must be 1 to 4')
   const w = next.watchFolder
   if (!w || typeof w.enabled !== 'boolean' || typeof w.path !== 'string' || typeof w.container !== 'string' || !/^[A-Z0-9]{2,5}$/.test(w.container)) throw new Error('Invalid watch folder')
+  if (w.recipe !== undefined && (typeof w.recipe !== 'string' || w.recipe.length > 100)) throw new Error('Invalid watch folder recipe')
   if (w.path !== '' && !path.isAbsolute(w.path)) throw new Error('The watch folder must be an absolute path')
   if (w.enabled && !w.path) throw new Error('Choose a folder to watch first')
   if (typeof next.notifyOnFinish !== 'boolean' || typeof next.runInTray !== 'boolean') throw new Error('Invalid notification setting')

@@ -17,7 +17,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { host, type AppSettings } from '../host'
+import { host, type AppSettings, type Recipe } from '../host'
 import { FORMATS } from '../features/converter/formats'
 import GlassSelect from './GlassSelect'
 
@@ -26,9 +26,11 @@ import GlassSelect from './GlassSelect'
 export default function WatchFolderCard() {
   const [watch, setWatch] = useState<AppSettings['watchFolder'] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [recipes, setRecipes] = useState<Recipe[]>([])
 
   useEffect(() => {
     host.settings?.get().then((s) => setWatch(s.watchFolder))
+    void host.recipes.list().then((l) => setRecipes(l.filter((r) => r.input !== 'url')))
   }, [])
   if (!watch) return null
 
@@ -68,6 +70,16 @@ export default function WatchFolderCard() {
             value={watch.container}
             onChange={(v) => void save({ container: v })}
           />
+        </div>
+        <div>
+          <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Or run a recipe on new files</span>
+          <GlassSelect
+            id="watch-recipe"
+            options={[{ value: '', label: 'No, just convert' }, ...recipes.map((r) => ({ value: r.id, label: r.name }))]}
+            value={watch.recipe ?? ''}
+            onChange={(v) => void save({ recipe: v })}
+          />
+          {watch.recipe && <span className="mt-1 block text-[11px] text-[var(--text-dim)]">Files the recipe cannot take are skipped. Results go into a “recipe-results” subfolder.</span>}
         </div>
         <label className="flex cursor-pointer items-center gap-2 text-sm">
           <input type="checkbox" className="accent-[var(--accent)]" checked={watch.enabled} onChange={(e) => void save({ enabled: e.target.checked })} />
