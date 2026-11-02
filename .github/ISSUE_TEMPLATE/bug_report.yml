@@ -1,0 +1,61 @@
+name: Bug report
+description: Something does not work the way it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. This is a beta, so bugs are expected. A clear report helps a lot.
+        Security problems go through the private report link, not here.
+  - type: input
+    id: version
+    attributes:
+      label: OPNduck version
+      description: Shown at the bottom right of the app, or run `opnduck-tui --help`.
+      placeholder: v0.5.3-beta
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      options: [Desktop app, Terminal app (TUI), MCP server, Plugin, Not sure]
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: Arch Linux / Windows 11 / macOS 15
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the Converter
+        2. Drop a file ...
+        3. Press ...
+  - type: textarea
+    id: log
+    attributes:
+      label: Job log or error text
+      description: For a failed job, the last lines of its log. Remove cookies, tokens and private links first.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before sending
+      options:
+        - label: I looked for the same problem in the existing issues
+          required: true
+        - label: I removed anything private (cookies, tokens, personal links) from what I pasted
+          required: true

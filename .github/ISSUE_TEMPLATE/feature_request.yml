@@ -1,0 +1,30 @@
+name: Feature request
+description: An idea for OPNduck
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        I will look at whether it belongs in OPNduck itself or is better as a [plugin](https://github.com/Sight8218/OPNduck/blob/main/PLUGINS.md).
+  - type: textarea
+    id: goal
+    attributes:
+      label: What are you trying to do?
+      description: The problem or the thing you want, before the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like OPNduck to do?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What do you do today instead?
+  - type: dropdown
+    id: help
+    attributes:
+      label: Could you help build it?
+      options: [No, Maybe, Yes]
