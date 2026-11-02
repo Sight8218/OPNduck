@@ -65,9 +65,10 @@ const sameToken = (given, expected) => {
  * @param {object} deps
  * @param {{ receive(wire: string, channel: string): Promise<boolean>, keys(): { authToken: string } }} deps.inbox
  * @param {() => string} deps.name  this computer's name, shown by /v1/health
+ * @param {{ handle: Function, closeAll: Function }} [deps.v1]  the rest of the API (see v1.cjs); without it only /health and /send exist
  * @param {(line: string) => void} [deps.log]
  */
-function createEngineApi({ inbox, name, log = () => {} }) {
+function createEngineApi({ inbox, name, v1 = null, log = () => {} }) {
   let servers = []
   let status = { running: false, port: null, addresses: [], error: '' }
 
@@ -87,14 +88,18 @@ function createEngineApi({ inbox, name, log = () => {} }) {
       if (!origin || !ALLOWED_ORIGIN.some((re) => re.test(origin))) return reply(403, { error: 'Origin not allowed' })
       res.writeHead(204, {
         'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Authorization, Content-Type',
         'Access-Control-Max-Age': '600',
         Vary: 'Origin',
       })
       return res.end()
     }
-    if (req.method === 'GET' && url === '/v1/health') return reply(200, { ok: true, name: name() })
+    if (req.method === 'GET' && url === '/v1/health') return reply(200, { ok: true, name: name(), apiVersion: 1 })
+    if (v1 && url.startsWith('/v1/') && url !== '/v1/send') {
+      const cors = origin && ALLOWED_ORIGIN.some((re) => re.test(origin)) ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {}
+      return void v1.handle(req, res, { reply, url, cors, ip: req.socket.remoteAddress ?? '' })
+    }
     if (req.method !== 'POST' || url !== '/v1/send') return reply(404, { error: 'Not found' })
     const auth = String(req.headers.authorization ?? '')
     if (!auth.startsWith('Bearer ') || !sameToken(auth.slice(7), inbox.keys().authToken)) return reply(401, { error: 'Bad token' })
@@ -149,6 +154,7 @@ function createEngineApi({ inbox, name, log = () => {} }) {
   }
 
   async function stop() {
+    v1?.closeAll()
     const open = servers
     servers = []
     status = { running: false, port: null, addresses: [], error: '' }

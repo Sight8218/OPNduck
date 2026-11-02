@@ -54,7 +54,7 @@ test('health needs no token and says who it is', async () => {
   const { api, call } = await running()
   const r = await call('GET', '/v1/health')
   assert.equal(r.status, 200)
-  assert.deepEqual(JSON.parse(r.body), { ok: true, name: 'My PC' })
+  assert.deepEqual(JSON.parse(r.body), { ok: true, name: 'My PC', apiVersion: 1 })
   await api.stop()
 })
 
