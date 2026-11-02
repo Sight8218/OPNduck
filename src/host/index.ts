@@ -148,6 +148,9 @@ export interface AppSettings {
   /** Send to OPNduck: accept links from other devices, what happens when one arrives, and what they download as. */
   remoteEnabled: boolean
   remoteMode: 'ask' | 'auto'
+  remoteBind: 'off' | 'localhost' | 'tailscale' | 'lan'
+  remotePort: number
+  remoteDirectUrl: string
   remoteFormat: string
   remoteVideoQuality: string
   remoteAudioQuality: string
@@ -308,6 +311,27 @@ export interface InboxLink {
   target: string
   at: number
 }
+
+export interface RemoteServer {
+  running: boolean
+  port: number | null
+  addresses: string[]
+  error: string
+  bind: 'off' | 'localhost' | 'tailscale' | 'lan'
+}
+
+export interface TailscaleStatus {
+  installed: boolean
+  running: boolean
+  ip: string | null
+  dnsName: string | null
+  httpsAvailable: boolean
+  tailnet: string | null
+  downloadUrl: string
+  error?: string
+}
+
+export type TailscaleServe = { ok: true; url?: string } | { ok: false; error: string; command: string }
 
 export interface RemoteState {
   enabled: boolean
@@ -622,6 +646,15 @@ export interface Host {
     accept(id: string): Promise<boolean>
     dismiss(id: string): Promise<boolean>
     onChange(listener: () => void): () => void
+    /** The link server: is it listening, where, and why not. */
+    server(): Promise<RemoteServer>
+    /** The pair link (it holds the secret): shown as a QR code or copied by the user. */
+    pairing(): Promise<{ link: string }>
+    /** Makes a new secret: every paired device stops working. */
+    resetPairing(): Promise<boolean>
+    tailscale(): Promise<TailscaleStatus>
+    /** Puts an HTTPS address on the link server through Tailscale (on) or removes it (off). */
+    tailscaleServe(on: boolean): Promise<TailscaleServe>
   }
   /** Recipes: saved chains of tools. Desktop only. */
   recipes: {
@@ -720,7 +753,7 @@ export interface Host {
   /** Main-process settings (proxy, login cookies). Desktop shell only. */
   settings?: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; remoteEnabled?: boolean; remoteMode?: 'ask' | 'auto'; remoteFormat?: string; remoteVideoQuality?: string; remoteAudioQuality?: string; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; remoteEnabled?: boolean; remoteMode?: 'ask' | 'auto'; remoteBind?: 'off' | 'localhost' | 'tailscale' | 'lan'; remotePort?: number; remoteFormat?: string; remoteVideoQuality?: string; remoteAudioQuality?: string; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   /** Auto-download new uploads from a channel/playlist (checked while the app is open). Desktop shell only. */
   subscriptions?: {
@@ -1052,6 +1085,11 @@ const browserHost: Host = {
     accept: async () => false,
     dismiss: async () => false,
     onChange: () => () => {},
+    server: async () => ({ running: false, port: null, addresses: [], error: '', bind: 'off' }),
+    pairing: async () => ({ link: '' }),
+    resetPairing: async () => false,
+    tailscale: async () => ({ installed: false, running: false, ip: null, dnsName: null, httpsAvailable: false, tailnet: null, downloadUrl: 'https://tailscale.com/download' }),
+    tailscaleServe: async () => ({ ok: false, error: 'Desktop app required', command: '' }),
   },
   recipes: {
     list: async () => [],

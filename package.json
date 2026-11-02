@@ -38,6 +38,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "engine-api/**/*",
       "!electron/**/__pycache__"
     ],
     "extraMetadata": {
@@ -79,6 +80,7 @@
     "@tabler/icons-react": "^3.49.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.5",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
@@ -88,6 +90,7 @@
     "framer-motion": "^14.1.0",
     "ink": "^8.0.0",
     "oxlint": "^1.87.0",
+    "qrcode": "^1.5.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router-dom": "^7.18.4",

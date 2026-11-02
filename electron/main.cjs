@@ -238,6 +238,7 @@ ipcMain.handle('settings:set', async (_e, patch) => {
   applyQueueLimits()
   if (patch && 'mcpServer' in patch) await applyMcp()
   if (patch && ('remoteEnabled' in patch || 'remoteMode' in patch)) platform.emit('remote:changed', null)
+  if (patch && ('remoteEnabled' in patch || 'remoteBind' in patch || 'remotePort' in patch)) await applyEngineApi()
   return next
 })
 
@@ -422,6 +423,45 @@ ipcMain.handle('remote:state', () => {
   const r = needRemote()
   const s = getSettings()
   return { enabled: s.remoteEnabled, mode: s.remoteMode, pending: r.list() }
+})
+const tailscale = require('./core/remote/tailscale.cjs')
+const { createEngineApi } = require('../engine-api/server.cjs')
+const { buildPairLink } = require('./core/remote/envelope.cjs')
+let engineApi = null
+/** Starts or stops the link server to match the settings (off unless Send to OPNduck is on and a bind mode is chosen). */
+async function applyEngineApi() {
+  const s = getSettings()
+  const inbox = needRemote()
+  engineApi ??= createEngineApi({ inbox, name: () => os.hostname(), log: (m) => console.log(m) })
+  if (!s.remoteEnabled || s.remoteBind === 'off') await engineApi.stop()
+  else {
+    const ts = s.remoteBind === 'tailscale' ? await tailscale.status() : null
+    await engineApi.start({ mode: s.remoteBind, port: s.remotePort, tailscaleIp: ts?.ip ?? null })
+  }
+  platform.emit('remote:changed', null)
+}
+ipcMain.handle('remote:server', () => ({ ...(engineApi?.status() ?? { running: false, port: null, addresses: [], error: '' }), bind: getSettings().remoteBind }))
+// The pair link holds the secret: it only goes to this app's own window, to show as a QR code or be copied by the user.
+ipcMain.handle('remote:pairing', () => ({ link: buildPairLink({ secret: needRemote().secret(), relay: 'https://ntfy.sh', relayToken: '', direct: getSettings().remoteDirectUrl, name: os.hostname() }) }))
+ipcMain.handle('remote:resetPairing', () => {
+  needRemote().resetPairing()
+  return true
+})
+ipcMain.handle('remote:tailscale', () => tailscale.status())
+ipcMain.handle('remote:tailscaleServe', async (_e, on) => {
+  if (on !== true) {
+    const r = await tailscale.serveOff()
+    if (r.ok) setSettings({ remoteDirectUrl: '' })
+    platform.emit('remote:changed', null)
+    return r
+  }
+  const st = engineApi?.status()
+  if (!st?.running) return { ok: false, error: 'Turn on the link server first (choose "This computer and Tailscale").', command: '' }
+  const ts = await tailscale.status()
+  const r = await tailscale.serveOn(st.port, ts.dnsName)
+  if (r.ok) setSettings({ remoteDirectUrl: r.url })
+  platform.emit('remote:changed', null)
+  return r
 })
 ipcMain.handle('remote:accept', (_e, id) => needRemote().accept(String(id)))
 ipcMain.handle('remote:dismiss', (_e, id) => needRemote().dismiss(String(id)))
@@ -1104,6 +1144,7 @@ app.whenReady().then(() => {
   // opnduck:// as a link handler (AppImage and dev builds register it at runtime; the packages also list it in their desktop entry).
   app.setAsDefaultProtocolClient('opnduck')
   needRemote()
+  void applyEngineApi()
   trace('subscriptions started')
   void applyMcp()
   // A card runs in a sandboxed iframe on this scheme. Reserved paths (__frame.html, __frame.js, __app/*) are the
@@ -1154,6 +1195,7 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
   subscriptions?.stop()
+  void engineApi?.stop()
   void mcp?.stop()
   void core.plugins.shutdown()
 })

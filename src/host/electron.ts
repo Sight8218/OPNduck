@@ -41,6 +41,9 @@ import type {
   TagLookup,
   AutoTool,
   RemoteState,
+  RemoteServer,
+  TailscaleStatus,
+  TailscaleServe,
   Recipe,
   RecipeInput,
   RecipeTool,
@@ -69,7 +72,17 @@ interface ElectronBridge {
   installYtDlp(): Promise<{ ok: boolean; error?: string }>
   checkFfmpeg(): Promise<ToolStatus>
   checkFpcalc(): Promise<ToolStatus>
-  remote: { state(): Promise<RemoteState>; accept(id: string): Promise<boolean>; dismiss(id: string): Promise<boolean>; onChange(listener: () => void): () => void }
+  remote: {
+    state(): Promise<RemoteState>
+    accept(id: string): Promise<boolean>
+    dismiss(id: string): Promise<boolean>
+    onChange(listener: () => void): () => void
+    server(): Promise<RemoteServer>
+    pairing(): Promise<{ link: string }>
+    resetPairing(): Promise<boolean>
+    tailscale(): Promise<TailscaleStatus>
+    tailscaleServe(on: boolean): Promise<TailscaleServe>
+  }
   recipes: {
     list(): Promise<Recipe[]>
     /** The tools a step can use, with their settings, for the editor. */
@@ -106,7 +119,7 @@ interface ElectronBridge {
   onInstallProgress(listener: (p: { tool: PythonTool; line: string }) => void): () => void
   settings: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; remoteEnabled?: boolean; remoteMode?: 'ask' | 'auto'; remoteFormat?: string; remoteVideoQuality?: string; remoteAudioQuality?: string; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; remoteEnabled?: boolean; remoteMode?: 'ask' | 'auto'; remoteBind?: 'off' | 'localhost' | 'tailscale' | 'lan'; remotePort?: number; remoteFormat?: string; remoteVideoQuality?: string; remoteAudioQuality?: string; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   subscriptions: {
     list(): Promise<Subscription[]>

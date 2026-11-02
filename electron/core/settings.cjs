@@ -66,6 +66,11 @@ const DEFAULTS = {
   remoteEnabled: false,
   remoteMode: 'ask',
   /** What a link sent from another device downloads as. Only the link comes from the sender; these are local choices. */
+  /** Where the link server listens: off (default), this computer only, this computer and the Tailscale address, or the whole LAN. */
+  remoteBind: 'off',
+  remotePort: 47821,
+  /** The https:// address Tailscale serves the link server on, once the user enabled it (goes into the pair link). */
+  remoteDirectUrl: '',
   remoteFormat: 'MP4',
   remoteVideoQuality: 'best',
   remoteAudioQuality: 'best',
@@ -118,6 +123,9 @@ function validate(next) {
   if (typeof next.autoTagAudio !== 'boolean') throw new Error('Invalid music tagging setting')
   if (typeof next.remoteEnabled !== 'boolean') throw new Error('Invalid Send to OPNduck setting')
   if (!['ask', 'auto'].includes(next.remoteMode)) throw new Error('"When a link arrives" must be ask or auto')
+  if (!['off', 'localhost', 'tailscale', 'lan'].includes(next.remoteBind)) throw new Error('Invalid link server setting')
+  if (!Number.isInteger(next.remotePort) || next.remotePort < 1024 || next.remotePort > 65525) throw new Error('The link server port must be 1024 to 65525')
+  if (typeof next.remoteDirectUrl !== 'string' || (next.remoteDirectUrl !== '' && !/^https:\/\/[a-z0-9.-]+(:\d{2,5})?$/i.test(next.remoteDirectUrl))) throw new Error('Invalid direct address')
   if (!['MP4', 'MKV', 'WEBM', 'MOV', 'AVI', 'MP3', 'FLAC', 'WAV'].includes(next.remoteFormat)) throw new Error('Invalid format for links from other devices')
   if (typeof next.remoteVideoQuality !== 'string' || !/^(best|\d{3,4})$/.test(next.remoteVideoQuality)) throw new Error('Invalid video quality for links from other devices')
   if (typeof next.remoteAudioQuality !== 'string' || !/^(best|\d{1,3}k?)$/i.test(next.remoteAudioQuality)) throw new Error('Invalid audio quality for links from other devices')
@@ -183,6 +191,9 @@ function setSettings(patch) {
     autoTagAudio: patch.autoTagAudio !== undefined ? patch.autoTagAudio : current.autoTagAudio,
     remoteEnabled: patch.remoteEnabled !== undefined ? patch.remoteEnabled : current.remoteEnabled,
     remoteMode: patch.remoteMode !== undefined ? patch.remoteMode : current.remoteMode,
+    remoteBind: patch.remoteBind !== undefined ? patch.remoteBind : current.remoteBind,
+    remotePort: patch.remotePort !== undefined ? patch.remotePort : current.remotePort,
+    remoteDirectUrl: patch.remoteDirectUrl !== undefined ? patch.remoteDirectUrl : current.remoteDirectUrl,
     remoteFormat: patch.remoteFormat !== undefined ? patch.remoteFormat : current.remoteFormat,
     remoteVideoQuality: patch.remoteVideoQuality !== undefined ? patch.remoteVideoQuality : current.remoteVideoQuality,
     remoteAudioQuality: patch.remoteAudioQuality !== undefined ? patch.remoteAudioQuality : current.remoteAudioQuality,

@@ -38,6 +38,11 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   checkFpcalc: () => ipcRenderer.invoke('system:checkFpcalc'),
   remote: {
     state: () => ipcRenderer.invoke('remote:state'),
+    server: () => ipcRenderer.invoke('remote:server'),
+    pairing: () => ipcRenderer.invoke('remote:pairing'),
+    resetPairing: () => ipcRenderer.invoke('remote:resetPairing'),
+    tailscale: () => ipcRenderer.invoke('remote:tailscale'),
+    tailscaleServe: (on) => ipcRenderer.invoke('remote:tailscaleServe', on === true),
     accept: (id) => ipcRenderer.invoke('remote:accept', id),
     dismiss: (id) => ipcRenderer.invoke('remote:dismiss', id),
     onChange: (listener) => {
