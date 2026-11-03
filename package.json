@@ -32,7 +32,7 @@
     "build:extension": "node scripts/build-extension.mjs",
     "server:build": "node scripts/build-server.mjs",
     "server": "node scripts/build-server.mjs && node dist-server/opnduck-server.cjs",
-    "dist:mac": "npm run build && electron-builder --mac dmg zip"
+    "dist:mac": "npm run build && electron-builder --mac dmg zip --publish never"
   },
   "build": {
     "appId": "dev.opnduck.desktop",

@@ -55,6 +55,8 @@ jobs:
             npx electron-builder --mac dmg zip -c.mac.identity=null -c.mac.notarize=true
           else
             echo "No signing certificate: ad-hoc signing"
+            # A missing secret arrives as an empty variable, which electron-builder reads as a certificate path.
+            unset CSC_LINK CSC_KEY_PASSWORD
             npm run dist:mac
           fi
       - name: Install the dmg and smoke test the installed app
