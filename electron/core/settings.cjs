@@ -60,6 +60,19 @@ const DEFAULTS = {
     whenDone: 'nothing', // 'nothing' | 'notify' | 'sleep' | 'shutdown' once the queue is empty
     powerConfirmed: false, // sleep and shut down stay off until the person has confirmed once in Settings
   },
+  /** The AI runtime (see core/ai/): which model answers and how. Off until a provider is chosen. */
+  ai: {
+    provider: 'off', // 'off' | 'ollama' | 'lmstudio' | 'machine' (another computer) | 'cloud' (the person's own API key)
+    model: '',
+    machineUrl: '', // the other computer's OpenAI-compatible address
+    cloud: 'anthropic',
+    customUrl: '', // for the "custom" cloud provider
+    effort: 'medium', // 'low' | 'medium' | 'high'
+    reasoning: 'auto', // 'auto' (from effort) | 'on' | 'off'
+    vision: false, // send images to the model
+    temperature: 0.7,
+    keepChats: true,
+  },
   maxDownloads: 3,
   maxConversions: 2,
   /** Encoder for AI video jobs: 'auto' = GPU (NVENC) when it works, 'cpu' = x264. */
@@ -131,6 +144,15 @@ function validate(next) {
   if (w.recipe !== undefined && (typeof w.recipe !== 'string' || w.recipe.length > 100)) throw new Error('Invalid watch folder recipe')
   if (w.path !== '' && !path.isAbsolute(w.path)) throw new Error('The watch folder must be an absolute path')
   if (w.enabled && !w.path) throw new Error('Choose a folder to watch first')
+  const ai = next.ai
+  if (!ai || typeof ai !== 'object') throw new Error('Invalid AI setting')
+  if (!['off', 'ollama', 'lmstudio', 'machine', 'cloud'].includes(ai.provider)) throw new Error('Invalid AI provider')
+  if (!['low', 'medium', 'high'].includes(ai.effort)) throw new Error('Effort must be low, medium or high')
+  if (!['auto', 'on', 'off'].includes(ai.reasoning)) throw new Error('Reasoning must be auto, on or off')
+  if (typeof ai.vision !== 'boolean' || typeof ai.keepChats !== 'boolean') throw new Error('Invalid AI setting')
+  if (!Number.isFinite(ai.temperature) || ai.temperature < 0 || ai.temperature > 1.5) throw new Error('Temperature must be 0 to 1.5')
+  for (const k of ['model', 'machineUrl', 'customUrl', 'cloud']) if (typeof ai[k] !== 'string' || ai[k].length > 300) throw new Error(`Invalid AI ${k}`)
+  for (const k of ['machineUrl', 'customUrl']) if (ai[k] && !/^https?:\/\/[^\s]+$/.test(ai[k])) throw new Error('Addresses start with https:// (or http:// on this computer or Tailscale)')
   const sc = next.schedule
   const clock = /^([01]\d|2[0-3]):[0-5]\d$/
   if (!sc || ['window', 'battery', 'heat', 'idle', 'downloads', 'powerConfirmed'].some((k) => typeof sc[k] !== 'boolean')) throw new Error('Invalid scheduling setting')
@@ -182,7 +204,7 @@ function read() {
   } catch {
     /* first run, or unreadable — fall back to defaults */
   }
-  const merged = { ...DEFAULTS, ...stored, cookies: { ...DEFAULTS.cookies, ...(stored.cookies || {}) }, schedule: { ...DEFAULTS.schedule, ...(stored.schedule || {}) } }
+  const merged = { ...DEFAULTS, ...stored, cookies: { ...DEFAULTS.cookies, ...(stored.cookies || {}) }, schedule: { ...DEFAULTS.schedule, ...(stored.schedule || {}) }, ai: { ...DEFAULTS.ai, ...(stored.ai || {}) } }
   try {
     validate(merged)
     cache = merged
@@ -207,6 +229,7 @@ function setSettings(patch) {
     upscaleEngine: patch.upscaleEngine !== undefined ? patch.upscaleEngine : current.upscaleEngine,
     notifyOnFinish: patch.notifyOnFinish !== undefined ? patch.notifyOnFinish : current.notifyOnFinish,
     runInTray: patch.runInTray !== undefined ? patch.runInTray : current.runInTray,
+    ai: patch.ai !== undefined ? { ...current.ai, ...patch.ai } : current.ai,
     schedule: patch.schedule !== undefined ? { ...current.schedule, ...patch.schedule } : current.schedule,
     watchFolder: patch.watchFolder !== undefined ? { ...current.watchFolder, ...patch.watchFolder } : current.watchFolder,
     maxDownloads: patch.maxDownloads !== undefined ? patch.maxDownloads : current.maxDownloads,

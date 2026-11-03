@@ -161,6 +161,7 @@ export interface AppSettings {
   /** Parallel downloads (1-6) and conversions (1-4). */
   /** New media files in this folder are converted automatically (checked every 10 seconds while OPNduck runs). */
   watchFolder: { enabled: boolean; path: string; container: string; recipe: string }
+  ai: AiSettings
   schedule: ScheduleSettings
   maxDownloads: number
   maxConversions: number
@@ -479,6 +480,33 @@ export interface BeatAnalysis {
   drops: number[]
 }
 
+/** Settings > AI. Off until a provider is chosen. */
+export interface AiSettings {
+  provider: 'off' | 'ollama' | 'lmstudio' | 'machine' | 'cloud'
+  model: string
+  machineUrl: string
+  cloud: string
+  customUrl: string
+  effort: 'low' | 'medium' | 'high'
+  reasoning: 'auto' | 'on' | 'off'
+  vision: boolean
+  temperature: number
+  keepChats: boolean
+}
+export interface AiModel {
+  id: string
+  name?: string
+  vision?: boolean
+}
+export interface AiState {
+  /** Providers that have an API key saved (never the keys). */
+  keys: string[]
+  /** False when keys are kept in a file only this user can read, because the system has no keyring. */
+  encrypted: boolean
+  cloud: Record<string, string>
+  detected: Record<string, { running: boolean; models: AiModel[] }>
+}
+
 export type DenoiseLevel = 'off' | 'light' | 'medium' | 'strong'
 
 export interface RestoreRequest {
@@ -795,6 +823,13 @@ export interface Host {
   /** The music tagger needs Chromaprint's fpcalc. */
   checkFpcalc(): Promise<ToolStatus>
   /** Measures a file and suggests settings for a tool, with the reason for each (reads the file; starts no job). */
+  /** The AI runtime's settings screen: what is detected, key handling, and a test. Desktop only. */
+  ai: {
+    state(): Promise<AiState>
+    test(): Promise<{ ok: true; models: AiModel[] } | { ok: false; error: string }>
+    setKey(provider: string, key: string): Promise<boolean>
+    removeKey(provider: string): Promise<boolean>
+  }
   /** Smart scheduling: what is holding heavy jobs back, and the countdown before sleep or shutdown. Desktop only. */
   schedule: {
     status(): Promise<ScheduleStatus>
@@ -941,7 +976,7 @@ export interface Host {
   /** Main-process settings (proxy, login cookies). Desktop shell only. */
   settings?: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; remoteEnabled?: boolean; remoteMode?: 'ask' | 'auto'; remoteRelay?: boolean; shareEngine?: boolean; remoteBind?: 'off' | 'localhost' | 'tailscale' | 'lan'; remotePort?: number; remoteFormat?: string; remoteVideoQuality?: string; remoteAudioQuality?: string; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; schedule?: Partial<AppSettings['schedule']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; remoteEnabled?: boolean; remoteMode?: 'ask' | 'auto'; remoteRelay?: boolean; shareEngine?: boolean; remoteBind?: 'off' | 'localhost' | 'tailscale' | 'lan'; remotePort?: number; remoteFormat?: string; remoteVideoQuality?: string; remoteAudioQuality?: string; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; schedule?: Partial<AppSettings['schedule']>; ai?: Partial<AppSettings['ai']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   /** Auto-download new uploads from a channel/playlist (checked while the app is open). Desktop shell only. */
   subscriptions?: {
@@ -1280,6 +1315,12 @@ const browserHost: Host = {
   installYtDlp: async () => ({ ok: false, error: 'Desktop app required' }),
   checkFfmpeg: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkFpcalc: async () => ({ available: false, installHint: 'Desktop app required' }),
+  ai: {
+    state: async () => ({ keys: [], encrypted: false, cloud: {}, detected: {} }),
+    test: async () => ({ ok: false, error: 'Desktop app required' }),
+    setKey: async () => false,
+    removeKey: async () => false,
+  },
   schedule: {
     status: async () => ({ reason: '', hot: false, temp: null, countdown: null }),
     cancelCountdown: async () => false,

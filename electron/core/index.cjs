@@ -28,9 +28,10 @@ const path = require('node:path')
  * @param {(channel: string, wrapped: Function) => void} [deps.registerStart]  expose a start function (e.g. over IPC)
  * @param {(opts: object) => Promise<string|null>} [deps.pickPath]  the shell's file dialog, for plugins
  * @param {boolean} [deps.safeMode]  force every plugin off (default: the pluginsSafeMode setting)
+ * @param {{ seal(text: string): string, unseal(sealed: string): string }} [deps.secrets]  how API keys are sealed on disk (the desktop passes its keyring; without it the file is only readable by this user)
  * @param {string} [deps.pluginWorkerFile]  full path of plugin_worker.cjs when it cannot be found next to this file (bundled builds)
  */
-function createCore({ platform, onFinished = () => {}, registerStart, pickPath, safeMode, pluginWorkerFile }) {
+function createCore({ platform, onFinished = () => {}, registerStart, pickPath, safeMode, pluginWorkerFile, secrets }) {
   const settings = require('./settings.cjs')
   settings.configure(platform)
   const { getSettings, ytdlpBaseArgs, hasCookies } = settings
@@ -112,7 +113,9 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
     engine.saveHistory()
   }
 
-  const core = { platform, settings, tools, engine, modules, ctx, startJob, shutdown, recipes: modules.recipes.recipes, schedule }
+  const aiKeys = require('./ai/keys.cjs').createKeys({ file: path.join(platform.paths.userData, 'ai-keys.json'), ...(secrets ?? {}) })
+  const ai = require('./ai/index.cjs').createAi({ getSettings, keys: aiKeys })
+  const core = { platform, settings, tools, engine, modules, ctx, startJob, shutdown, recipes: modules.recipes.recipes, schedule, ai, aiKeys }
   // Not started here: the shell calls `core.plugins.init()` once it is ready (after its windows and dialogs exist).
   plugins = core.plugins = require('./plugins.cjs').createPluginHost({
     core,

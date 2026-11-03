@@ -6,6 +6,7 @@ import MusicTaggingCard from '../components/MusicTaggingCard'
 import SendToOpnduckCard from '../components/SendToOpnduckCard'
 import ServersCard from '../components/ServersCard'
 import SchedulingCard from '../components/SchedulingCard'
+import AiCard from '../components/AiCard'
 import NotificationsCard from '../components/NotificationsCard'
 import McpCard from '../components/McpCard'
 import PluginSafeMode from '../components/PluginSafeMode'
@@ -162,6 +163,7 @@ export default function Settings() {
             {host.settings && <GpuPerformanceCard />}
             {host.settings && <NotificationsCard />}
             {host.settings && <MusicTaggingCard />}
+            {host.settings && host.isDesktop && <AiCard />}
             {host.settings && <SendToOpnduckCard />}
             {host.settings && <ServersCard />}
             {host.settings && <QueueCard />}

@@ -92,6 +92,12 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     run: (id, input, opts) => ipcRenderer.invoke('recipes:run', id, input, opts ?? null),
     resume: (runId) => ipcRenderer.invoke('recipes:resume', runId),
   },
+  ai: {
+    state: () => ipcRenderer.invoke('ai:state'),
+    test: () => ipcRenderer.invoke('ai:test'),
+    setKey: (id, key) => ipcRenderer.invoke('ai:setKey', id, key),
+    removeKey: (id) => ipcRenderer.invoke('ai:removeKey', id),
+  },
   beatsResult: (id) => ipcRenderer.invoke('beats:result', id),
   previewRestore: (req) => ipcRenderer.invoke('restore:preview', req),
   analyzeJumpCut: (req) => ipcRenderer.invoke('jumpcut:analyze', req),

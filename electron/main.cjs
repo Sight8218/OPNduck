@@ -69,6 +69,11 @@ const core = require('./core/index.cjs').createCore({
   onFinished: (state, req) => notifyFinished(state, req),
   registerStart: (channel, wrapped) => ipcMain.handle(channel, wrapped),
   pickPath: pickPluginPath,
+  // API keys sit under the keyring's key when there is one; without a keyring they stay in a file only this user can read.
+  secrets: {
+    seal: (text) => (safeStorage.isEncryptionAvailable() ? `safe:${safeStorage.encryptString(text).toString('base64')}` : `plain:${text}`),
+    unseal: (s) => (s.startsWith('safe:') ? safeStorage.decryptString(Buffer.from(s.slice(5), 'base64')) : s.replace(/^plain:/, '')),
+  },
 })
 const { tools, engine, modules } = core
 const {
@@ -285,6 +290,17 @@ ipcMain.handle('recipes:remove', (_e, id) => core.recipes.remove(String(id)))
 ipcMain.handle('recipes:duplicate', (_e, id) => core.recipes.duplicate(String(id)))
 ipcMain.handle('recipes:run', (_e, id, input, opts) => core.recipes.run(String(id), String(input), { destination: typeof opts?.destination === 'string' ? opts.destination : undefined, keepIntermediate: opts?.keepIntermediate === true }))
 ipcMain.handle('recipes:resume', (_e, runId) => core.recipes.resume(String(runId)))
+/* --- AI: which model answers (Settings > AI). The keys never go to the window; it only learns which providers have one. --- */
+ipcMain.handle('ai:state', async () => ({ keys: core.aiKeys.has(), encrypted: safeStorage.isEncryptionAvailable(), cloud: Object.fromEntries(Object.entries(core.ai.CLOUD).map(([id, c]) => [id, c.label])), detected: await core.ai.detect() }))
+ipcMain.handle('ai:test', () => core.ai.test())
+ipcMain.handle('ai:setKey', async (_e, id, key) => {
+  core.aiKeys.set(String(id), String(key))
+  return true
+})
+ipcMain.handle('ai:removeKey', (_e, id) => {
+  core.aiKeys.remove(String(id))
+  return true
+})
 ipcMain.handle('beats:result', (_e, id) => modules.beats.beatsResult(String(id)))
 ipcMain.handle('restore:preview', (_e, req) => modules.restore.previewRestore(req))
 ipcMain.handle('jumpcut:analyze', (_e, req) => modules.jumpcut.analyzeJumpCut(req))
