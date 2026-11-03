@@ -191,6 +191,52 @@ body {
 .group:active .nav-icon-plug {
   animation: nav-plug 0.55s ease-out;
 }
+/* Recipes: the chef's hat puffs up, tips to one side and settles. */
+.group:hover .nav-icon-puff,
+.group:active .nav-icon-puff {
+  animation: nav-puff 0.7s ease-in-out;
+}
+@keyframes nav-puff {
+  0% { transform: translateY(0) scale(1, 1) rotate(0); }
+  30% { transform: translateY(-3px) scale(1.12, 1.2) rotate(0); }
+  55% { transform: translateY(-2px) scale(1.08, 1.12) rotate(-14deg); }
+  80% { transform: translateY(0) scale(1.02, 0.96) rotate(5deg); }
+  100% { transform: translateY(0) scale(1, 1) rotate(0); }
+}
+/* Chat: the bubble pops and three typing dots bounce one after another inside it. */
+.group:hover .nav-icon-talk,
+.group:active .nav-icon-talk {
+  animation: nav-talk 0.7s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+@keyframes nav-talk {
+  0% { transform: scale(1) rotate(0); }
+  25% { transform: scale(0.88) rotate(4deg); }
+  55% { transform: scale(1.14) rotate(-5deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.nav-dot {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.group:hover .nav-dot,
+.group:active .nav-dot {
+  animation: nav-dot 0.7s ease-in-out;
+}
+.group:hover .nav-dot-2,
+.group:active .nav-dot-2 {
+  animation-delay: 0.1s;
+}
+.group:hover .nav-dot-3,
+.group:active .nav-dot-3 {
+  animation-delay: 0.2s;
+}
+@keyframes nav-dot {
+  0%, 15% { opacity: 0; transform: translateY(2px) scale(0.4); }
+  40% { opacity: 1; transform: translateY(-1.5px) scale(1); }
+  65% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(0) scale(0.6); }
+}
 .nav-spark {
   opacity: 0;
 }
@@ -246,6 +292,7 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .nav-icon,
+  .nav-dot,
   .nav-spark {
     animation: none !important;
   }

@@ -4,7 +4,7 @@ import { useNavItems } from '../lib/useNavItems'
 import { useNavDisplay } from '../lib/navContext'
 import NavIcon, { type NavIconEffect } from './NavIcon'
 
-const EFFECTS: Record<string, NavIconEffect> = { '/': 'hop', '/library': 'books', '/recipes': 'books', '/plugins': 'plug', '/settings': 'spin', '/arcade': 'pad' }
+const EFFECTS: Record<string, NavIconEffect> = { '/': 'hop', '/library': 'books', '/recipes': 'puff', '/chat': 'talk', '/plugins': 'plug', '/settings': 'spin', '/arcade': 'pad' }
 
 /**
  * The four menu cards (Home · Library · Plugins · Settings) with a single
