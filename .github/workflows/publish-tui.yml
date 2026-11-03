@@ -4,7 +4,7 @@
 #       organization/user: Sight8218, repository: OPNduck, workflow filename: publish-tui.yml
 #     (the package must exist first, so the very first version is published by hand).
 #   - GitHub Packages: the built-in GITHUB_TOKEN.
-# The release tag must match the version in package.json (v0.6.0-Beta <-> 0.6.0-beta).
+# The release tag must match the version in package.json (v0.6.1-Beta <-> 0.6.1-beta).
 name: Publish TUI
 
 on:

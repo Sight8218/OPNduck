@@ -50,7 +50,7 @@ The YouTube sign-in window (use the desktop app, or set a cookies file or browse
 
 ### Automatic publishing (GitHub Actions)
 
-`.github/workflows/publish-tui.yml` publishes both packages whenever a GitHub release is published (or when run by hand from the Actions tab). It first checks that the release tag matches `package.json` (`v0.6.0-Beta` and `0.6.0-beta`), builds on a clean runner, then:
+`.github/workflows/publish-tui.yml` publishes both packages whenever a GitHub release is published (or when run by hand from the Actions tab). It first checks that the release tag matches `package.json` (`v0.6.1-Beta` and `0.6.1-beta`), builds on a clean runner, then:
 
 - publishes `opnduck-tui` to the npm registry with **trusted publishing**: no npm token is stored anywhere, and the package gets a provenance badge;
 - publishes `@sight8218/opnduck-tui` to GitHub Packages with the built-in `GITHUB_TOKEN`.

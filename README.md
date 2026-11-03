@@ -4,9 +4,9 @@ OPNduck is a local-first, open-source media tool. It upscales images and video, 
 frames, downloads, converts, trims, shrinks files to fit a size limit, tags your music, makes GIFs and stickers, cuts the silences out of talks, removes backgrounds, finds the BPM and key of a song and cuts video to the beat, chains tools into recipes, takes links sent from your phone and transcribes, all on your own GPU/CPU. No subscription,
 no cloud; your files stay on your machine.
 
-> **v0.6.0-Beta is the biggest update yet for OPNduck, and possibly ever. It might be super buggy: expect bugs, and please report them on [GitHub Issues](https://github.com/Sight8218/OPNduck/issues).**
+> **v0.6.0-Beta was the biggest update yet for OPNduck, and possibly ever, and v0.6.1-Beta is its quick follow-up. It might be super buggy: expect bugs, and please report them on [GitHub Issues](https://github.com/Sight8218/OPNduck/issues).**
 
-This is **v0.6.0-Beta**, which adds Send to OPNduck (links from your phone and browser), Recipes, Colour Grade, Background Remover, Dubbing, Beat Finder, an AI runtime with Chat and an optional local model, the OPNduck Server, an Android companion and a macOS beta. It follows v0.5.3-Beta, which added the **OPNduck TUI** (the tools in a terminal, about 100 MB of memory) and a first-launch setup wizard, and v0.5.2-Beta, a visual follow-up to v0.5.1-Beta and the v0.5.0-Beta performance release: Home is a compact grid of tool tiles with one tool open at a time, there is a themed startup screen, a pixel look, sharper corners, plainer wording, faster engine checks and more developer tools. The v0.5.1-Beta release added control by any MCP-capable AI app (Settings → System, off by default) and animated menu icons. The v0.5.0-Beta release brought the performance work. Video upscaling now streams frames through the GPU
+This is **v0.6.1-Beta**, a follow-up with assistant fixes, internet access for the assistant, tidier Settings and a more compact Home. It follows v0.6.0-Beta, which added Send to OPNduck (links from your phone and browser), Recipes, Colour Grade, Background Remover, Dubbing, Beat Finder, an AI runtime with Chat and an optional local model, the OPNduck Server, an Android companion and a macOS beta. It follows v0.5.3-Beta, which added the **OPNduck TUI** (the tools in a terminal, about 100 MB of memory) and a first-launch setup wizard, and v0.5.2-Beta, a visual follow-up to v0.5.1-Beta and the v0.5.0-Beta performance release: Home is a compact grid of tool tiles with one tool open at a time, there is a themed startup screen, a pixel look, sharper corners, plainer wording, faster engine checks and more developer tools. The v0.5.1-Beta release added control by any MCP-capable AI app (Settings → System, off by default) and animated menu icons. The v0.5.0-Beta release brought the performance work. Video upscaling now streams frames through the GPU
 (PyTorch, NVIDIA) with no temporary image files, about 1.4-3.6x faster than the classic engine in testing, and
 AI video jobs can encode on the GPU (NVENC). Long videos are processed in chunks so temp disk use stays small,
 and AI Audio and Subtitles keep their models loaded between files. New tools include a visual **trimmer**, a
@@ -135,7 +135,7 @@ wired in, as is Subtitles (faster-whisper).
 
 ## 📝 Project Metadata & Licensing
 
-- **Project State**: `v0.6.0-Beta` (the biggest update yet, possibly ever, and it might be super buggy — expect bugs and report them!)
+- **Project State**: `v0.6.1-Beta` (follows v0.6.0-Beta, the biggest update yet; it might be super buggy — expect bugs and report them!)
 - **Original Developer**: Aaron
 - **Development Model**: Built with the architectural assistance of AI.
 - **License**: [GPL-3.0](./LICENSE) — free software. Copyright © 2026 Aaron Jonsson.
