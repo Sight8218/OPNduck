@@ -18,6 +18,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import AiActivity, { isLookup, lookupLabel, type AiPhase } from '../components/AiActivity'
 import ProgressBar from '../components/ProgressBar'
 import { host, type AiProposal, type AiSettings, type Chat, type ChatMessage } from '../host'
 import { TITLES } from '../features/recipes/chain'
@@ -146,6 +147,8 @@ export default function ChatPage() {
   const [input, setInput] = useState('')
   const [files, setFiles] = useState<string[]>([])
   const [live, setLive] = useState<ChatMessage | null>(null)
+  // What the assistant is doing right now, for the animated icon.
+  const [activity, setActivity] = useState<{ phase: AiPhase; label?: string } | null>(null)
   const [request, setRequest] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [dismissed, setDismissed] = useState<Record<number, boolean[]>>({})
@@ -167,6 +170,12 @@ export default function ChatPage() {
   useEffect(
     () =>
       host.ai.onEvent(({ requestId, event }) => {
+        if (requestId === request) {
+          if (event.type === 'text') setActivity({ phase: 'responding' })
+          else if (event.type === 'thinking') setActivity({ phase: 'thinking' })
+          else if (event.type === 'tool_call') setActivity(isLookup(event.name) ? { phase: 'searching', label: lookupLabel(event.name) } : { phase: 'planning' })
+          else if (event.type === 'tool_result') setActivity({ phase: 'thinking', label: 'Reading what it found' })
+        }
         setLive((cur) => {
           if (!cur || requestId !== request) return cur
           if (event.type === 'text') return { ...cur, content: cur.content + event.delta }
@@ -174,6 +183,17 @@ export default function ChatPage() {
           if (event.type === 'tool_result') return { ...cur, tools: [...(cur.tools ?? []), { name: event.name, args: event.args, result: event.result }] }
           return cur
         })
+      }),
+    [request],
+  )
+
+  // OPNduck's own model starts the first time it is asked: show that as "waking".
+  useEffect(
+    () =>
+      host.ai.local.onChange((s) => {
+        if (!request) return
+        if (s.state === 'loading') setActivity({ phase: 'waking' })
+        else if (s.state === 'ready') setActivity((a) => (a?.phase === 'waking' ? { phase: 'thinking' } : a))
       }),
     [request],
   )
@@ -207,6 +227,7 @@ export default function ChatPage() {
     const requestId = crypto.randomUUID()
     setRequest(requestId)
     setLive({ role: 'assistant', content: '' })
+    setActivity({ phase: 'thinking' })
     try {
       const r = await host.ai.send({ requestId, messages: messages.map((m) => ({ role: m.role, content: m.content })) })
       const mine = chatRef.current
@@ -222,6 +243,7 @@ export default function ChatPage() {
       setLive(null)
     } finally {
       setRequest(null)
+      setActivity(null)
     }
   }
 
@@ -323,7 +345,8 @@ export default function ChatPage() {
           {chat.messages.map((m, i) => (
             <Bubble key={i} m={m} dismissed={dismissed[i] ?? []} onRun={(p) => run(i, p)} onDismiss={(p) => setDismissed((d) => ({ ...d, [i]: Object.assign([...(d[i] ?? [])], { [p]: true }) }))} />
           ))}
-          {live && <Bubble m={live.content || live.thinking || live.tools ? live : { role: 'assistant', content: '…' }} onRun={async () => {}} onDismiss={() => {}} dismissed={[]} />}
+          {live && (live.content || live.thinking || live.tools) && <Bubble m={live} onRun={async () => {}} onDismiss={() => {}} dismissed={[]} />}
+          {live && activity && <AiActivity phase={activity.phase} label={activity.label} />}
           {error && <span className="text-sm text-red-400">{error}</span>}
           <div ref={bottom} />
         </div>
