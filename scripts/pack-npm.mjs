@@ -32,7 +32,7 @@ rmSync('release-build/npm', { recursive: true, force: true })
 for (const v of variants) {
   const stage = `release-build/npm/stage-${v.dir}`
   mkdirSync(stage, { recursive: true })
-  for (const f of ['opnduck-tui.mjs', 'torch_upscale.py', 'demucs_separate.py', 'whisper_subtitles.py', 'beat_finder.py', 'plugin_worker.cjs']) copyFileSync(`dist-tui/${f}`, `${stage}/${f}`)
+  for (const f of ['opnduck-tui.mjs', 'torch_upscale.py', 'demucs_separate.py', 'whisper_subtitles.py', 'beat_finder.py', 'bg_remove.py', 'plugin_worker.cjs']) copyFileSync(`dist-tui/${f}`, `${stage}/${f}`)
   chmodSync(`${stage}/opnduck-tui.mjs`, 0o755)
   copyFileSync('LICENSE', `${stage}/LICENSE`)
   writeFileSync(`${stage}/README.md`, readme)

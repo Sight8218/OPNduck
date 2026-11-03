@@ -37,6 +37,7 @@ export function producesFor(tool: string, args: Record<string, unknown>, input: 
     case 'interpolate':
     case 'restore':
     case 'grade':
+    case 'remove_background':
       return 'video'
     case 'subtitles':
       return 'subtitle'
@@ -70,6 +71,7 @@ export const TITLES: Record<string, string> = {
   jump_cut: 'Jump cut and normalize',
   restore: 'Restore old video',
   grade: 'Colour grade',
+  remove_background: 'Remove background',
   tag_music: 'Tag music',
   audio_ai: 'AI audio',
 }

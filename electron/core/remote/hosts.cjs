@@ -41,6 +41,7 @@ const CHANNEL_KIND = {
   'tasks:startRestore': 'restore',
   'tasks:startBeatAnalyze': 'beat_analyze',
   'tasks:startGrade': 'grade',
+  'tasks:startBgRemove': 'remove_background',
   'tasks:startAudioAi': 'audio_ai',
 }
 const DOWNLOAD_ARGS = ['url', 'format', 'videoQuality', 'audioQuality', 'embedMeta']

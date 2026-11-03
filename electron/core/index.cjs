@@ -119,6 +119,7 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
   add('analyze', require('./analyze.cjs').createAnalyze)
   add('gif', require('./gif.cjs').createGif)
   add('jumpcut', require('./jumpcut.cjs').createJumpCut)
+  add('bgremove', require('./bg_remove.cjs').createBgRemove)
   add('grade', require('./grade.cjs').createGrade)
   add('beats', require('./beats.cjs').createBeats)
   add('restore', require('./restore.cjs').createRestore) // chains into the recipe runner, which is added last

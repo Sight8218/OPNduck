@@ -13,5 +13,5 @@ await build({
   banner: { js: '#!/usr/bin/env node' },
   logLevel: 'info',
 })
-for (const py of ['torch_upscale.py', 'demucs_separate.py', 'whisper_subtitles.py', 'beat_finder.py']) copyFileSync(`electron/${py}`, `dist-server/${py}`)
+for (const py of ['torch_upscale.py', 'demucs_separate.py', 'whisper_subtitles.py', 'beat_finder.py', 'bg_remove.py']) copyFileSync(`electron/${py}`, `dist-server/${py}`)
 copyFileSync('electron/core/plugin_worker.cjs', 'dist-server/plugin_worker.cjs')

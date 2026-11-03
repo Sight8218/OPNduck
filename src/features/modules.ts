@@ -31,6 +31,7 @@ import JumpCutCard from './jumpcut/JumpCutCard'
 import RestoreCard from './restore/RestoreCard'
 import BeatFinderCard from './beats/BeatFinderCard'
 import GradeCard from './grade/GradeCard'
+import BgRemoveCard from './bgremove/BgRemoveCard'
 import TaggerCard from './tagger/TaggerCard'
 import TrimCard from './trim/TrimCard'
 
@@ -150,6 +151,17 @@ export function registerCoreFeatures(): void {
       icon: 'tag',
       enabled: true,
       render: TaggerCard,
+      source: 'core',
+    },
+    {
+      id: 'bgremove',
+      title: 'Background Remover',
+      tagline: 'Cut people out · no green screen',
+      description: 'Cut a person or object out of a picture or video and put a transparent background, a colour, a blur or another picture behind it.',
+      scope: 'desktop-exclusive',
+      icon: 'bgremove',
+      enabled: true,
+      render: BgRemoveCard,
       source: 'core',
     },
     {

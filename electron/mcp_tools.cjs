@@ -204,6 +204,24 @@ const TOOLS = [
     },
   },
   {
+    name: 'remove_background',
+    description: 'Cut the person or object out of a picture or video with no green screen, and put a transparent background (PNG, WebM or ProRes), a flat colour, a blurred copy or another picture behind it. Needs the Background Remover add-on. Returns a job id.',
+    channel: 'tasks:startBgRemove',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        inputPath: FILE,
+        output: { type: 'string', enum: ['transparent', 'color', 'blur', 'image'], description: 'What goes behind. Default transparent.' },
+        color: { type: 'string', description: 'For output color: #rrggbb. Default #00ff00.' },
+        backgroundImage: { type: 'string', description: 'For output image: absolute path of the picture.' },
+        quality: { type: 'string', enum: ['fast', 'best'], description: 'Video: fast (small model) or best (bigger model, slower). Default fast.' },
+        format: { type: 'string', enum: ['webm', 'mov'], description: 'Transparent video: webm (VP9 with alpha) or mov (ProRes 4444). Default webm.' },
+      },
+      required: ['inputPath'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'grade',
     description: 'Colour grade a video: automatic fixes measured from the picture (levels, brightness, colour cast), a look (warm_film, teal_orange, bleach_bypass, bw_rich, vintage_fade, cool_night, or the id of an imported or matched look), and sliders. HDR video is tone-mapped to SDR first. Returns a job id.',
     channel: 'tasks:startGrade',
@@ -384,6 +402,7 @@ const STEP_TYPES = {
   trim: { accepts: ['video', 'audio'], produces: same },
   compress: { accepts: ['video', 'audio'], produces: same },
   make_gif: { accepts: ['video'], produces: 'image' },
+  remove_background: { accepts: ['video', 'image'], produces: (a, inputType) => inputType },
   grade: { accepts: ['video'], produces: 'video' },
   beat_analyze: { accepts: ['audio'], produces: 'audio' },
   beat_cut: { accepts: [], produces: 'video' }, // takes a song and a list of clips: a job of its own, never a recipe step
@@ -416,6 +435,7 @@ const DEFAULTS = {
   trim: { end: null, mode: 'fast' },
   compress: { quality: 'fast' },
   make_gif: { preset: 'gif', start: 0, end: null, loop: true },
+  remove_background: { output: 'transparent', quality: 'fast', format: 'webm' },
   grade: { auto: false },
   beat_analyze: { writeTags: false },
   beat_cut: { everyBeats: 4, shuffle: false, skipSeconds: 0 },

@@ -44,6 +44,7 @@ import type {
   BeatCutRequest,
   BeatAnalysis,
   GradeRequest,
+  BgRemoveRequest,
   RestorePreview,
   JumpCutAnalysis,
   TagLookup,
@@ -113,6 +114,7 @@ interface ElectronBridge {
   grade: Host['grade']
   transcripts: Host['transcripts']
   explainJob: Host['explainJob']
+  bgPreview: Host['bgPreview']
   cleanName: Host['cleanName']
   renameClean: Host['renameClean']
   beatsResult(taskId: string): Promise<BeatAnalysis | null>
@@ -126,6 +128,7 @@ interface ElectronBridge {
   checkFasterWhisper(): Promise<ToolStatus>
   checkDemucs(): Promise<ToolStatus>
   checkBeats(): Promise<ToolStatus>
+  checkBgRemove(): Promise<ToolStatus>
   dev: NonNullable<Host['dev']>
   mcp: { info(): Promise<McpInfo>; resetToken(): Promise<McpInfo> }
   plugins: HostPlugins
@@ -187,6 +190,7 @@ interface ElectronBridge {
     startGif(req: GifRequest): Promise<string>
     startJumpCut(req: JumpCutRequest): Promise<string>
     startRestore(req: RestoreRequest): Promise<string>
+    startBgRemove(req: BgRemoveRequest): Promise<string>
     startGrade(req: GradeRequest): Promise<string>
     startBeatAnalyze(req: BeatAnalyzeRequest): Promise<string>
     startBeatCut(req: BeatCutRequest): Promise<string>
@@ -268,6 +272,7 @@ export function detectElectronHost(): Host | null {
     grade: bridge.grade,
     transcripts: bridge.transcripts,
     explainJob: (id) => bridge.explainJob(id),
+    bgPreview: (p) => bridge.bgPreview(p),
     cleanName: (id) => bridge.cleanName(id),
     renameClean: (id) => bridge.renameClean(id),
     beatsResult: (id) => bridge.beatsResult(id),
@@ -281,6 +286,7 @@ export function detectElectronHost(): Host | null {
     checkFasterWhisper: () => bridge.checkFasterWhisper(),
     checkDemucs: () => bridge.checkDemucs(),
     checkBeats: () => bridge.checkBeats(),
+    checkBgRemove: () => bridge.checkBgRemove(),
     checkTorchEngine: () => bridge.checkTorchEngine(),
     probeMedia: (p) => bridge.probeMedia(p),
     mediaFrame: (p, t, w) => bridge.mediaFrame(p, t, w),
@@ -344,6 +350,7 @@ export function detectElectronHost(): Host | null {
       startGif: (req) => bridge.tasks.startGif(withRunOn('make_gif', req)),
       startJumpCut: (req) => bridge.tasks.startJumpCut(withRunOn('jump_cut', req)),
       startRestore: (req) => bridge.tasks.startRestore(withRunOn('restore', req)),
+      startBgRemove: (req) => bridge.tasks.startBgRemove(withRunOn('remove_background', req)),
       startGrade: (req) => bridge.tasks.startGrade(withRunOn('grade', req)),
       startBeatAnalyze: (req) => bridge.tasks.startBeatAnalyze(withRunOn('beat_analyze', req)),
       startBeatCut: (req) => bridge.tasks.startBeatCut(req),

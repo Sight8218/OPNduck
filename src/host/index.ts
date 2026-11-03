@@ -62,7 +62,7 @@ export interface BatchInfo {
 }
 
 /** Python tools OPNduck can install for you into its own environment. */
-export type PythonTool = 'demucs' | 'whisper' | 'whisper-gpu' | 'torch' | 'beats'
+export type PythonTool = 'demucs' | 'whisper' | 'whisper-gpu' | 'torch' | 'beats' | 'bgremove'
 
 export interface DownloadRequest {
   /** Set by the card when it starts several jobs at once. */
@@ -562,6 +562,21 @@ export interface AiState {
   detected: Record<string, { running: boolean; models: AiModel[] }>
 }
 
+export interface BgRemoveRequest {
+  batch?: BatchInfo
+  inputPath: string
+  output?: 'transparent' | 'color' | 'blur' | 'image'
+  /** #rrggbb for output "color". */
+  color?: string
+  backgroundImage?: string
+  quality?: 'fast' | 'best'
+  /** Transparent video: WebM (VP9 with alpha) or MOV (ProRes 4444). */
+  format?: 'webm' | 'mov'
+  /** Pictures: the rembg model. */
+  model?: 'u2net' | 'isnet-general-use' | 'birefnet-general'
+  destination?: string
+}
+
 export interface GradeValues {
   exposure: number
   contrast: number
@@ -726,7 +741,7 @@ export interface SubtitlesRequest {
   destination?: string
 }
 
-export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress' | 'tag' | 'gif' | 'jumpcut' | 'restore' | 'beats' | 'beatcut' | 'grade'
+export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress' | 'tag' | 'gif' | 'jumpcut' | 'restore' | 'beats' | 'beatcut' | 'grade' | 'bgremove'
 export type TaskStatus = 'queued' | 'running' | 'done' | 'error' | 'canceled'
 
 export interface TaskState {
@@ -816,6 +831,7 @@ export interface HostTasks {
   startGif(req: GifRequest): Promise<string>
   startJumpCut(req: JumpCutRequest): Promise<string>
   startRestore(req: RestoreRequest): Promise<string>
+  startBgRemove(req: BgRemoveRequest): Promise<string>
   startGrade(req: GradeRequest): Promise<string>
   startBeatAnalyze(req: BeatAnalyzeRequest): Promise<string>
   startBeatCut(req: BeatCutRequest): Promise<string>
@@ -1035,6 +1051,8 @@ export interface Host {
   renameClean(taskId: string): Promise<string>
   /** Why a failed job failed, in plain words, with a fix to click when there is one. Rules first; the model only when none matches. */
   explainJob(taskId: string): Promise<{ reason: string; fix: 'update_ytdlp' | 'cookies_firefox' | 'cpu_encoder' | 'retry' | null; fixLabel: string | null; source: 'rule' | 'ai' | 'none' }>
+  /** The cut-out of one frame as a transparent PNG data URL (starts no job). */
+  bgPreview(inputPath: string): Promise<string>
   /** The spoken words of the person's videos: search, summary, chapters and questions. All local; the AI parts need a model in Settings > AI. Desktop only. */
   transcripts: {
     list(): Promise<TranscriptInfo[]>
@@ -1088,6 +1106,7 @@ export interface Host {
   /** Python with torch + demucs + soundfile, for the AI Audio card. */
   checkDemucs(): Promise<ToolStatus>
   checkBeats(): Promise<ToolStatus>
+  checkBgRemove(): Promise<ToolStatus>
   /** Duration and size of a media file (ffprobe). Null if it can't be read. */
   probeMedia(path: string): Promise<MediaInfo | null>
   /** One frame of a video at `time` seconds as an image data URL (null if it can't be read). */
@@ -1357,6 +1376,9 @@ const browserTasks: HostTasks = {
     browserListeners.forEach((l) => l(browserTaskList))
     return id
   },
+  startBgRemove: async () => {
+    throw new Error('Desktop app required')
+  },
   startGrade: async () => {
     throw new Error('Desktop app required')
   },
@@ -1575,6 +1597,9 @@ const browserHost: Host = {
   renameClean: async () => {
     throw new Error('Desktop app required')
   },
+  bgPreview: async () => {
+    throw new Error('Desktop app required')
+  },
   explainJob: async () => {
     throw new Error('Desktop app required')
   },
@@ -1637,6 +1662,7 @@ const browserHost: Host = {
   checkFasterWhisper: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkDemucs: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkBeats: async () => ({ available: false, installHint: 'Desktop app required' }),
+  checkBgRemove: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkTorchEngine: async () => ({ available: false, nvidia: false }),
   probeMedia: async () => null,
   mediaFrame: async () => null,

@@ -432,6 +432,7 @@ ipcMain.handle('transcripts:ask', async (e, requestId, p, question) => {
     aiRuns.delete(String(requestId))
   }
 })
+ipcMain.handle('bgremove:preview', (_e, p) => modules.bgremove.preview(String(p)))
 ipcMain.handle('grade:looks', () => modules.grade.listLooks())
 ipcMain.handle('grade:auto', (_e, p) => modules.grade.autoGrade(String(p)))
 ipcMain.handle('grade:preview', (_e, req) => modules.grade.previewGrade(req))
@@ -463,6 +464,7 @@ ipcMain.handle('system:checkRife', () => tools.checkRife())
 ipcMain.handle('system:checkTorchEngine', () => tools.checkTorchEngine(torchEngineReady))
 ipcMain.handle('system:checkDemucs', () => tools.checkDemucs())
 ipcMain.handle('system:checkBeats', () => tools.checkBeats())
+ipcMain.handle('system:checkBgRemove', () => tools.checkBgRemove())
 ipcMain.handle('system:checkFasterWhisper', () => tools.checkFasterWhisper())
 ipcMain.handle('system:installTool', (e, tool) =>
   tools.installTool(tool, (line) => {

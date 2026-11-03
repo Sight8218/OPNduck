@@ -18,6 +18,7 @@ const MCP_NAME = {
   restore: 'restore',
   beats: 'beat_analyze',
   grade: 'grade',
+  bgremove: 'remove_background',
   tagger: 'tag_music',
 }
 
@@ -45,6 +46,8 @@ const LABELS = {
   fps: 'Frames per second',
   loop: 'Loop forever',
   writeTags: 'Write BPM and key tags',
+  output: 'Put behind it',
+  backgroundImage: 'Background picture',
   auto: 'Fix automatically',
   look: 'Look (id)',
   intensity: 'Look strength (0-1)',

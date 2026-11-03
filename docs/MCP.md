@@ -22,6 +22,7 @@ Any client that can start a stdio MCP server works. Clients that only accept a w
 | `trim` | cut a section out of a file |
 | `list_recipes`, `run_recipe` | list saved recipes (chains of tools) and run one on a file or link; the steps appear as one group |
 | `suggest_settings` | look at a file and suggest settings for a tool (model, scale, remux or re-encode...), with the reason for each; starts nothing |
+| `remove_background` | cut a person or object out of a picture or video with no green screen; transparent, a colour, a blur or another picture behind it (needs the Background Remover add-on) |
 | `grade` | colour grade a video: automatic fixes, a look (six built in, your own .cube files, or matched to a picture) and sliders; HDR is tone-mapped to SDR first |
 | `beat_analyze` | find the tempo (BPM), beats and key of a song; optionally write them as tags (needs the Beat Finder install) |
 | `beat_cut` | make a montage that switches clips on the beat of a song |

@@ -131,6 +131,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   cleanName: (id) => ipcRenderer.invoke('files:cleanName', id),
   renameClean: (id) => ipcRenderer.invoke('files:rename', id),
   explainJob: (id) => ipcRenderer.invoke('jobs:explain', id),
+  bgPreview: (p) => ipcRenderer.invoke('bgremove:preview', p),
   transcripts: {
     list: () => ipcRenderer.invoke('transcripts:list'),
     has: (p) => ipcRenderer.invoke('transcripts:has', p),
@@ -160,6 +161,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   },
   checkDemucs: () => ipcRenderer.invoke('system:checkDemucs'),
   checkBeats: () => ipcRenderer.invoke('system:checkBeats'),
+  checkBgRemove: () => ipcRenderer.invoke('system:checkBgRemove'),
   checkLibreOffice: () => ipcRenderer.invoke('system:checkLibreOffice'),
   checkRealesrgan: () => ipcRenderer.invoke('system:checkRealesrgan'),
   checkRife: () => ipcRenderer.invoke('system:checkRife'),
@@ -280,6 +282,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     startRestore: (req) => ipcRenderer.invoke('tasks:startRestore', req),
     startBeatAnalyze: (req) => ipcRenderer.invoke('tasks:startBeatAnalyze', req),
     startBeatCut: (req) => ipcRenderer.invoke('tasks:startBeatCut', req),
+    startBgRemove: (req) => ipcRenderer.invoke('tasks:startBgRemove', req),
     startGrade: (req) => ipcRenderer.invoke('tasks:startGrade', req),
     startSubtitles: (req) => ipcRenderer.invoke('tasks:startSubtitles', req),
     cancel: (taskId) => ipcRenderer.send('tasks:cancel', taskId),
