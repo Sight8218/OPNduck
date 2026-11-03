@@ -20,8 +20,8 @@ jobs:
     outputs:
       version: ${{ steps.v.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - id: v
@@ -38,7 +38,7 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Build and pack
         run: node scripts/pack-npm.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: npm-packages
           path: release-build/npm/*.tgz
@@ -51,13 +51,13 @@ jobs:
       contents: read
       id-token: write # npm trusted publishing + provenance
     steps:
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
       - name: Use a recent npm (trusted publishing needs 11.5.1+)
         run: npm install -g npm@latest
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: npm-packages
       - name: Publish to the npm registry
@@ -70,11 +70,11 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           registry-url: https://npm.pkg.github.com
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: npm-packages
       - name: Publish to GitHub Packages
