@@ -173,7 +173,7 @@ export default function ChatPage() {
         if (requestId === request) {
           if (event.type === 'text') setActivity({ phase: 'responding' })
           else if (event.type === 'thinking') setActivity({ phase: 'thinking' })
-          else if (event.type === 'tool_call') setActivity(isLookup(event.name) ? { phase: 'searching', label: lookupLabel(event.name) } : { phase: 'planning' })
+          else if (event.type === 'tool_call') setActivity(isLookup(event.name) ? { phase: 'searching', label: lookupLabel(event.name, event.args) } : { phase: 'planning' })
           else if (event.type === 'tool_result') setActivity({ phase: 'thinking', label: 'Reading what it found' })
         }
         setLive((cur) => {

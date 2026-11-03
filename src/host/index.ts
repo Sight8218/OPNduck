@@ -500,6 +500,8 @@ export interface AiSettings {
   monthlyTokenLimit: number
   idleEject: 0 | 5 | 15 | 30 | 60
   dir: string
+  /** Internet access for the assistant: a web search and reading pages. */
+  web: { enabled: boolean; search: 'wikipedia' | 'duckduckgo' | 'brave' | 'searxng'; searxngUrl: string }
 }
 export interface AiModel {
   id: string

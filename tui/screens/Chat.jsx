@@ -7,6 +7,7 @@ import { systemPrompt } from '../../electron/core/ai/prompt.cjs'
 import { propose } from '../../electron/core/ai/tools.cjs'
 import { suggest } from '../../electron/core/autosettings.cjs'
 import { toPatch } from '../../electron/core/ai/app_settings.cjs'
+import { createWeb } from '../../electron/core/ai/web.cjs'
 
 const clip = (text, n) => (text.length > n ? text.slice(0, Math.max(1, n - 1)) + '…' : text)
 
@@ -35,6 +36,7 @@ export default function Chat({ theme, core, onTyping }) {
     return () => onTyping(false)
   }, [busy, proposals.length, onTyping])
 
+  const web = useRef(createWeb({ getConfig: () => core.settings.getSettings().ai.web, braveKey: () => core.aiKeys.get('brave-search') })).current
   const deps = () => ({
     tasks: core.engine.tasks,
     isKnownFile: core.isKnownFile,
@@ -44,6 +46,7 @@ export default function Chat({ theme, core, onTyping }) {
     recipes: core.recipes,
     getRecipe: (id) => core.recipes.get(id),
     getSettings: core.settings.getSettings,
+    web: core.settings.getSettings().ai.web.enabled ? web : null,
   })
 
   async function send(text) {
@@ -60,7 +63,7 @@ export default function Chat({ theme, core, onTyping }) {
       const r = await core.ai.agent({
         messages: next.slice(-30),
         deps: deps(),
-        system: systemPrompt({ files: core.knownFiles(), recentJobs: jobs }),
+        system: systemPrompt({ files: core.knownFiles(), recentJobs: jobs, web: core.settings.getSettings().ai.web.enabled }),
         signal: abort.current.signal,
         onEvent: (ev) => ev.type === 'text' && setLive((t) => t + ev.delta),
       })

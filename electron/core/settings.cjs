@@ -80,6 +80,8 @@ const DEFAULTS = {
     idleEject: 15, // minutes without a question before the local model is ejected; 0 = never
     monthlyTokenLimit: 0, // cloud providers: stop at this many tokens a month; 0 = no limit
     dir: '', // where the local engine and models are kept; '' = the app's data folder
+    /** Internet access for the assistant: a web search and reading pages. Off until turned on. */
+    web: { enabled: false, search: 'wikipedia', searxngUrl: '' }, // search: 'wikipedia' | 'brave' (key in the AI keys) | 'searxng' | 'duckduckgo' (best effort)
   },
   maxDownloads: 3,
   maxConversions: 2,
@@ -168,6 +170,8 @@ function validate(next) {
   if (typeof ai.dir !== 'string' || (ai.dir !== '' && !path.isAbsolute(ai.dir))) throw new Error('The AI folder must be an absolute path')
   for (const k of ['model', 'machineUrl', 'customUrl', 'cloud']) if (typeof ai[k] !== 'string' || ai[k].length > 300) throw new Error(`Invalid AI ${k}`)
   for (const k of ['machineUrl', 'customUrl']) if (ai[k] && !/^https?:\/\/[^\s]+$/.test(ai[k])) throw new Error('Addresses start with https:// (or http:// on this computer or Tailscale)')
+  const wb = ai.web
+  if (!wb || typeof wb.enabled !== 'boolean' || !['wikipedia', 'duckduckgo', 'brave', 'searxng'].includes(wb.search) || typeof wb.searxngUrl !== 'string' || wb.searxngUrl.length > 300 || (wb.searxngUrl && !/^https?:\/\/[^\s]+$/.test(wb.searxngUrl))) throw new Error('Invalid internet access setting')
   const sc = next.schedule
   const clock = /^([01]\d|2[0-3]):[0-5]\d$/
   if (!sc || ['window', 'battery', 'heat', 'idle', 'downloads', 'powerConfirmed'].some((k) => typeof sc[k] !== 'boolean')) throw new Error('Invalid scheduling setting')

@@ -52,6 +52,7 @@ export default function AiCard() {
   const [state, setState] = useState<AiState | null>(null)
   const [models, setModels] = useState<AiModel[]>([])
   const [keyText, setKeyText] = useState('')
+  const [braveKey, setBraveKey] = useState('')
   const [token, setToken] = useState('')
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -308,6 +309,68 @@ export default function AiCard() {
               <input type="checkbox" className="accent-[var(--accent)]" checked={ai.keepChats} onChange={(e) => void save({ keepChats: e.target.checked })} />
               Keep my conversations on this computer
             </label>
+            <div className="flex flex-col gap-2 border-t border-[var(--glass-border)] pt-3">
+              <label className="flex cursor-pointer items-start gap-2 text-sm">
+                <input type="checkbox" className="mt-1 accent-[var(--accent)]" checked={ai.web.enabled} onChange={(e) => void save({ web: { ...ai.web, enabled: e.target.checked } })} />
+                <span>
+                  Let the assistant use the internet
+                  <span className="block text-[11px] text-[var(--text-dim)]">
+                    It can search the web and read pages to answer you. It never opens addresses on this computer or your own network, and what it reads is only information: it cannot make it do anything.
+                    {ai.provider === 'cloud' ? ' What it reads is sent to your cloud provider.' : ' Only the search words leave this computer.'}
+                  </span>
+                </span>
+              </label>
+              {ai.web.enabled && (
+                <div className="flex flex-col gap-2 pl-6">
+                  <GlassSelect
+                    id="ai-web-search"
+                    options={[
+                      { value: 'wikipedia', label: 'Wikipedia (no account, facts and explanations)' },
+                      { value: 'brave', label: 'Brave Search (the whole web, your free key)' },
+                      { value: 'searxng', label: 'My own SearXNG server (the whole web)' },
+                      { value: 'duckduckgo', label: 'DuckDuckGo (no account, often refused)' },
+                    ]}
+                    value={ai.web.search}
+                    onChange={(v) => void save({ web: { ...ai.web, search: v as AiSettings['web']['search'] } })}
+                  />
+                  {ai.web.search === 'searxng' && (
+                    <input
+                      className="glass-input"
+                      aria-label="SearXNG address"
+                      placeholder="https://searx.example.com"
+                      defaultValue={ai.web.searxngUrl}
+                      onBlur={(e) => e.target.value !== ai.web.searxngUrl && void save({ web: { ...ai.web, searxngUrl: e.target.value.trim() } })}
+                    />
+                  )}
+                  {ai.web.search === 'brave' &&
+                    (state.keys.includes('brave-search') ? (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-[var(--text-dim)]">Brave Search key saved.</span>
+                        <button type="button" className="glass-btn px-3 py-1" onClick={() => void host.ai.removeKey('brave-search').then(refresh)}>
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input type="password" className="glass-input min-w-0 flex-1" aria-label="Brave Search key" placeholder="Paste your Brave Search API key" value={braveKey} onChange={(e) => setBraveKey(e.target.value)} autoComplete="off" />
+                        <button
+                          type="button"
+                          className="glass-btn px-3 py-1.5 text-xs"
+                          disabled={!braveKey.trim()}
+                          onClick={() =>
+                            void host.ai
+                              .setKey('brave-search', braveKey.trim())
+                              .then(() => (setBraveKey(''), refresh()))
+                              .catch((e) => setNote({ ok: false, text: clean(e) }))
+                          }
+                        >
+                          Save
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
           </>
         )}
         {ai.provider === 'off' && note && <span className="text-xs text-red-400">{note.text}</span>}

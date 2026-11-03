@@ -298,6 +298,7 @@ ipcMain.handle('recipes:resume', (_e, runId) => core.recipes.resume(String(runId
 /* --- AI: which model answers (Settings > AI). The keys never go to the window; it only learns which providers have one. --- */
 ipcMain.handle('ai:state', async () => ({ keys: core.aiKeys.has(), encrypted: safeStorage.isEncryptionAvailable(), cloud: Object.fromEntries(Object.entries(core.ai.CLOUD).map(([id, c]) => [id, c.label])), detected: await core.ai.detect() }))
 const { systemPrompt } = require('./core/ai/prompt.cjs')
+const aiWeb = require('./core/ai/web.cjs').createWeb({ getConfig: () => getSettings().ai.web, braveKey: () => core.aiKeys.get('brave-search') })
 const aiRuns = new Map() // requestId -> AbortController
 const aiDev = require('./core/ai/devmode.cjs').createDevGate()
 ipcMain.handle('ai:dev:unlock', (_e, user, password) => aiDev.unlock(user, password))
@@ -312,6 +313,7 @@ const aiDeps = () => ({
   recipes: core.recipes,
   getRecipe: (id) => core.recipes.get(id),
   getSettings,
+  web: getSettings().ai.web.enabled ? aiWeb : null,
 })
 /** One question to the assistant. Progress goes to the window as 'ai:event' (text, thinking, tool results); the answer and the proposed jobs come back here. */
 ipcMain.handle('ai:send', async (e, req) => {
@@ -322,7 +324,7 @@ ipcMain.handle('ai:send', async (e, req) => {
   aiRuns.set(requestId, controller)
   try {
     const jobs = [...engine.tasks.values()].slice(-8).map((t) => `${t.state.kind} ${t.state.status}: ${t.state.label}`)
-    const r = await core.ai.agent({ messages, deps: aiDeps(), system: [systemPrompt({ files: core.knownFiles(), recentJobs: jobs }), aiDev.addendum()].filter(Boolean).join('\n\n'), signal: controller.signal, onEvent: (ev) => e.sender.send('ai:event', { requestId, event: ev }) })
+    const r = await core.ai.agent({ messages, deps: aiDeps(), system: [systemPrompt({ files: core.knownFiles(), recentJobs: jobs, web: getSettings().ai.web.enabled }), aiDev.addendum()].filter(Boolean).join('\n\n'), signal: controller.signal, onEvent: (ev) => e.sender.send('ai:event', { requestId, event: ev }) })
     return { message: r.message.content, proposals: r.proposals.map(({ tool, args }) => ({ tool, args })), usage: r.usage }
   } catch (err) {
     if (controller.signal.aborted) return { message: '', proposals: [], usage: null, aborted: true }

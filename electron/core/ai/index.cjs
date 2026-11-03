@@ -200,7 +200,7 @@ function createAi({ getSettings, keys, local = null, usage = null, fetchFn = fet
    */
   async function agent({ messages, deps, system, signal, onEvent = () => {}, jsonSchema }) {
     const history = [...(system ? [{ role: 'system', content: system }] : []), ...messages]
-    const defs = tools.definitions()
+    const defs = tools.definitions({ web: !!deps?.web })
     const proposals = []
     let calls = 0
     const usage = { input: 0, output: 0 }

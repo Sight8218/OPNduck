@@ -482,3 +482,29 @@ test('theme names match the palettes; change_setting only takes known, valid, sa
     assert.doesNotThrow(() => S.validate(base), key)
   }
 })
+
+test('the agent loop with internet access: it searches, reads a page, and answers; with access off the tools are not even offered', async () => {
+  let round = 0
+  const s = await server(() => {
+    round++
+    if (round === 1) return { events: [[null, { choices: [{ delta: { tool_calls: [{ index: 0, id: 'a', function: { name: 'web_search', arguments: '{"query":"boil potatoes"}' } }] } }] }], [null, '[DONE]']] }
+    if (round === 2) return { events: [[null, { choices: [{ delta: { tool_calls: [{ index: 0, id: 'b', function: { name: 'read_page', arguments: '{"url":"https://en.wikipedia.org/wiki/Potato"}' } }] } }] }], [null, '[DONE]']] }
+    return { events: [[null, { choices: [{ delta: { content: 'About 15 minutes (en.wikipedia.org/wiki/Potato).' } }] }], [null, '[DONE]']] }
+  })
+  try {
+    const ai = makeAi({ provider: 'machine', model: 'm', machineUrl: `${s.url}/v1` })
+    const web = { search: async (q) => [{ title: q, url: 'https://en.wikipedia.org/wiki/Potato', snippet: 's' }], readPage: async (u) => ({ url: u, title: 'Potato', text: 'Boil for 15 minutes.', cut: false }) }
+    const events = []
+    const r = await ai.agent({ messages: [{ role: 'user', content: 'how long to boil potatoes' }], deps: { ...deps(), web }, onEvent: (e) => events.push(e.type === 'tool_result' ? e.name : e.type) })
+    assert.match(r.message.content, /15 minutes/)
+    assert.deepEqual(events.filter((e) => ['web_search', 'read_page'].includes(e)), ['web_search', 'read_page'])
+    assert.ok(s.seen[0].body.tools.some((t) => t.function.name === 'web_search'))
+    assert.match(s.seen[2].body.messages.filter((m) => m.role === 'tool')[1].content, /Boil for 15 minutes/)
+    round = 2 // now without internet access
+    s.seen.length = 0
+    await ai.agent({ messages: [{ role: 'user', content: 'x' }], deps: deps() })
+    assert.ok(!s.seen[0].body.tools.some((t) => t.function.name === 'web_search'))
+  } finally {
+    await s.close()
+  }
+})

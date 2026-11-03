@@ -30,10 +30,22 @@ const LOOKUPS: Record<string, string> = {
   job_status: 'Checking a job',
   list_recipes: 'Looking at your recipes',
   suggest_settings: 'Working out good settings',
+  web_search: 'Searching the web',
+  read_page: 'Reading a web page',
   list_settings: 'Looking at the settings',
 }
 export const isLookup = (tool: string) => tool in LOOKUPS
-export const lookupLabel = (tool: string) => LOOKUPS[tool] ?? 'Looking something up'
+export const lookupLabel = (tool: string, args: Record<string, unknown> = {}) => {
+  if (tool === 'web_search' && typeof args.query === 'string') return `Searching the web for "${args.query.slice(0, 40)}"`
+  if (tool === 'read_page' && typeof args.url === 'string') {
+    try {
+      return `Reading ${new URL(args.url).hostname}`
+    } catch {
+      /* fall through to the plain words */
+    }
+  }
+  return LOOKUPS[tool] ?? 'Looking something up'
+}
 
 const LABELS: Record<AiPhase, string> = { waking: 'Waking the model', thinking: 'Thinking', searching: 'Looking something up', planning: 'Preparing a plan', responding: 'Writing' }
 
