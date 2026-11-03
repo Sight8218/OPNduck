@@ -306,6 +306,7 @@ function createTools(platform) {
     demucs: ['torch', 'demucs', 'soundfile'],
     whisper: ['faster-whisper'],
     torch: ['torch', 'numpy'], // the fast video upscaling engine (CUDA PyTorch)
+    dub: ['torch', 'demucs', 'soundfile', 'faster-whisper', 'argostranslate', 'piper-tts', 'numpy'],
     bgremove: ['rembg', 'onnxruntime', 'torchvision', 'pillow', 'numpy'], // Background Remover (torch is already there for the upscaler)
     beats: ['librosa', 'soundfile'], // Beat Finder: tempo, beats and key (small, no PyTorch)
     'whisper-gpu': ['faster-whisper', 'nvidia-cublas-cu12', 'nvidia-cudnn-cu12'],
@@ -452,6 +453,10 @@ function createTools(platform) {
     }
   }
 
+  async function checkDub() {
+    return { available: await cachedEngineCheck('dub', demucsPython(), 'import faster_whisper, argostranslate, piper, demucs'), installHint: 'pip install faster-whisper argostranslate piper-tts demucs' }
+  }
+
   async function checkBgRemove() {
     return { available: await cachedEngineCheck('bgremove', demucsPython(), 'import rembg, torchvision, PIL'), installHint: 'pip install rembg onnxruntime torchvision pillow' }
   }
@@ -526,7 +531,7 @@ function createTools(platform) {
     venvHasPackage, hasNvidiaGpu, venvNvidiaLibDirs, cachedEngineCheck, clearEngineCache,
     VENV_DIR, VENV_PYTHON,
     checkYtDlp, installYtDlp, checkLibreOffice, checkFfmpeg, checkFpcalc, fpcalcInstallHint, checkRealesrgan, checkRife,
-    checkBeats, checkBgRemove, checkTorchEngine, checkDemucs, checkFasterWhisper, installTool, cancelInstall,
+    checkBeats, checkBgRemove, checkDub, checkTorchEngine, checkDemucs, checkFasterWhisper, installTool, cancelInstall,
   }
 }
 

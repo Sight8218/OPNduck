@@ -42,6 +42,7 @@ const CHANNEL_KIND = {
   'tasks:startBeatAnalyze': 'beat_analyze',
   'tasks:startGrade': 'grade',
   'tasks:startBgRemove': 'remove_background',
+  'tasks:startDub': 'dub_video',
   'tasks:startAudioAi': 'audio_ai',
 }
 const DOWNLOAD_ARGS = ['url', 'format', 'videoQuality', 'audioQuality', 'embedMeta']

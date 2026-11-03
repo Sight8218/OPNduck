@@ -222,6 +222,24 @@ const TOOLS = [
     },
   },
   {
+    name: 'dub_video',
+    description: 'Make a video speak another language, all on this computer: the voice is split from the music, written down, translated, spoken by a local voice and fitted into the timing, and the picture is not re-encoded. Needs the Dubbing add-on. Returns a job id.',
+    channel: 'tasks:startDub',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        inputPath: FILE,
+        target: { type: 'string', enum: ['en', 'sv', 'de', 'fr', 'es', 'it'], description: 'The language to dub into.' },
+        source: { type: 'string', description: "The spoken language as a code like 'en', or 'auto' to detect it. Default auto." },
+        placement: { type: 'string', enum: ['track', 'replace'], description: 'track adds the dub as the first audio track and keeps the original as a second; replace leaves only the dub. Default track.' },
+        keepOriginal: { type: 'boolean', description: 'Keep the original voice very quiet under the new one. Default false.' },
+        whisperModel: { type: 'string', enum: ['tiny', 'base', 'small', 'medium'], description: 'Listening model: bigger is more accurate and slower. Default base.' },
+      },
+      required: ['inputPath', 'target'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'grade',
     description: 'Colour grade a video: automatic fixes measured from the picture (levels, brightness, colour cast), a look (warm_film, teal_orange, bleach_bypass, bw_rich, vintage_fade, cool_night, or the id of an imported or matched look), and sliders. HDR video is tone-mapped to SDR first. Returns a job id.',
     channel: 'tasks:startGrade',
@@ -404,6 +422,7 @@ const STEP_TYPES = {
   make_gif: { accepts: ['video'], produces: 'image' },
   remove_background: { accepts: ['video', 'image'], produces: (a, inputType) => inputType },
   grade: { accepts: ['video'], produces: 'video' },
+  dub_video: { accepts: ['video'], produces: 'video' },
   beat_analyze: { accepts: ['audio'], produces: 'audio' },
   beat_cut: { accepts: [], produces: 'video' }, // takes a song and a list of clips: a job of its own, never a recipe step
   restore: { accepts: ['video'], produces: 'video' },
@@ -437,6 +456,7 @@ const DEFAULTS = {
   make_gif: { preset: 'gif', start: 0, end: null, loop: true },
   remove_background: { output: 'transparent', quality: 'fast', format: 'webm' },
   grade: { auto: false },
+  dub_video: { source: 'auto', placement: 'track', keepOriginal: false, whisperModel: 'base' },
   beat_analyze: { writeTags: false },
   beat_cut: { everyBeats: 4, shuffle: false, skipSeconds: 0 },
   restore: { deinterlace: 'auto', denoise: 'off', stabilize: false, fixColors: false },

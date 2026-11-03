@@ -465,6 +465,7 @@ ipcMain.handle('system:checkTorchEngine', () => tools.checkTorchEngine(torchEngi
 ipcMain.handle('system:checkDemucs', () => tools.checkDemucs())
 ipcMain.handle('system:checkBeats', () => tools.checkBeats())
 ipcMain.handle('system:checkBgRemove', () => tools.checkBgRemove())
+ipcMain.handle('system:checkDub', () => tools.checkDub())
 ipcMain.handle('system:checkFasterWhisper', () => tools.checkFasterWhisper())
 ipcMain.handle('system:installTool', (e, tool) =>
   tools.installTool(tool, (line) => {

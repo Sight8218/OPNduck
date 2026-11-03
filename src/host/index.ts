@@ -62,7 +62,7 @@ export interface BatchInfo {
 }
 
 /** Python tools OPNduck can install for you into its own environment. */
-export type PythonTool = 'demucs' | 'whisper' | 'whisper-gpu' | 'torch' | 'beats' | 'bgremove'
+export type PythonTool = 'demucs' | 'whisper' | 'whisper-gpu' | 'torch' | 'beats' | 'bgremove' | 'dub'
 
 export interface DownloadRequest {
   /** Set by the card when it starts several jobs at once. */
@@ -577,6 +577,20 @@ export interface BgRemoveRequest {
   destination?: string
 }
 
+export interface DubRequest {
+  batch?: BatchInfo
+  inputPath: string
+  /** The language to dub into. */
+  target: 'en' | 'sv' | 'de' | 'fr' | 'es' | 'it'
+  /** The spoken language as a code, or 'auto'. */
+  source?: string
+  /** track: dub first and the original second; replace: only the dub. */
+  placement?: 'track' | 'replace'
+  keepOriginal?: boolean
+  whisperModel?: 'tiny' | 'base' | 'small' | 'medium'
+  destination?: string
+}
+
 export interface GradeValues {
   exposure: number
   contrast: number
@@ -741,7 +755,7 @@ export interface SubtitlesRequest {
   destination?: string
 }
 
-export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress' | 'tag' | 'gif' | 'jumpcut' | 'restore' | 'beats' | 'beatcut' | 'grade' | 'bgremove'
+export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress' | 'tag' | 'gif' | 'jumpcut' | 'restore' | 'beats' | 'beatcut' | 'grade' | 'bgremove' | 'dub'
 export type TaskStatus = 'queued' | 'running' | 'done' | 'error' | 'canceled'
 
 export interface TaskState {
@@ -832,6 +846,7 @@ export interface HostTasks {
   startJumpCut(req: JumpCutRequest): Promise<string>
   startRestore(req: RestoreRequest): Promise<string>
   startBgRemove(req: BgRemoveRequest): Promise<string>
+  startDub(req: DubRequest): Promise<string>
   startGrade(req: GradeRequest): Promise<string>
   startBeatAnalyze(req: BeatAnalyzeRequest): Promise<string>
   startBeatCut(req: BeatCutRequest): Promise<string>
@@ -1107,6 +1122,7 @@ export interface Host {
   checkDemucs(): Promise<ToolStatus>
   checkBeats(): Promise<ToolStatus>
   checkBgRemove(): Promise<ToolStatus>
+  checkDub(): Promise<ToolStatus>
   /** Duration and size of a media file (ffprobe). Null if it can't be read. */
   probeMedia(path: string): Promise<MediaInfo | null>
   /** One frame of a video at `time` seconds as an image data URL (null if it can't be read). */
@@ -1377,6 +1393,9 @@ const browserTasks: HostTasks = {
     return id
   },
   startBgRemove: async () => {
+    throw new Error('Desktop app required')
+  },
+  startDub: async () => {
     throw new Error('Desktop app required')
   },
   startGrade: async () => {
@@ -1663,6 +1682,7 @@ const browserHost: Host = {
   checkDemucs: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkBeats: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkBgRemove: async () => ({ available: false, installHint: 'Desktop app required' }),
+  checkDub: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkTorchEngine: async () => ({ available: false, nvidia: false }),
   probeMedia: async () => null,
   mediaFrame: async () => null,

@@ -11,6 +11,7 @@ import {
   IconMusic,
   IconPalette,
   IconPhotoOff,
+  IconLanguage,
   IconScissors,
   IconTags,
   IconTextCaption,
@@ -36,6 +37,7 @@ const FEATURE_ICONS: Record<string, Icon> = {
   beats: IconMusic,
   grade: IconPalette,
   bgremove: IconPhotoOff,
+  dub: IconLanguage,
 }
 
 export function FeatureIcon({ name, size = 22 }: { name: string; size?: number }) {

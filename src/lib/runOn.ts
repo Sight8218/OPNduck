@@ -33,6 +33,7 @@ export const FEATURE_KIND: Record<string, string> = {
   beats: 'beat_analyze',
   grade: 'grade',
   bgremove: 'remove_background',
+  dub: 'dub_video',
 }
 
 const key = (kind: string) => `opnduck:runOn:${kind}`

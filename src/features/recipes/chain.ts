@@ -38,6 +38,7 @@ export function producesFor(tool: string, args: Record<string, unknown>, input: 
     case 'restore':
     case 'grade':
     case 'remove_background':
+    case 'dub_video':
       return 'video'
     case 'subtitles':
       return 'subtitle'
@@ -72,6 +73,7 @@ export const TITLES: Record<string, string> = {
   restore: 'Restore old video',
   grade: 'Colour grade',
   remove_background: 'Remove background',
+  dub_video: 'Dub into another language',
   tag_music: 'Tag music',
   audio_ai: 'AI audio',
 }

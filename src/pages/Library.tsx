@@ -59,6 +59,7 @@ const RUNNING_LABEL: Record<TaskState['kind'], string> = {
   restore: 'Restoring',
   grade: 'Grading',
   bgremove: 'Cutting out',
+  dub: 'Dubbing',
   beats: 'Finding the beat',
   beatcut: 'Cutting to the beat',
 }

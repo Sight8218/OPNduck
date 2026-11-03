@@ -45,6 +45,7 @@ import type {
   BeatAnalysis,
   GradeRequest,
   BgRemoveRequest,
+  DubRequest,
   RestorePreview,
   JumpCutAnalysis,
   TagLookup,
@@ -129,6 +130,7 @@ interface ElectronBridge {
   checkDemucs(): Promise<ToolStatus>
   checkBeats(): Promise<ToolStatus>
   checkBgRemove(): Promise<ToolStatus>
+  checkDub(): Promise<ToolStatus>
   dev: NonNullable<Host['dev']>
   mcp: { info(): Promise<McpInfo>; resetToken(): Promise<McpInfo> }
   plugins: HostPlugins
@@ -191,6 +193,7 @@ interface ElectronBridge {
     startJumpCut(req: JumpCutRequest): Promise<string>
     startRestore(req: RestoreRequest): Promise<string>
     startBgRemove(req: BgRemoveRequest): Promise<string>
+    startDub(req: DubRequest): Promise<string>
     startGrade(req: GradeRequest): Promise<string>
     startBeatAnalyze(req: BeatAnalyzeRequest): Promise<string>
     startBeatCut(req: BeatCutRequest): Promise<string>
@@ -287,6 +290,7 @@ export function detectElectronHost(): Host | null {
     checkDemucs: () => bridge.checkDemucs(),
     checkBeats: () => bridge.checkBeats(),
     checkBgRemove: () => bridge.checkBgRemove(),
+    checkDub: () => bridge.checkDub(),
     checkTorchEngine: () => bridge.checkTorchEngine(),
     probeMedia: (p) => bridge.probeMedia(p),
     mediaFrame: (p, t, w) => bridge.mediaFrame(p, t, w),
@@ -351,6 +355,7 @@ export function detectElectronHost(): Host | null {
       startJumpCut: (req) => bridge.tasks.startJumpCut(withRunOn('jump_cut', req)),
       startRestore: (req) => bridge.tasks.startRestore(withRunOn('restore', req)),
       startBgRemove: (req) => bridge.tasks.startBgRemove(withRunOn('remove_background', req)),
+      startDub: (req) => bridge.tasks.startDub(withRunOn('dub_video', req)),
       startGrade: (req) => bridge.tasks.startGrade(withRunOn('grade', req)),
       startBeatAnalyze: (req) => bridge.tasks.startBeatAnalyze(withRunOn('beat_analyze', req)),
       startBeatCut: (req) => bridge.tasks.startBeatCut(req),

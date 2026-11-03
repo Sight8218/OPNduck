@@ -19,6 +19,7 @@ const MCP_NAME = {
   beats: 'beat_analyze',
   grade: 'grade',
   bgremove: 'remove_background',
+  dub: 'dub_video',
   tagger: 'tag_music',
 }
 

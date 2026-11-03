@@ -32,6 +32,7 @@ import RestoreCard from './restore/RestoreCard'
 import BeatFinderCard from './beats/BeatFinderCard'
 import GradeCard from './grade/GradeCard'
 import BgRemoveCard from './bgremove/BgRemoveCard'
+import DubCard from './dub/DubCard'
 import TaggerCard from './tagger/TaggerCard'
 import TrimCard from './trim/TrimCard'
 
@@ -162,6 +163,17 @@ export function registerCoreFeatures(): void {
       icon: 'bgremove',
       enabled: true,
       render: BgRemoveCard,
+      source: 'core',
+    },
+    {
+      id: 'dub',
+      title: 'Dubbing',
+      tagline: 'Another language · local voice',
+      description: 'Make a video speak another language with a local voice. Beta: the voice is not cloned.',
+      scope: 'desktop-exclusive',
+      icon: 'dub',
+      enabled: true,
+      render: DubCard,
       source: 'core',
     },
     {
