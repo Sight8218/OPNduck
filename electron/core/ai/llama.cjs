@@ -347,6 +347,10 @@ function createLlama({ dir, getSettings, fetchFn = fetch, sources = {}, log = ()
     if (c) {
       try {
         c.kill()
+        // A server busy with a long answer can ignore the polite stop and keep holding the graphics memory.
+        setTimeout(() => {
+          if (c.exitCode === null && c.signalCode === null) c.kill('SIGKILL')
+        }, 3000).unref()
       } catch {
         /* already gone */
       }

@@ -1502,6 +1502,7 @@ app.on('before-quit', () => {
   ntfyRelay?.stop()
   void mcp?.stop()
   void core.plugins.shutdown()
+  core.llama.eject() // or the model's server keeps running, and keeps the graphics memory, after OPNduck is closed
 })
 
 // Don't orphan ffmpeg/soffice/python on exit, and don't lose a result that finished inside
