@@ -58,18 +58,20 @@ function limiter(max, now) {
  * @param {object} deps.platform  for the 'tasks:update' event
  * @param {ReturnType<import('./devices.cjs').createDevices>} deps.devices
  * @param {ReturnType<import('./uploads.cjs').createUploads>} [deps.uploads]  without it, file jobs and uploads are off
+ * @param {{ get(id: string): object|null, run(id: string, input: string): Promise<{ taskIds: string[] }> }} [deps.recipes]  without it, link recipes are off
  * @param {() => string} deps.name
  * @param {string} deps.version
  * @param {() => object} [deps.info]  extra capabilities for /info (gpus, free disk, tool checks)
  * @param {(line: string) => void} [deps.log]
  */
-function createV1({ engine, platform, devices, uploads = null, name, version, info = () => ({}), log = () => {}, now = Date.now }) {
+function createV1({ engine, platform, devices, uploads = null, recipes = null, name, version, info = () => ({}), log = () => {}, now = Date.now }) {
   const pairLimit = limiter(PAIR_PER_MIN, now)
   const authLimit = limiter(BAD_AUTH_PER_MIN, now)
   const streams = new Set()
   let unsubscribe = null
 
-  const stateOf = (entry) => ({ ...entry.state, host: name() })
+  // `downloadable` is false once the file is gone (a recipe's working files, or a result someone deleted): nothing to fetch.
+  const stateOf = (entry) => ({ ...entry.state, host: name(), downloadable: entry.state.status === 'done' ? !!engine.taskFile?.(entry.state.id) : false })
   const allTasks = () => [...engine.tasks.values()].map(stateOf)
 
   /* --- live events: one 'tasks:update' listener feeds every connected client, coalesced per client --- */
@@ -243,13 +245,24 @@ function createV1({ engine, platform, devices, uploads = null, name, version, in
       }
 
       if (m === 'GET' && a === 'info') {
-        const kinds = Object.entries(KINDS).filter(([k]) => k === 'download' || uploads).map(([k]) => k)
+        const kinds = [...Object.entries(KINDS).filter(([k]) => k === 'download' || uploads).map(([k]) => k), ...(recipes ? ['recipe'] : [])]
         return reply(200, { name: name(), version, apiVersion: 1, kinds, uploads: !!uploads, ...info() })
       }
       if (m === 'GET' && a === 'tasks' && !b) return reply(200, { tasks: allTasks() })
       if (m === 'GET' && a === 'events') return openStream(req, res, cors)
       if (m === 'POST' && a === 'tasks' && !b) {
         const body = await readJson(req)
+        if (body.kind === 'recipe') {
+          // A saved recipe that starts from a link, run on a link. The recipe's own steps decide everything else.
+          if (!recipes) return reply(501, { error: 'This engine has no recipes' })
+          const r = body.req ?? {}
+          const recipe = typeof r.recipeId === 'string' ? recipes.get(r.recipeId) : null
+          if (!recipe || recipe.input !== 'url') return reply(400, { error: 'That recipe does not start from a link' })
+          buildRemoteRequest('download', { url: r.url }) // the same link checks as a plain download
+          const run = await recipes.run(recipe.id, r.url)
+          log(`engine-api: ${device.name} started the recipe ${recipe.name}`)
+          return reply(202, { id: run.taskIds[0], taskIds: run.taskIds })
+        }
         const { channel, req: clean } = buildRemoteRequest(body.kind, body.req, (uid) => uploads?.resolve(uid, device.id) ?? null)
         const start = engine.startHandlers.get(channel)
         if (!start) return reply(501, { error: 'This engine cannot run that job' })

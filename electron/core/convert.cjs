@@ -38,7 +38,7 @@ function createConvert(ctx) {
    *  pickers. Video formats map every stream; audio drops video (-vn) and keeps the
    *  first audio track; image formats write a single frame. */
   const FORMATS = {
-    MP4: { ext: 'mp4', kind: 'video', args: ['-c:v', 'libx264', '-c:a', 'aac'] },
+    MP4: { ext: 'mp4', kind: 'video', args: ['-c:v', 'libx264', '-c:a', 'aac', '-movflags', '+faststart'] }, // faststart: plays while it loads and in picky phone galleries
     MKV: { ext: 'mkv', kind: 'video', args: ['-c:v', 'libx264', '-c:a', 'aac'] },
     MOV: { ext: 'mov', kind: 'video', args: ['-c:v', 'libx264', '-c:a', 'aac'] },
     WEBM: { ext: 'webm', kind: 'video', args: ['-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '32', '-c:a', 'libopus'] },

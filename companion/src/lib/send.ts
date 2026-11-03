@@ -10,6 +10,9 @@ export const PRESETS = [
   { id: 'mp3', label: 'Audio (MP3)', req: { format: 'MP3', audioQuality: 'best' } },
 ] as const
 
+/** Downloads the best MP4 up to 1080p, then converts it to H.264/AAC with fast start, which every phone gallery plays. */
+export const PHONE_FRIENDLY_RECIPE = 'builtin:download-phone-friendly'
+
 export type PresetId = (typeof PRESETS)[number]['id']
 
 /** The first link in a pasted or shared text, or null. */
@@ -20,12 +23,13 @@ export const linkIn = (text: string): string | null => firstUrl(text) || null
  * the queue), otherwise through the encrypted channel (direct, then relay), where the computer picks the format.
  * Returns how it went, for the message under the button.
  */
-export async function sendTo(host: Host, text: string, preset: PresetId, deviceName: string): Promise<{ via: 'engine' | 'direct' | 'relay'; id?: string }> {
+export async function sendTo(host: Host, text: string, preset: PresetId, deviceName: string, phoneFriendly = false): Promise<{ via: 'engine' | 'direct' | 'relay'; id?: string }> {
   const url = linkIn(text)
   if (!url) throw new Error('There is no web link in that.')
   let engineError: Error | null = null
   if (host.engine) {
     try {
+      if (phoneFriendly && preset !== 'mp3') return { via: 'engine', id: (await engine.startRecipe(host, PHONE_FRIENDLY_RECIPE, url)).id }
       const req = PRESETS.find((p) => p.id === preset)!.req
       const { id } = await engine.start(host, { url, ...req })
       return { via: 'engine', id }

@@ -11,6 +11,8 @@ export interface Task {
   createdAt?: number
   stage?: string | null
   host?: string
+  /** False once the file is gone (a recipe's working files); nothing to download. */
+  downloadable?: boolean
 }
 
 /** `opnduck://pair?u=<address>&c=<code>&n=<name>`, made by the server or by a desktop that shares its engine. */
@@ -79,6 +81,8 @@ export const engine = {
   info: (h: Host) => call(h, 'GET', '/v1/info'),
   tasks: async (h: Host): Promise<Task[]> => (await call(h, 'GET', '/v1/tasks')).tasks,
   start: (h: Host, req: Record<string, unknown>) => call(h, 'POST', '/v1/tasks', { kind: 'download', req }) as Promise<{ id: string }>,
+  /** Runs a saved recipe that starts from a link, such as the phone-friendly download. */
+  startRecipe: (h: Host, recipeId: string, url: string) => call(h, 'POST', '/v1/tasks', { kind: 'recipe', req: { recipeId, url } }) as Promise<{ id: string }>,
   cancel: (h: Host, id: string) => call(h, 'POST', `/v1/tasks/${encodeURIComponent(id)}/cancel`),
   rerun: (h: Host, id: string) => call(h, 'POST', `/v1/tasks/${encodeURIComponent(id)}/rerun`),
   remove: (h: Host, id: string) => call(h, 'DELETE', `/v1/tasks/${encodeURIComponent(id)}`),

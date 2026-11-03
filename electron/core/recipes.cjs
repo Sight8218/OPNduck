@@ -40,6 +40,7 @@ const RESERVED_ARGS = ['inputPath', 'url', 'destination', 'batch', 'tags', 'hint
 const BUILT_IN = [
   { id: 'builtin:upscale-and-smooth', name: 'Upscale and smooth', input: 'video', steps: [{ tool: 'upscale_video', args: { scale: 2 } }, { tool: 'interpolate', args: { multiplier: 2 } }] },
   { id: 'builtin:download-mp3-and-tag', name: 'Download as MP3 and tag', input: 'url', steps: [{ tool: 'download', args: { format: 'MP3' } }, { tool: 'tag_music', args: {} }] },
+  { id: 'builtin:download-phone-friendly', name: 'Download as a phone-friendly MP4', input: 'url', steps: [{ tool: 'download', args: { format: 'MP4', videoQuality: '1080' } }, { tool: 'convert', args: { container: 'MP4', mode: 'transcode' } }] },
   { id: 'builtin:discord-ready', name: 'Make it Discord-ready', input: 'video', steps: [{ tool: 'compress', args: { targetMB: 20, quality: 'fast' } }] },
   { id: 'builtin:phone-friendly', name: 'Phone-friendly copy', input: 'video', steps: [{ tool: 'convert', args: { container: 'MP4', mode: 'transcode' } }, { tool: 'compress', args: { targetMB: 200, quality: 'fast' } }] },
 ].map((r) => ({ ...r, builtIn: true }))

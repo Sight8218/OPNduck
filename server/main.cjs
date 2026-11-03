@@ -139,7 +139,7 @@ async function serve(cfg) {
 
   const devices = createDevices({ file: p.devices, codesFile: p.codes })
   const uploads = createUploads({ dir: p.uploads, maxBytes: cfg.maxUploadGB * 1024 ** 3, retentionMs: cfg.retentionHours * 3600 * 1000 })
-  const v1 = createV1({ engine: core.engine, platform, devices, uploads, name: () => cfg.name, version: pkg.version, info: createInfo({ outputDir: () => path.join(cfg.output, 'OPNduck'), ytdlpCommand: () => core.ctx.ytdlpCommand?.() ?? 'yt-dlp' }), log: (l) => console.log(l) })
+  const v1 = createV1({ engine: core.engine, platform, devices, uploads, recipes: core.recipes, name: () => cfg.name, version: pkg.version, info: createInfo({ outputDir: () => path.join(cfg.output, 'OPNduck'), ytdlpCommand: () => core.ctx.ytdlpCommand?.() ?? 'yt-dlp' }), log: (l) => console.log(l) })
   const api = createEngineApi({ inbox, name: () => cfg.name, v1, log: (l) => console.log(l) })
   const st = await api.start({ mode: 'address', address: cfg.bind, port: cfg.port })
   if (!st.running) {

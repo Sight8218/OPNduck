@@ -442,7 +442,7 @@ function needSharing() {
   const devices = createDevices({ file: path.join(dir, 'devices.json'), codesFile: path.join(dir, 'pair-codes.json') })
   const uploads = createUploads({ dir: path.join(dir, 'uploads') })
   const info = createInfo({ outputDir: () => defaultDownloadDir(), ytdlpCommand: () => core.ctx.ytdlpCommand?.() ?? 'yt-dlp' })
-  const real = createV1({ engine, platform, devices, uploads, name: () => os.hostname(), version: platform.version, info, log: (m) => console.log(m) })
+  const real = createV1({ engine, platform, devices, uploads, recipes: core.recipes, name: () => os.hostname(), version: platform.version, info, log: (m) => console.log(m) })
   // The routes exist only while sharing is switched on; with it off the server answers only health checks and Send to OPNduck.
   const v1 = {
     handle: (req, res, ctx) => (getSettings().shareEngine ? real.handle(req, res, ctx) : ctx.reply(404, { error: 'Not found' })),

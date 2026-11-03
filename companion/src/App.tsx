@@ -88,7 +88,7 @@ export default function App() {
 
   if (!hosts) return null
   const active = tasks.filter((t) => t.status === 'queued' || t.status === 'running')
-  const done = tasks.filter((t) => t.status === 'done' || t.status === 'error' || t.status === 'canceled')
+  const done = tasks.filter((t) => t.status === 'error' || t.status === 'canceled' || (t.status === 'done' && t.downloadable !== false))
 
   return (
     <>
@@ -200,12 +200,13 @@ function Send({ host, deviceName, shared, onUsed, onSent }: { host: Host; device
   const [preset, setPreset] = useState<PresetId>((store.get('preset') as PresetId) || 'smart')
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
+  const [friendly, setFriendly] = useState(() => store.get('phone-friendly') === '1')
   const sendNow = useRef<(t: string) => void>(() => {})
   sendNow.current = async (t: string) => {
     setBusy(true)
     setMsg(null)
     try {
-      const r = await sendTo(host, t, preset, deviceName)
+      const r = await sendTo(host, t, preset, deviceName, friendly)
       setMsg({ ok: true, text: r.via === 'engine' ? `Sent to ${host.name}. It is in the queue.` : r.via === 'direct' ? `Sent to ${host.name} directly.` : 'Sent through the relay. It arrives when OPNduck is running.' })
       setText('')
       onSent()
@@ -250,6 +251,20 @@ function Send({ host, deviceName, shared, onUsed, onSent }: { host: Host; device
                 </option>
               ))}
             </select>
+            {preset !== 'mp3' && (
+              <label style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <input
+                  type="checkbox"
+                  style={{ width: 20, height: 20 }}
+                  checked={friendly}
+                  onChange={(e) => {
+                    setFriendly(e.target.checked)
+                    store.set('phone-friendly', e.target.checked ? '1' : '0')
+                  }}
+                />
+                <span>Make a phone-friendly copy (H.264 MP4, up to 1080p). The original stays on the computer.</span>
+              </label>
+            )}
           </>
         )}
         <div className="row">

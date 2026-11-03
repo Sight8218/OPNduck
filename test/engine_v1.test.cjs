@@ -48,7 +48,9 @@ async function running(opts = {}) {
   const engine = fakeEngine()
   const devices = createDevices({ file: path.join(dir, 'devices.json') })
   const uploads = opts.noUploads ? null : createUploads({ dir: path.join(dir, 'uploads'), maxBytes: opts.maxBytes ?? 1024 * 1024, freeBytes: () => opts.free ?? 1e12 })
-  const v1 = createV1({ engine, platform, devices, uploads, name: () => 'My PC', version: '9.9.9', info: () => ({ gpus: ['Test GPU'] }), ...opts })
+  const ran = []
+  const recipes = opts.noRecipes ? null : { get: (id) => ({ 'builtin:link': { id, input: 'url', name: 'Link recipe' }, 'builtin:file': { id, input: 'video', name: 'File recipe' } })[id] ?? null, run: async (id, url) => (ran.push([id, url]), { taskIds: ['t1', 't2'] }) }
+  const v1 = createV1({ engine, platform, devices, uploads, recipes, name: () => 'My PC', version: '9.9.9', info: () => ({ gpus: ['Test GPU'] }), ...opts })
   const inbox = { keys: () => E.deriveKeys(E.newSecret()), receive: async () => true }
   const api = createEngineApi({ inbox, name: () => 'My PC', v1 })
   const st = await api.start({ mode: 'localhost', port: nextPort++ })
@@ -73,7 +75,7 @@ async function running(opts = {}) {
       req.end(raw ?? (body ? JSON.stringify(body) : undefined))
     })
   const pairNew = async (kind = 'phone') => (await call('POST', '/v1/pair', { body: { code: devices.newPairCode(), deviceName: 'Test', deviceKind: kind } })).json.deviceToken
-  return { api, engine, devices, platform, call, pairNew, st, dir, uploads }
+  return { api, engine, devices, platform, call, pairNew, st, dir, uploads, ran }
 }
 
 test('pairing: a code works once, a wrong or reused code does not, and only the token hash is stored', async () => {
@@ -354,5 +356,34 @@ test('files: the finished result streams, resumes with Range, and a signed link 
     assert.equal((await h.call('GET', link.url)).status, 403, 'expired')
   } finally {
     await h.api.stop()
+  }
+})
+
+test('a recipe that starts from a link can be run on a link; others and bad links are refused; finished tasks say whether the file is still there', async () => {
+  const h = await running()
+  try {
+    const token = await h.pairNew()
+    const ok = await h.call('POST', '/v1/tasks', { token, body: { kind: 'recipe', req: { recipeId: 'builtin:link', url: 'https://example.com/v' } } })
+    assert.deepEqual([ok.status, ok.json.id, ok.json.taskIds], [202, 't1', ['t1', 't2']])
+    assert.deepEqual(h.ran, [['builtin:link', 'https://example.com/v']])
+    for (const req of [{ recipeId: 'builtin:file', url: 'https://example.com/v' }, { recipeId: 'nope', url: 'https://example.com/v' }, { recipeId: 'builtin:link', url: 'file:///etc/passwd' }, { recipeId: 'builtin:link', url: '/etc/passwd' }]) {
+      assert.equal((await h.call('POST', '/v1/tasks', { token, body: { kind: 'recipe', req } })).status, 400, JSON.stringify(req))
+    }
+    assert.ok((await h.call('GET', '/v1/info', { token })).json.kinds.includes('recipe'))
+    const file = path.join(h.dir, 'out.mp4')
+    fs.writeFileSync(file, 'x')
+    h.engine.tasks.set('has', { state: { id: 'has', status: 'done' }, finalPath: file })
+    h.engine.tasks.set('gone', { state: { id: 'gone', status: 'done' }, finalPath: null })
+    const list = (await h.call('GET', '/v1/tasks', { token })).json.tasks
+    assert.deepEqual([list.find((t) => t.id === 'has').downloadable, list.find((t) => t.id === 'gone').downloadable], [true, false])
+  } finally {
+    await h.api.stop()
+  }
+  const none = await running({ noRecipes: true })
+  try {
+    const token = await none.pairNew()
+    assert.equal((await none.call('POST', '/v1/tasks', { token, body: { kind: 'recipe', req: { recipeId: 'builtin:link', url: 'https://example.com/v' } } })).status, 501)
+  } finally {
+    await none.api.stop()
   }
 })
