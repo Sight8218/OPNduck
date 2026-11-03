@@ -45,6 +45,7 @@ All routes are under `/v1`, JSON, and need `Authorization: Bearer <deviceToken>`
 | `POST /tasks/:id/cancel`, `/rerun`, `DELETE /tasks/:id` | as in the app |
 | `POST /uploads`, `PUT /uploads/:id`, `HEAD /uploads/:id` | resumable uploads in chunks of up to 16 MB with `Content-Range` |
 | `GET /files/:taskId`, `POST /files/:taskId/link` | the result, with `Range`; a 10-minute signed link for browsers |
+| `GET /ai/status`, `GET /ai/models`, `POST /ai/load`, `POST /ai/eject`, `POST /ai/chat/completions` | this computer's AI model (OPNduck's own, Ollama or LM Studio, never a cloud key), in the OpenAI shape with your device token as the key: another OPNduck uses it with "Another computer" and the address `http://<this computer>:47821/v1/ai` |
 | `POST /send` | an encrypted link from Send to OPNduck (see `SEND.md`) |
 | `GET /devices`, `DELETE /devices/:id` | paired devices (desktop devices only) |
 

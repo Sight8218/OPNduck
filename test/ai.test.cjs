@@ -429,3 +429,19 @@ test('token use is counted per provider and month, survives a restart, and a clo
     await s.close()
   }
 })
+
+test('clean file names: clutter goes, the extension and the real title stay, tidy names are left alone', () => {
+  const { cleanTitle, cleanFileName } = require('../electron/core/ai/names.cjs')
+  assert.equal(cleanTitle('Daft Punk - One More Time (Official Video) [4K]'), 'Daft Punk - One More Time')
+  assert.equal(cleanTitle('Artist - Song [Official Music Video] | Some Channel'), 'Artist - Song')
+  assert.equal(cleanTitle('My Trip #shorts #travel'), 'My Trip')
+  assert.equal(cleanTitle('Song_Name_-_Artist (Lyrics)'), 'Song Name - Artist')
+  assert.equal(cleanTitle('A/B: C?'), 'A B C')
+  assert.equal(cleanTitle('Great Talk [dQw4w9WgXcQ]'), 'Great Talk')
+  assert.equal(cleanTitle('Remix (Live at Wembley)'), 'Remix (Live at Wembley)', 'a bracket that is part of the title stays')
+  assert.equal(cleanTitle('[Official Video]'), '')
+  assert.equal(cleanFileName('Song (Official Video).mp3'), 'Song.mp3')
+  assert.equal(cleanFileName('Tidy name.mkv'), null)
+  assert.equal(cleanFileName('(Official Video).mp4'), null, 'nothing would be left, so no rename')
+  assert.equal(cleanFileName('Track [HD].tar.gz'), 'Track.tar.gz', 'the extension is kept as it is')
+})

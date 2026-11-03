@@ -113,6 +113,8 @@ interface ElectronBridge {
   grade: Host['grade']
   transcripts: Host['transcripts']
   explainJob: Host['explainJob']
+  cleanName: Host['cleanName']
+  renameClean: Host['renameClean']
   beatsResult(taskId: string): Promise<BeatAnalysis | null>
   previewRestore(req: Pick<RestoreRequest, 'inputPath' | 'deinterlace' | 'denoise' | 'fixColors'> & { time?: number; width?: number }): Promise<RestorePreview>
   analyzeJumpCut(req: Pick<JumpCutRequest, 'inputPath' | 'thresholdDb' | 'minSilence' | 'padding'>): Promise<JumpCutAnalysis>
@@ -266,6 +268,8 @@ export function detectElectronHost(): Host | null {
     grade: bridge.grade,
     transcripts: bridge.transcripts,
     explainJob: (id) => bridge.explainJob(id),
+    cleanName: (id) => bridge.cleanName(id),
+    renameClean: (id) => bridge.renameClean(id),
     beatsResult: (id) => bridge.beatsResult(id),
     previewRestore: (req) => bridge.previewRestore(req),
     analyzeJumpCut: (req) => bridge.analyzeJumpCut(req),

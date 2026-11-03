@@ -111,6 +111,15 @@ function TaskRowImpl({ task }: { task: TaskState }) {
   const running = task.status === 'queued' || task.status === 'running'
   const [askMatch, setAskMatch] = useState(false)
   const [wordsFile, setWordsFile] = useState<string | null>(null)
+  const [tidy, setTidy] = useState<{ from: string; to: string } | null>(null)
+  useEffect(() => {
+    if (task.status !== 'done' || !host.isDesktop) return
+    let alive = true
+    void host.cleanName(task.id).then((r) => alive && setTidy(r)).catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [task.id, task.status, task.label])
   const [why, setWhy] = useState<Awaited<ReturnType<typeof host.explainJob>> | { error: string } | null>(null)
   async function applyFix(fix: NonNullable<Awaited<ReturnType<typeof host.explainJob>>['fix']>) {
     try {
@@ -172,6 +181,16 @@ function TaskRowImpl({ task }: { task: TaskState }) {
               onClick={async () => setWordsFile((await host.tasks.fileOf(task.id)) ?? null)}
             >
               Spoken words
+            </button>
+          )}
+          {tidy && (
+            <button
+              type="button"
+              className="glass-btn px-2 py-1 text-xs"
+              title={`Rename the file to: ${tidy.to}`}
+              onClick={() => void host.renameClean(task.id).then(() => setTidy(null)).catch(() => {})}
+            >
+              Tidy name
             </button>
           )}
           {task.status === 'error' && host.isDesktop && (

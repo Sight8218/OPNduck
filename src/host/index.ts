@@ -1029,6 +1029,10 @@ export interface Host {
     run(id: string, input: string, opts?: { destination?: string; keepIntermediate?: boolean }): Promise<RecipeRun>
     resume(runId: string): Promise<RecipeRun>
   }
+  /** A tidier file name for a finished job (clutter like "[Official Video]" removed), or null when it is already tidy. */
+  cleanName(taskId: string): Promise<{ from: string; to: string } | null>
+  /** Renames the file to that tidier name (never overwrites). Returns the new name. */
+  renameClean(taskId: string): Promise<string>
   /** Why a failed job failed, in plain words, with a fix to click when there is one. Rules first; the model only when none matches. */
   explainJob(taskId: string): Promise<{ reason: string; fix: 'update_ytdlp' | 'cookies_firefox' | 'cpu_encoder' | 'retry' | null; fixLabel: string | null; source: 'rule' | 'ai' | 'none' }>
   /** The spoken words of the person's videos: search, summary, chapters and questions. All local; the AI parts need a model in Settings > AI. Desktop only. */
@@ -1566,6 +1570,10 @@ const browserHost: Host = {
     resume: async () => {
       throw new Error('Desktop app required')
     },
+  },
+  cleanName: async () => null,
+  renameClean: async () => {
+    throw new Error('Desktop app required')
   },
   explainJob: async () => {
     throw new Error('Desktop app required')

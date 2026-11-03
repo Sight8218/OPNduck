@@ -367,6 +367,25 @@ ipcMain.handle('ai:removeKey', (_e, id) => {
 /* --- Spoken words: transcripts of the person's videos, search, summary, chapters, questions (Library) --- */
 const videoAi = require('./core/ai/video.cjs')
 /** "Why did this fail?": rules first, the model only when no rule matches and one is set up. */
+/** A tidier name for a finished job's file: what it would be (null when already tidy), then the rename itself. Never overwrites. */
+ipcMain.handle('files:cleanName', (_e, id) => {
+  const f = engine.taskFile(String(id))
+  if (!f) return null
+  const next = require('./core/ai/names.cjs').cleanFileName(path.basename(f))
+  return next ? { from: path.basename(f), to: next } : null
+})
+ipcMain.handle('files:rename', (_e, id) => {
+  const entry = engine.tasks.get(String(id))
+  const f = engine.taskFile(String(id))
+  const next = f && require('./core/ai/names.cjs').cleanFileName(path.basename(f))
+  if (!entry || !f || !next) throw new Error('Nothing to rename')
+  const dest = path.join(path.dirname(f), next)
+  if (fs.existsSync(dest)) throw new Error(`There is already a file called ${next}`)
+  fs.renameSync(f, dest)
+  entry.finalPath = dest
+  engine.updateTask(entry.state.id, { label: next })
+  return next
+})
 ipcMain.handle('jobs:explain', async (_e, id) => {
   const entry = engine.tasks.get(String(id))
   if (!entry || entry.state.status !== 'error') throw new Error('That job did not fail')
@@ -586,13 +605,27 @@ const { buildEnginePairLink } = require('../engine-api/pairlink.cjs')
 const { createServers } = require('./core/remote/servers.cjs')
 let engineApi = null
 let sharing = null // { devices, uploads, v1 }: made the first time this PC's engine is shared
+/** The model of this computer, offered to paired devices only while it is chosen and set up here (never a cloud key's model). */
+function aiShare() {
+  const usable = () => ['local', 'ollama', 'lmstudio'].includes(getSettings().ai.provider)
+  return {
+    chat: (o) => {
+      if (!usable()) throw new Error('This computer shares no AI model: choose OPNduck\'s own, Ollama or LM Studio in Settings > AI.')
+      return core.ai.chat(o)
+    },
+    models: () => core.ai.models(),
+    status: () => ({ provider: getSettings().ai.provider, model: getSettings().ai.provider === 'local' ? getSettings().ai.localModel : getSettings().ai.model, shared: usable(), local: core.llama.status() }),
+    load: () => (getSettings().ai.provider === 'local' ? core.llama.load() : Promise.resolve()),
+    eject: () => core.llama.eject(),
+  }
+}
 function needSharing() {
   if (sharing) return sharing
   const dir = path.join(platform.paths.userData, 'engine')
   const devices = createDevices({ file: path.join(dir, 'devices.json'), codesFile: path.join(dir, 'pair-codes.json') })
   const uploads = createUploads({ dir: path.join(dir, 'uploads') })
   const info = createInfo({ outputDir: () => defaultDownloadDir(), ytdlpCommand: () => core.ctx.ytdlpCommand?.() ?? 'yt-dlp' })
-  const real = createV1({ engine, platform, devices, uploads, recipes: core.recipes, name: () => os.hostname(), version: platform.version, info, log: (m) => console.log(m) })
+  const real = createV1({ engine, platform, devices, uploads, recipes: core.recipes, ai: aiShare(), name: () => os.hostname(), version: platform.version, info, log: (m) => console.log(m) })
   // The routes exist only while sharing is switched on; with it off the server answers only health checks and Send to OPNduck.
   const v1 = {
     handle: (req, res, ctx) => (getSettings().shareEngine ? real.handle(req, res, ctx) : ctx.reply(404, { error: 'Not found' })),

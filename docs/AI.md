@@ -34,6 +34,12 @@ are only ever sent to their own provider. Plain `http://` addresses are accepted
   there is one. Only when no rule matches is your model asked, and its answer is labelled as coming from the AI.
 - **Auto settings** (the Auto buttons on the cards) are rules measured from the file, no AI.
 
+## Using another computer's model
+
+A desktop with "Share this PC's engine" on, or an OPNduck Server, also shares its model (only OPNduck's own, Ollama or LM Studio:
+never a cloud key). On the other computer choose "Another computer" in Settings > AI, enter `http://<that computer>:47821/v1/ai`
+(Tailscale or https) and the device token as the access token.
+
 ## Tips for small local models
 
 Short, concrete requests work best ("make this under 25 MB"). A model that "thinks" can use most of its answer budget on
@@ -41,4 +47,4 @@ thinking: lower Effort in Settings > AI, or set Thinking to Never.
 
 ## Not built yet
 
-Hosting the model on an OPNduck Server, cleaning download file names, and the AI thumbnail picker.
+The AI thumbnail picker.

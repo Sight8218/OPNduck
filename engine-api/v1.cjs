@@ -26,6 +26,7 @@ const path = require('node:path')
 const { buildRemoteRequest, KINDS } = require('./remote_request.cjs')
 
 const MAX_JSON = 16 * 1024
+const MAX_AI_JSON = 512 * 1024 // a conversation (and a few pictures as data: addresses)
 const PAIR_PER_MIN = 10
 const BAD_AUTH_PER_MIN = 20
 const EVENT_INTERVAL_MS = 250 // progress goes out at most 4 times a second
@@ -59,12 +60,13 @@ function limiter(max, now) {
  * @param {ReturnType<import('./devices.cjs').createDevices>} deps.devices
  * @param {ReturnType<import('./uploads.cjs').createUploads>} [deps.uploads]  without it, file jobs and uploads are off
  * @param {{ get(id: string): object|null, run(id: string, input: string): Promise<{ taskIds: string[] }> }} [deps.recipes]  without it, link recipes are off
+ * @param {{ chat(o: object): AsyncGenerator, models(): Promise<object[]>, status(): object, load(): Promise<unknown>, eject(): void }} [deps.ai]  this computer's model, offered to paired devices; without it the AI routes are off
  * @param {() => string} deps.name
  * @param {string} deps.version
  * @param {() => object} [deps.info]  extra capabilities for /info (gpus, free disk, tool checks)
  * @param {(line: string) => void} [deps.log]
  */
-function createV1({ engine, platform, devices, uploads = null, recipes = null, name, version, info = () => ({}), log = () => {}, now = Date.now }) {
+function createV1({ engine, platform, devices, uploads = null, recipes = null, ai = null, name, version, info = () => ({}), log = () => {}, now = Date.now }) {
   const pairLimit = limiter(PAIR_PER_MIN, now)
   const authLimit = limiter(BAD_AUTH_PER_MIN, now)
   const streams = new Set()
@@ -123,14 +125,14 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, n
     })
   }
 
-  function readJson(req) {
+  function readJson(req, max = MAX_JSON) {
     return new Promise((resolve, reject) => {
       let size = 0
       const chunks = []
       req.on('data', (c) => {
         size += c.length
-        if (size > MAX_JSON) {
-          if (size - c.length <= MAX_JSON) reject(Object.assign(new Error('Too large'), { code: 413 }))
+        if (size > max) {
+          if (size - c.length <= max) reject(Object.assign(new Error('Too large'), { code: 413 }))
           chunks.length = 0 // the rest is dropped; the connection closes after the answer
         } else chunks.push(c)
       })
@@ -205,6 +207,62 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, n
   }
 
   /**
+   * The OpenAI chat-completions shape on top of this computer's model, so another OPNduck (or any OpenAI-compatible
+   * client) can use it with a device token as the key. Tools are only descriptions here: nothing runs on this computer.
+   */
+  async function aiCompletions(req, res, cors, reply, device) {
+    const body = await readJson(req, MAX_AI_JSON)
+    const messages = Array.isArray(body.messages) ? body.messages.slice(-60) : []
+    if (messages.length === 0) return reply(400, { error: 'messages is required' })
+    const wire = messages.map((m) => ({
+      role: ['system', 'user', 'assistant', 'tool'].includes(m.role) ? m.role : 'user',
+      content: typeof m.content === 'string' ? m.content : Array.isArray(m.content) ? m.content.filter((p) => p?.type === 'text').map((p) => p.text).join('\n') : '',
+      ...(Array.isArray(m.content) ? { images: m.content.filter((p) => p?.type === 'image_url' && typeof p.image_url?.url === 'string' && p.image_url.url.startsWith('data:image/')).map((p) => p.image_url.url).slice(0, 4) } : {}),
+      ...(m.tool_call_id ? { tool_call_id: String(m.tool_call_id) } : {}),
+      ...(Array.isArray(m.tool_calls) ? { tool_calls: m.tool_calls.map((c) => ({ id: String(c.id), name: String(c.function?.name ?? ''), args: (() => { try { return JSON.parse(c.function?.arguments || '{}') } catch { return {} } })() })) } : {}),
+    }))
+    const tools = Array.isArray(body.tools) ? body.tools.slice(0, 64).map((t) => ({ name: String(t.function?.name ?? ''), description: String(t.function?.description ?? '').slice(0, 2000), parameters: t.function?.parameters ?? { type: 'object', properties: {} } })).filter((t) => t.name) : undefined
+    const jsonSchema = body.response_format?.type === 'json_schema' ? body.response_format.json_schema?.schema : undefined
+    const stream = body.stream !== false
+    const id = `chatcmpl-${crypto.randomUUID()}`
+    const created = Math.floor(now() / 1000)
+    const chunk = (delta, extra = {}) => `data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model: String(body.model ?? ''), choices: [{ index: 0, delta, finish_reason: null, ...extra }] })}\n\n`
+    const controller = new AbortController()
+    res.on('close', () => controller.abort()) // the device went away: stop the model
+    let text = ''
+    const calls = []
+    let usage = null
+    try {
+      if (stream) res.writeHead(200, { ...cors, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' })
+      for await (const ev of ai.chat({ messages: wire, tools, jsonSchema, temperature: typeof body.temperature === 'number' ? body.temperature : undefined, maxTokens: Number.isInteger(body.max_tokens) ? Math.min(body.max_tokens, 8000) : undefined, signal: controller.signal })) {
+        if (ev.type === 'text') {
+          text += ev.delta
+          if (stream) res.write(chunk({ content: ev.delta }))
+        } else if (ev.type === 'thinking') {
+          if (stream) res.write(chunk({ reasoning_content: ev.delta }))
+        } else if (ev.type === 'tool_call') {
+          calls.push(ev)
+          if (stream) res.write(chunk({ tool_calls: [{ index: calls.length - 1, id: ev.id, type: 'function', function: { name: ev.name, arguments: JSON.stringify(ev.args) } }] }))
+        } else if (ev.type === 'done') usage = ev.usage
+      }
+      log(`engine-api: ${device.name} used the AI model`)
+      const u = usage ? { prompt_tokens: usage.input, completion_tokens: usage.output, total_tokens: usage.input + usage.output } : undefined
+      if (stream) {
+        res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model: String(body.model ?? ''), choices: [{ index: 0, delta: {}, finish_reason: calls.length ? 'tool_calls' : 'stop' }], ...(u ? { usage: u } : {}) })}\n\n`)
+        res.end('data: [DONE]\n\n')
+      } else {
+        reply(200, { id, object: 'chat.completion', created, model: String(body.model ?? ''), choices: [{ index: 0, finish_reason: calls.length ? 'tool_calls' : 'stop', message: { role: 'assistant', content: text, ...(calls.length ? { tool_calls: calls.map((c) => ({ id: c.id, type: 'function', function: { name: c.name, arguments: JSON.stringify(c.args) } })) } : {}) } }], ...(u ? { usage: u } : {}) })
+      }
+    } catch (err) {
+      if (controller.signal.aborted) return
+      if (res.headersSent) {
+        res.write(`data: ${JSON.stringify({ error: { message: err.message } })}\n\n`)
+        res.end('data: [DONE]\n\n')
+      } else reply(502, { error: err.message })
+    }
+  }
+
+  /**
    * Handles a /v1 request the server did not answer itself. Returns false for a path this does not know.
    * @param {{ reply: (code: number, body: object) => void, url: string, cors: object, ip: string }} ctx
    */
@@ -227,7 +285,8 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, n
         (a === 'events' && parts.length === 2) ||
         (a === 'devices' && parts.length <= 3) ||
         (a === 'uploads' && parts.length <= 3) ||
-        (a === 'files' && parts.length >= 3 && parts.length <= 4)
+        (a === 'files' && parts.length >= 3 && parts.length <= 4) ||
+        (a === 'ai' && parts.length >= 3 && parts.length <= 4)
       if (!known) return reply(404, { error: 'Not found' })
 
       // A signed download link carries its own proof (made by POST /files/:id/link, good for 10 minutes).
@@ -278,6 +337,19 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, n
       if (m === 'POST' && a === 'tasks' && b && c === 'cancel') return reply(200, { ok: engine.cancelTask(b) })
       if (m === 'POST' && a === 'tasks' && b && c === 'rerun') return reply(200, { ok: engine.rerunTask(b) })
       if (m === 'DELETE' && a === 'tasks' && b && !c) return reply(200, { removed: engine.removeTasks([b]) })
+      if (a === 'ai') {
+        if (!ai) return reply(501, { error: 'This engine has no AI model to share' })
+        const route = parts.slice(2).join('/')
+        if (m === 'GET' && route === 'status') return reply(200, ai.status())
+        if (m === 'GET' && route === 'models') return reply(200, { object: 'list', data: (await ai.models()).map((x) => ({ id: x.id, object: 'model', name: x.name ?? x.id })) })
+        if (m === 'POST' && (route === 'load' || route === 'eject')) {
+          if (route === 'load') await ai.load()
+          else ai.eject()
+          return reply(200, ai.status())
+        }
+        if (m === 'POST' && route === 'chat/completions') return aiCompletions(req, res, cors, reply, device)
+        return reply(404, { error: 'Not found' })
+      }
       if (a === 'uploads') {
         if (!uploads) return reply(501, { error: 'This engine does not take uploads' })
         if (m === 'POST' && !b) {

@@ -48,9 +48,11 @@ async function running(opts = {}) {
   const engine = fakeEngine()
   const devices = createDevices({ file: path.join(dir, 'devices.json') })
   const uploads = opts.noUploads ? null : createUploads({ dir: path.join(dir, 'uploads'), maxBytes: opts.maxBytes ?? 1024 * 1024, freeBytes: () => opts.free ?? 1e12 })
+  const aiLog = []
+  const ai = opts.noAi ? null : { async *chat(o) { aiLog.push(o); if (opts.aiFails) throw new Error('model down'); yield { type: 'thinking', delta: 'hmm' }; yield { type: 'text', delta: 'Hel' }; yield { type: 'text', delta: 'lo' }; if (o.tools?.length) yield { type: 'tool_call', id: 't1', name: o.tools[0].name, args: { a: 1 } }; yield { type: 'done', message: {}, usage: { input: 5, output: 7 } } }, models: async () => [{ id: 'm-one', name: 'Model one' }], status: () => ({ shared: true }), load: async () => {}, eject: () => aiLog.push('eject') }
   const ran = []
   const recipes = opts.noRecipes ? null : { get: (id) => ({ 'builtin:link': { id, input: 'url', name: 'Link recipe' }, 'builtin:file': { id, input: 'video', name: 'File recipe' } })[id] ?? null, run: async (id, url) => (ran.push([id, url]), { taskIds: ['t1', 't2'] }) }
-  const v1 = createV1({ engine, platform, devices, uploads, recipes, name: () => 'My PC', version: '9.9.9', info: () => ({ gpus: ['Test GPU'] }), ...opts })
+  const v1 = createV1({ engine, platform, devices, uploads, recipes, ai, name: () => 'My PC', version: '9.9.9', info: () => ({ gpus: ['Test GPU'] }), ...opts })
   const inbox = { keys: () => E.deriveKeys(E.newSecret()), receive: async () => true }
   const api = createEngineApi({ inbox, name: () => 'My PC', v1 })
   const st = await api.start({ mode: 'localhost', port: nextPort++ })
@@ -75,7 +77,7 @@ async function running(opts = {}) {
       req.end(raw ?? (body ? JSON.stringify(body) : undefined))
     })
   const pairNew = async (kind = 'phone') => (await call('POST', '/v1/pair', { body: { code: devices.newPairCode(), deviceName: 'Test', deviceKind: kind } })).json.deviceToken
-  return { api, engine, devices, platform, call, pairNew, st, dir, uploads, ran }
+  return { api, engine, devices, platform, call, pairNew, st, dir, uploads, ran, aiLog }
 }
 
 test('pairing: a code works once, a wrong or reused code does not, and only the token hash is stored', async () => {
@@ -385,5 +387,52 @@ test('a recipe that starts from a link can be run on a link; others and bad link
     assert.equal((await none.call('POST', '/v1/tasks', { token, body: { kind: 'recipe', req: { recipeId: 'builtin:link', url: 'https://example.com/v' } } })).status, 501)
   } finally {
     await none.api.stop()
+  }
+})
+
+test('the AI model of this computer is offered to paired devices in the OpenAI shape: streaming, tools, one-shot, models, status', async () => {
+  const { createOpenAiProvider } = require('../electron/core/ai/providers/openai.cjs')
+  const h = await running()
+  try {
+    const token = await h.pairNew()
+    assert.equal((await h.call('POST', '/v1/ai/chat/completions', { body: { messages: [{ role: 'user', content: 'hi' }] } })).status, 401)
+    assert.equal((await h.call('GET', '/v1/ai/models', { token })).json.data[0].id, 'm-one')
+    assert.equal((await h.call('GET', '/v1/ai/status', { token })).json.shared, true)
+    // The ordinary OpenAI-compatible provider of another OPNduck works against it, with the device token as the key.
+    const p = createOpenAiProvider({ baseUrl: `http://127.0.0.1:${h.st.port}/v1/ai`, apiKey: token })
+    assert.deepEqual((await p.models()).map((m) => m.id), ['m-one'])
+    const got = { text: '', thinking: '', calls: [], usage: null }
+    for await (const ev of p.chat({ model: 'm-one', messages: [{ role: 'system', content: 'S' }, { role: 'user', content: 'hi', images: ['data:image/png;base64,AAAA'] }], tools: [{ name: 'list_jobs', description: 'd', parameters: { type: 'object', properties: {} } }], temperature: 0.1, maxTokens: 50 })) {
+      if (ev.type === 'text') got.text += ev.delta
+      else if (ev.type === 'thinking') got.thinking += ev.delta
+      else if (ev.type === 'tool_call') got.calls.push([ev.name, ev.args])
+      else if (ev.type === 'done') got.usage = ev.usage
+    }
+    assert.deepEqual([got.text, got.thinking, got.calls, got.usage], ['Hello', 'hmm', [['list_jobs', { a: 1 }]], { input: 5, output: 7 }])
+    const sent = h.aiLog[0]
+    assert.equal(sent.messages[1].images.length, 1)
+    assert.equal(sent.tools[0].name, 'list_jobs')
+    assert.equal(sent.temperature, 0.1)
+    const once = await h.call('POST', '/v1/ai/chat/completions', { token, body: { stream: false, messages: [{ role: 'user', content: 'hi' }] } })
+    assert.deepEqual([once.json.choices[0].message.content, once.json.usage.total_tokens], ['Hello', 12])
+    assert.equal((await h.call('POST', '/v1/ai/chat/completions', { token, body: { messages: [] } })).status, 400)
+    assert.equal((await h.call('POST', '/v1/ai/eject', { token })).status, 200)
+    assert.ok(h.aiLog.includes('eject'))
+    assert.equal((await h.call('GET', '/v1/ai/nothing', { token })).status, 404)
+  } finally {
+    await h.api.stop()
+  }
+  const none = await running({ noAi: true })
+  try {
+    assert.equal((await none.call('GET', '/v1/ai/status', { token: await none.pairNew() })).status, 501)
+  } finally {
+    await none.api.stop()
+  }
+  const bad = await running({ aiFails: true })
+  try {
+    const r = await bad.call('POST', '/v1/ai/chat/completions', { token: await bad.pairNew(), body: { stream: false, messages: [{ role: 'user', content: 'x' }] } })
+    assert.deepEqual([r.status, r.json.error], [502, 'model down'])
+  } finally {
+    await bad.api.stop()
   }
 })
