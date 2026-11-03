@@ -19,7 +19,8 @@
 /** The Electron implementation of the platform interface (see core/platform.cjs). */
 const path = require('node:path')
 const { EventEmitter } = require('node:events')
-const { app, BrowserWindow, Notification, shell } = require('electron')
+const { app, BrowserWindow, Notification, shell, powerMonitor } = require('electron')
+const { linuxOnBattery, systemActionCommand } = require('./core/platform.cjs')
 
 const windows = () => BrowserWindow.getAllWindows()
 const bus = new EventEmitter()
@@ -51,6 +52,27 @@ module.exports = {
   on(channel, fn) {
     bus.on(channel, fn)
     return () => bus.off(channel, fn)
+  },
+  isOnBattery: () => {
+    try {
+      return powerMonitor.isOnBatteryPower()
+    } catch {
+      return process.platform === 'linux' ? linuxOnBattery() : null
+    }
+  },
+  idleSeconds: () => {
+    try {
+      return powerMonitor.getSystemIdleTime()
+    } catch {
+      return null
+    }
+  },
+  canCountdown: () => windows().length > 0, // the window shows the 60 s countdown with a Cancel button
+  systemAction(kind) {
+    const [cmd, args] = systemActionCommand(kind)
+    const child = require('node:child_process').spawn(cmd, args, { stdio: 'ignore', detached: true })
+    child.on('error', () => {})
+    child.unref()
   },
   canNotify: () => Notification.isSupported(),
   /** Shows a notification; `actions` are button labels and `onAction` runs when one is pressed. */

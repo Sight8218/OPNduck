@@ -29,11 +29,41 @@
  *   setProgress(value)                       overall job progress 0..1 (or -1) for a taskbar icon; optional
  *   isFocused()                              true while the user is looking at the app
  *   openPath(p) / showInFolder(p) / openExternal(url)
+ *   isOnBattery() / idleSeconds()            power state and time since the last keyboard or mouse use (null when unknown); optional
+ *   systemAction('sleep'|'shutdown')         optional; canCountdown() says a window can show the 60 s countdown first
  */
 const { EventEmitter } = require('node:events')
 const { spawn } = require('node:child_process')
+const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
+
+/** True while a laptop runs on its battery (Linux: /sys/class/power_supply); null when this cannot be told. */
+function linuxOnBattery() {
+  const base = '/sys/class/power_supply'
+  try {
+    const items = fs.readdirSync(base).map((n) => ({ type: read(`${base}/${n}/type`), online: read(`${base}/${n}/online`), status: read(`${base}/${n}/status`) }))
+    if (!items.some((i) => i.type === 'Battery')) return false // a desktop PC
+    if (items.some((i) => i.type === 'Mains' && i.online === '1')) return false
+    return items.some((i) => i.type === 'Battery' && i.status === 'Discharging')
+  } catch {
+    return null
+  }
+}
+const read = (f) => {
+  try {
+    return fs.readFileSync(f, 'utf8').trim()
+  } catch {
+    return ''
+  }
+}
+
+/** The command that sleeps or shuts the computer down, for this OS. */
+function systemActionCommand(kind, platform = process.platform) {
+  if (platform === 'win32') return kind === 'sleep' ? ['rundll32.exe', ['powrprof.dll,SetSuspendState', '0,1,0']] : ['shutdown', ['/s', '/t', '0']]
+  if (platform === 'darwin') return kind === 'sleep' ? ['pmset', ['sleepnow']] : ['osascript', ['-e', 'tell application "System Events" to shut down']]
+  return kind === 'sleep' ? ['systemctl', ['suspend']] : ['systemctl', ['poweroff']]
+}
 
 const APP_DIR = 'opnduck-desktop' // same folder name Electron derives from package.json
 
@@ -83,10 +113,14 @@ function createNodePlatform(opts = {}) {
       return true
     },
     isFocused: () => false,
+    isOnBattery: () => (process.platform === 'linux' ? linuxOnBattery() : null),
+    idleSeconds: () => null, // a terminal app cannot tell
+    canCountdown: () => false, // so it never sleeps or shuts down by itself
+    systemAction: (kind) => detached(...systemActionCommand(kind)),
     openPath: open,
     showInFolder: (p) => open(path.dirname(p)),
     openExternal: open,
   }
 }
 
-module.exports = { createNodePlatform, userDataDir }
+module.exports = { createNodePlatform, userDataDir, linuxOnBattery, systemActionCommand }

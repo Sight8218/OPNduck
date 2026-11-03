@@ -236,12 +236,16 @@ function createTaskEngine({ platform, getSettings, onFinished }) {
   /** A counting semaphore: queued jobs wait here for a slot instead of all starting at once. */
   const allPools = []
   let queuePaused = false
-  function makePool(limit) {
+  /** Smart scheduling hook (core/schedule.cjs): returns a reason while `pool` must not start new jobs, or ''. */
+  let gate = () => ''
+  const held = (pool) => queuePaused || !!gate(pool)
+  function makePool(limit, { heavy = false } = {}) {
     let active = 0
     const waiters = [] // { id, resolve }
     const pool = {
+      heavy,
       acquire(id) {
-        if (!queuePaused && active < limit) {
+        if (!held(pool) && active < limit) {
           active++
           return Promise.resolve()
         }
@@ -253,7 +257,7 @@ function createTaskEngine({ platform, getSettings, onFinished }) {
       },
       /** Hands free slots to waiting jobs, unless the queue is paused. */
       drain() {
-        while (!queuePaused && active < limit && waiters.length) {
+        while (!held(pool) && active < limit && waiters.length) {
           active++
           waiters.shift().resolve()
         }
@@ -277,9 +281,9 @@ function createTaskEngine({ platform, getSettings, onFinished }) {
   // Batches would otherwise spawn one process per file at once: ffmpeg/soffice conversions are
   // light (2 at a time); upscalers/interpolation fight over one GPU and Whisper loads a whole
   // model per process (1 at a time each).
-  const convertPool = makePool(2)
-  const gpuPool = makePool(1)
-  const whisperPool = makePool(1)
+  const convertPool = makePool(2, { heavy: true })
+  const gpuPool = makePool(1, { heavy: true })
+  const whisperPool = makePool(1, { heavy: true })
   // yt-dlp downloads: a big batch, "Retry failed" or several subscriptions must not start 1000 at once.
   const downloadPool = makePool(3)
 
@@ -288,6 +292,12 @@ function createTaskEngine({ platform, getSettings, onFinished }) {
     const s = getSettings()
     downloadPool.setLimit(s.maxDownloads)
     convertPool.setLimit(s.maxConversions)
+  }
+
+  /** Installs the scheduling gate; `drainAll` is called again whenever its answer may have changed. */
+  function setGate(fn) {
+    gate = fn
+    allPools.forEach((p) => p.drain())
   }
 
   function setQueuePaused(paused) {
@@ -299,6 +309,8 @@ function createTaskEngine({ platform, getSettings, onFinished }) {
   /** Runs `work` once the pool has a free slot. The slot is released by updateTask() when the
    *  task reaches a terminal state, or immediately if the task was canceled while waiting. */
   async function runInPool(pool, id, work) {
+    const queued = tasks.get(id)
+    if (queued) queued.pool = pool // lets the scheduler tell which waiting jobs it is holding back
     await pool.acquire(id)
     const entry = tasks.get(id)
     if (!entry || isCanceled(id)) return pool.release()
@@ -419,7 +431,7 @@ function createTaskEngine({ platform, getSettings, onFinished }) {
     logWatched, logPending, TERMINAL, MAX_HISTORY,
     addTask, appendLog, jobLog, attachLog, defaultDownloadDir, broadcastTasks,
     historyFile, scheduleHistorySave, saveHistory, loadHistory, markHistoryChanged, sanitizeBatch,
-    wrapStart, updateTask, makePool, setQueuePaused, applyQueueLimits, runInPool, killTask, isCanceled,
+    wrapStart, updateTask, makePool, setQueuePaused, setGate, applyQueueLimits, runInPool, killTask, isCanceled,
     get queuePaused() {
       return queuePaused
     },

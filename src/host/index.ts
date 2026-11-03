@@ -161,6 +161,7 @@ export interface AppSettings {
   /** Parallel downloads (1-6) and conversions (1-4). */
   /** New media files in this folder are converted automatically (checked every 10 seconds while OPNduck runs). */
   watchFolder: { enabled: boolean; path: string; container: string; recipe: string }
+  schedule: ScheduleSettings
   maxDownloads: number
   maxConversions: number
   /** Closing the window keeps OPNduck running in the system tray. */
@@ -312,6 +313,27 @@ export interface InboxLink {
   channel: string
   target: string
   at: number
+}
+
+/** Smart scheduling for heavy jobs. All off by default. */
+export interface ScheduleSettings {
+  window: boolean
+  from: string
+  to: string
+  battery: boolean
+  heat: boolean
+  maxC: number
+  idle: boolean
+  idleMinutes: number
+  downloads: boolean
+  whenDone: 'nothing' | 'notify' | 'sleep' | 'shutdown'
+  powerConfirmed: boolean
+}
+export interface ScheduleStatus {
+  reason: string
+  hot: boolean
+  temp: number | null
+  countdown: { action: 'sleep' | 'shutdown'; endsAt: number } | null
 }
 
 export interface ServerEntry {
@@ -526,6 +548,8 @@ export interface TaskState {
    *  resolveSpotifyTrack). Non-null means the UI MUST show this as a
    *  distinct tag rather than implying the file came from Spotify. */
   experimentalMatch: string | null
+  /** Why a waiting or paused job is held back: Waiting for 23:00, Cooling down (86 °C), and so on. */
+  waiting?: string | null
   /** Set while a whole-playlist download runs: which video it's on. total is 0
    *  until yt-dlp reports it. Absent for ordinary single-video tasks. */
   playlist?: { index: number; total: number } | null
@@ -708,6 +732,14 @@ export interface Host {
   /** The music tagger needs Chromaprint's fpcalc. */
   checkFpcalc(): Promise<ToolStatus>
   /** Measures a file and suggests settings for a tool, with the reason for each (reads the file; starts no job). */
+  /** Smart scheduling: what is holding heavy jobs back, and the countdown before sleep or shutdown. Desktop only. */
+  schedule: {
+    status(): Promise<ScheduleStatus>
+    cancelCountdown(): Promise<boolean>
+    onChange(listener: () => void): () => void
+    /** Fires with the countdown when the queue emptied and the computer is about to sleep or shut down, and with null when it is canceled. */
+    onCountdown(listener: (data: { action: 'sleep' | 'shutdown'; seconds: number; endsAt: number } | null) => void): () => void
+  }
   /** OPNduck servers this app can run jobs on, and sharing this PC's engine with other devices. Desktop only. */
   servers: {
     list(): Promise<{ servers: ServerEntry[]; defaults: Record<string, string>; encrypted: boolean }>
@@ -841,7 +873,7 @@ export interface Host {
   /** Main-process settings (proxy, login cookies). Desktop shell only. */
   settings?: {
     get(): Promise<AppSettings>
-    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; remoteEnabled?: boolean; remoteMode?: 'ask' | 'auto'; remoteRelay?: boolean; shareEngine?: boolean; remoteBind?: 'off' | 'localhost' | 'tailscale' | 'lan'; remotePort?: number; remoteFormat?: string; remoteVideoQuality?: string; remoteAudioQuality?: string; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
+    set(patch: { proxy?: string; gpuThreads?: AppSettings['gpuThreads']; upscaleEngine?: AppSettings['upscaleEngine']; videoEncoder?: AppSettings['videoEncoder']; notifyOnFinish?: boolean; runInTray?: boolean; mcpServer?: boolean; pluginsSafeMode?: boolean; autoTagAudio?: boolean; remoteEnabled?: boolean; remoteMode?: 'ask' | 'auto'; remoteRelay?: boolean; shareEngine?: boolean; remoteBind?: 'off' | 'localhost' | 'tailscale' | 'lan'; remotePort?: number; remoteFormat?: string; remoteVideoQuality?: string; remoteAudioQuality?: string; maxDownloads?: number; maxConversions?: number; watchFolder?: Partial<AppSettings['watchFolder']>; schedule?: Partial<AppSettings['schedule']>; cookies?: Partial<AppSettings['cookies']> }): Promise<AppSettings>
   }
   /** Auto-download new uploads from a channel/playlist (checked while the app is open). Desktop shell only. */
   subscriptions?: {
@@ -1171,6 +1203,12 @@ const browserHost: Host = {
   installYtDlp: async () => ({ ok: false, error: 'Desktop app required' }),
   checkFfmpeg: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkFpcalc: async () => ({ available: false, installHint: 'Desktop app required' }),
+  schedule: {
+    status: async () => ({ reason: '', hot: false, temp: null, countdown: null }),
+    cancelCountdown: async () => false,
+    onChange: () => () => {},
+    onCountdown: () => () => {},
+  },
   servers: {
     list: async () => ({ servers: [], defaults: {}, encrypted: false }),
     add: async () => {

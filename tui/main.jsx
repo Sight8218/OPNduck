@@ -44,6 +44,7 @@ const core = createCore({
 })
 core.engine.loadHistory()
 core.engine.applyQueueLimits()
+core.schedule.start()
 await core.plugins.init()
 
 for (let i = 0; i < args.length; i++) {

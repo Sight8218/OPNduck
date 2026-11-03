@@ -192,6 +192,8 @@ ipcMain.handle('plugins:list', () => core.plugins.list())
 ipcMain.handle('plugins:enable', (_e, id, approved) => core.plugins.enable(String(id), approved))
 ipcMain.handle('plugins:disable', (_e, id) => core.plugins.disable(String(id)))
 ipcMain.handle('plugins:remove', (_e, id) => core.plugins.remove(String(id)))
+ipcMain.handle('schedule:status', () => core.schedule.status())
+ipcMain.handle('schedule:cancelCountdown', () => core.schedule.cancelCountdown())
 ipcMain.handle('plugins:rescan', () => core.plugins.init())
 ipcMain.handle('plugins:storeList', (_e, force) => core.pluginStore.list({ force: force === true }))
 ipcMain.handle('plugins:storeInstall', (_e, id) => core.pluginStore.install(String(id)))
@@ -234,6 +236,7 @@ ipcMain.handle('dialog:pickFolder', async (e) => {
 ipcMain.handle('settings:get', () => getSettings())
 ipcMain.handle('settings:set', async (_e, patch) => {
   const next = setSettings(patch)
+  if (patch && 'schedule' in patch) void core.schedule.tick() // new rules apply at once
   if (patch && 'runInTray' in patch) applyTray()
   applyQueueLimits()
   if (patch && 'mcpServer' in patch) await applyMcp()
@@ -1293,6 +1296,7 @@ app.whenReady().then(() => {
   createWindow()
   const launchLink = opnduckUrlIn(process.argv) // the app was started by an opnduck:// link
   if (launchLink) handleOpnduckUrl(launchLink)
+  core.schedule.start()
   void core.plugins.init() // after the window exists: a plugin's activate() must never delay startup
   applyTray()
   trace('window created')

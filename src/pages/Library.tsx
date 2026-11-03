@@ -58,6 +58,7 @@ const RUNNING_LABEL: Record<TaskState['kind'], string> = {
 }
 
 function statusLabel(task: TaskState): string {
+  if (task.waiting && (task.status === 'queued' || task.status === 'running')) return task.waiting
   if (task.status === 'running') return task.stage || RUNNING_LABEL[task.kind]
   return { queued: 'Queued', done: 'Done', error: 'Error', canceled: 'Canceled' }[task.status]
 }

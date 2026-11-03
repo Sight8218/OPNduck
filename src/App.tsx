@@ -6,6 +6,7 @@ import NavBar from './components/NavBar'
 import PageTransition from './components/PageTransition'
 import PreAlphaBanner from './components/PreAlphaBanner'
 import NoticeHost from './components/NoticeHost'
+import QueueCountdown from './components/QueueCountdown'
 import SetupWizard from './components/SetupWizard'
 import PerfHud from './components/PerfHud'
 import UpdatePrompt from './components/UpdatePrompt'
@@ -98,6 +99,7 @@ export default function App() {
             <CommandPalette />
             <UpdatePrompt />
             <NoticeHost />
+            <QueueCountdown />
             <SetupWizard />
             <PerfHud />
           </NavProvider>

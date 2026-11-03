@@ -88,6 +88,8 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
   add('compress', require('./compress.cjs').createCompress) // after gpu: it uses the NVENC check from there
   add('download', require('./download.cjs').createDownload)
   add('recipes', require('./recipes.cjs').createRecipes) // last: it starts steps through the handlers above
+  // Not started here (it runs a timer): the shells call `core.schedule.start()` once they are ready.
+  const schedule = require('./schedule.cjs').createSchedule({ engine, platform, getSettings })
 
   /** Starts a job by its channel name (the same names the desktop IPC uses), without a UI. */
   function startJob(channel, req) {
@@ -98,6 +100,7 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
 
   /** Stops everything cleanly: kills queued/running jobs' processes, saves history, stops the model workers and plugins. */
   function shutdown() {
+    schedule.stop()
     void plugins.shutdown()
     modules.subtitles.whisperWorker.stop()
     modules.audioAi.demucsWorker.stop()
@@ -107,7 +110,7 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
     engine.saveHistory()
   }
 
-  const core = { platform, settings, tools, engine, modules, ctx, startJob, shutdown, recipes: modules.recipes.recipes }
+  const core = { platform, settings, tools, engine, modules, ctx, startJob, shutdown, recipes: modules.recipes.recipes, schedule }
   // Not started here: the shell calls `core.plugins.init()` once it is ready (after its windows and dialogs exist).
   plugins = core.plugins = require('./plugins.cjs').createPluginHost({
     core,

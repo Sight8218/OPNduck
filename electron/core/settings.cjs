@@ -50,6 +50,16 @@ const DEFAULTS = {
   /** Parallel yt-dlp downloads / ffmpeg+LibreOffice conversions. */
   /** Watch folder: new media files dropped in `path` are converted to `container` (into a "converted" subfolder). */
   watchFolder: { enabled: false, path: '', container: 'MP4', recipe: '' },
+  /** Smart scheduling for heavy jobs (conversions, GPU work, transcription); see core/schedule.cjs. Everything is off by default. */
+  schedule: {
+    window: false, from: '23:00', to: '07:00', // only start heavy jobs between these times
+    battery: false, // hold heavy jobs while running on battery
+    heat: false, maxC: 85, // pause GPU jobs above this temperature
+    idle: false, idleMinutes: 10, // start heavy jobs only after this long away
+    downloads: false, // the rules above also hold downloads
+    whenDone: 'nothing', // 'nothing' | 'notify' | 'sleep' | 'shutdown' once the queue is empty
+    powerConfirmed: false, // sleep and shut down stay off until the person has confirmed once in Settings
+  },
   maxDownloads: 3,
   maxConversions: 2,
   /** Encoder for AI video jobs: 'auto' = GPU (NVENC) when it works, 'cpu' = x264. */
@@ -121,6 +131,14 @@ function validate(next) {
   if (w.recipe !== undefined && (typeof w.recipe !== 'string' || w.recipe.length > 100)) throw new Error('Invalid watch folder recipe')
   if (w.path !== '' && !path.isAbsolute(w.path)) throw new Error('The watch folder must be an absolute path')
   if (w.enabled && !w.path) throw new Error('Choose a folder to watch first')
+  const sc = next.schedule
+  const clock = /^([01]\d|2[0-3]):[0-5]\d$/
+  if (!sc || ['window', 'battery', 'heat', 'idle', 'downloads', 'powerConfirmed'].some((k) => typeof sc[k] !== 'boolean')) throw new Error('Invalid scheduling setting')
+  if (!clock.test(sc.from) || !clock.test(sc.to)) throw new Error('Times look like 23:00')
+  if (!Number.isInteger(sc.maxC) || sc.maxC < 60 || sc.maxC > 100) throw new Error('The temperature limit must be 60 to 100 °C')
+  if (!Number.isInteger(sc.idleMinutes) || sc.idleMinutes < 1 || sc.idleMinutes > 240) throw new Error('Away time must be 1 to 240 minutes')
+  if (!['nothing', 'notify', 'sleep', 'shutdown'].includes(sc.whenDone)) throw new Error('Invalid "when the queue finishes" setting')
+  if (['sleep', 'shutdown'].includes(sc.whenDone) && !sc.powerConfirmed) throw new Error('Confirm that OPNduck may sleep or shut down this computer first')
   if (typeof next.notifyOnFinish !== 'boolean' || typeof next.runInTray !== 'boolean') throw new Error('Invalid notification setting')
   if (!['auto', 'cpu'].includes(next.videoEncoder)) throw new Error('Invalid video encoder')
   if (typeof next.mcpServer !== 'boolean') throw new Error('Invalid MCP server setting')
@@ -164,7 +182,7 @@ function read() {
   } catch {
     /* first run, or unreadable — fall back to defaults */
   }
-  const merged = { ...DEFAULTS, ...stored, cookies: { ...DEFAULTS.cookies, ...(stored.cookies || {}) } }
+  const merged = { ...DEFAULTS, ...stored, cookies: { ...DEFAULTS.cookies, ...(stored.cookies || {}) }, schedule: { ...DEFAULTS.schedule, ...(stored.schedule || {}) } }
   try {
     validate(merged)
     cache = merged
@@ -189,6 +207,7 @@ function setSettings(patch) {
     upscaleEngine: patch.upscaleEngine !== undefined ? patch.upscaleEngine : current.upscaleEngine,
     notifyOnFinish: patch.notifyOnFinish !== undefined ? patch.notifyOnFinish : current.notifyOnFinish,
     runInTray: patch.runInTray !== undefined ? patch.runInTray : current.runInTray,
+    schedule: patch.schedule !== undefined ? { ...current.schedule, ...patch.schedule } : current.schedule,
     watchFolder: patch.watchFolder !== undefined ? { ...current.watchFolder, ...patch.watchFolder } : current.watchFolder,
     maxDownloads: patch.maxDownloads !== undefined ? patch.maxDownloads : current.maxDownloads,
     maxConversions: patch.maxConversions !== undefined ? patch.maxConversions : current.maxConversions,
