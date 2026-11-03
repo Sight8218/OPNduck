@@ -189,7 +189,9 @@ function createTaskEngine({ platform, getSettings, onFinished }) {
         entry.req = req
         // Jobs started together (a batch of files, or a download plus its audio tracks) share a
         // group, which the Library shows as one collapsible block.
-        entry.state.group = sanitizeBatch(req?.batch)
+        // (A start that began a recipe run returns the run's first task, which already has its group.)
+        const group = sanitizeBatch(req?.batch)
+        if (group || !entry.state.group) entry.state.group = group
         broadcastTasks() // a task waiting in a queue wouldn't otherwise show its group until it starts
       }
       return id

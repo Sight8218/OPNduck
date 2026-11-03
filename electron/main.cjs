@@ -285,6 +285,7 @@ ipcMain.handle('recipes:remove', (_e, id) => core.recipes.remove(String(id)))
 ipcMain.handle('recipes:duplicate', (_e, id) => core.recipes.duplicate(String(id)))
 ipcMain.handle('recipes:run', (_e, id, input, opts) => core.recipes.run(String(id), String(input), { destination: typeof opts?.destination === 'string' ? opts.destination : undefined, keepIntermediate: opts?.keepIntermediate === true }))
 ipcMain.handle('recipes:resume', (_e, runId) => core.recipes.resume(String(runId)))
+ipcMain.handle('restore:preview', (_e, req) => modules.restore.previewRestore(req))
 ipcMain.handle('jumpcut:analyze', (_e, req) => modules.jumpcut.analyzeJumpCut(req))
 ipcMain.handle('auto:suggest', async (_e, tool, filePath, opts) => {
   if (typeof tool !== 'string' || typeof filePath !== 'string' || !path.isAbsolute(filePath)) throw new Error('Invalid request')

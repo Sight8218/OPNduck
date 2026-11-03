@@ -1,6 +1,6 @@
 # OPNduck TUI
 
-The OPNduck tools in a terminal: download, convert, trim, compress to a size, tag music, make GIFs and stickers, cut silences and normalize loudness, upscale (image and video), frame interpolation, subtitles and AI audio. It runs the same job code as the desktop app (`electron/core/`), shares its settings and history, and needs no window: about 100 MB of memory instead of about 680 MB, and it works over SSH.
+The OPNduck tools in a terminal: download, convert, trim, compress to a size, tag music, make GIFs and stickers, cut silences and normalize loudness, restore old video, upscale (image and video), frame interpolation, subtitles and AI audio. It runs the same job code as the desktop app (`electron/core/`), shares its settings and history, and needs no window: about 100 MB of memory instead of about 680 MB, and it works over SSH.
 
 ## Run it
 

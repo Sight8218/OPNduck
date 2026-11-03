@@ -38,6 +38,7 @@ const CHANNEL_KIND = {
   'tasks:startCompress': 'compress',
   'tasks:startGif': 'make_gif',
   'tasks:startJumpCut': 'jump_cut',
+  'tasks:startRestore': 'restore',
   'tasks:startAudioAi': 'audio_ai',
 }
 const DOWNLOAD_ARGS = ['url', 'format', 'videoQuality', 'audioQuality', 'embedMeta']

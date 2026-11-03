@@ -39,6 +39,8 @@ import type {
   TagRequest,
   GifRequest,
   JumpCutRequest,
+  RestoreRequest,
+  RestorePreview,
   JumpCutAnalysis,
   TagLookup,
   AutoTool,
@@ -103,6 +105,7 @@ interface ElectronBridge {
     run(id: string, input: string, opts?: { destination?: string; keepIntermediate?: boolean }): Promise<RecipeRun>
     resume(runId: string): Promise<RecipeRun>
   }
+  previewRestore(req: Pick<RestoreRequest, 'inputPath' | 'deinterlace' | 'denoise' | 'fixColors'> & { time?: number; width?: number }): Promise<RestorePreview>
   analyzeJumpCut(req: Pick<JumpCutRequest, 'inputPath' | 'thresholdDb' | 'minSilence' | 'padding'>): Promise<JumpCutAnalysis>
   suggestSettings(tool: AutoTool, filePath: string, opts?: { container?: string }): Promise<AutoSuggestion>
   tagger: { identify(filePath: string): Promise<TagLookup>; listAudio(folder: string): Promise<string[]> }
@@ -171,6 +174,7 @@ interface ElectronBridge {
     fileOf(taskId: string): Promise<string | null>
     startGif(req: GifRequest): Promise<string>
     startJumpCut(req: JumpCutRequest): Promise<string>
+    startRestore(req: RestoreRequest): Promise<string>
     cancel(taskId: string): void
     rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
     openFolder(taskId: string): Promise<void>
@@ -245,6 +249,7 @@ export function detectElectronHost(): Host | null {
     servers: bridge.servers,
     schedule: bridge.schedule,
     recipes: bridge.recipes,
+    previewRestore: (req) => bridge.previewRestore(req),
     analyzeJumpCut: (req) => bridge.analyzeJumpCut(req),
     suggestSettings: (tool, filePath, opts) => bridge.suggestSettings(tool, filePath, opts),
     tagger: bridge.tagger,
@@ -315,6 +320,7 @@ export function detectElectronHost(): Host | null {
       fileOf: (id) => bridge.tasks.fileOf(id),
       startGif: (req) => bridge.tasks.startGif(withRunOn('make_gif', req)),
       startJumpCut: (req) => bridge.tasks.startJumpCut(withRunOn('jump_cut', req)),
+      startRestore: (req) => bridge.tasks.startRestore(withRunOn('restore', req)),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
       runNext: (taskId) => bridge.tasks.runNext(taskId),
       logs: (taskId) => bridge.tasks.logs(taskId),

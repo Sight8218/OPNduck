@@ -15,6 +15,7 @@ const MCP_NAME = {
   compress: 'compress',
   gif: 'make_gif',
   jumpcut: 'jump_cut',
+  restore: 'restore',
   tagger: 'tag_music',
 }
 
@@ -42,6 +43,12 @@ const LABELS = {
   fps: 'Frames per second',
   loop: 'Loop forever',
   cut: 'Cut the silences',
+  deinterlace: 'Deinterlace',
+  denoise: 'Remove noise',
+  stabilize: 'Stabilize',
+  fixColors: 'Fix colors',
+  upscale: 'Then upscale 2x',
+  interpolate: 'Then smooth motion',
   thresholdDb: 'Silence level (dB)',
   minSilence: 'Shortest silence (s)',
   padding: 'Keep around cuts (s)',

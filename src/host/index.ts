@@ -443,6 +443,30 @@ export interface CompressRequest {
   destination?: string
 }
 
+export type DenoiseLevel = 'off' | 'light' | 'medium' | 'strong'
+
+export interface RestoreRequest {
+  batch?: BatchInfo
+  inputPath: string
+  /** 'auto' looks at the video first and deinterlaces only when it is interlaced. */
+  deinterlace?: 'auto' | 'on' | 'off'
+  denoise?: DenoiseLevel
+  stabilize?: boolean
+  fixColors?: boolean
+  /** Then upscale 2x / double the frame rate, as follow-up jobs in the same group. */
+  upscale?: boolean
+  interpolate?: boolean
+  destination?: string
+}
+
+/** One frame before and after the per-frame fixes (not stabilizing), as data URLs. */
+export interface RestorePreview {
+  before: string | null
+  after: string | null
+  interlaced: boolean
+  applied: boolean
+}
+
 export type LoudnessTarget = 'off' | 'podcast' | 'broadcast'
 
 export interface JumpCutRequest {
@@ -522,7 +546,7 @@ export interface SubtitlesRequest {
   destination?: string
 }
 
-export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress' | 'tag' | 'gif' | 'jumpcut'
+export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress' | 'tag' | 'gif' | 'jumpcut' | 'restore'
 export type TaskStatus = 'queued' | 'running' | 'done' | 'error' | 'canceled'
 
 export interface TaskState {
@@ -611,6 +635,7 @@ export interface HostTasks {
   startTag(req: TagRequest): Promise<string>
   startGif(req: GifRequest): Promise<string>
   startJumpCut(req: JumpCutRequest): Promise<string>
+  startRestore(req: RestoreRequest): Promise<string>
   cancel(taskId: string): void
   /** Replays a finished task's original request as a new task. Resolves to the new id (null if it can't be replayed). */
   rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
@@ -788,6 +813,8 @@ export interface Host {
     run(id: string, input: string, opts?: { destination?: string; keepIntermediate?: boolean }): Promise<RecipeRun>
     resume(runId: string): Promise<RecipeRun>
   }
+  /** A before/after frame for the Restore card (starts no job). Throws a readable message. */
+  previewRestore(req: Pick<RestoreRequest, 'inputPath' | 'deinterlace' | 'denoise' | 'fixColors'> & { time?: number; width?: number }): Promise<RestorePreview>
   /** Finds the silences and says how much a jump cut would remove (starts no job). Throws a readable message. */
   analyzeJumpCut(req: Pick<JumpCutRequest, 'inputPath' | 'thresholdDb' | 'minSilence' | 'padding'>): Promise<JumpCutAnalysis>
   suggestSettings(tool: AutoTool, filePath: string, opts?: { container?: string }): Promise<AutoSuggestion>
@@ -1077,6 +1104,9 @@ const browserTasks: HostTasks = {
     browserListeners.forEach((l) => l(browserTaskList))
     return id
   },
+  startRestore: async () => {
+    throw new Error('Desktop app required')
+  },
   startJumpCut: async () => {
     throw new Error('Desktop app required')
   },
@@ -1252,6 +1282,9 @@ const browserHost: Host = {
     resume: async () => {
       throw new Error('Desktop app required')
     },
+  },
+  previewRestore: async () => {
+    throw new Error('Desktop app required')
   },
   analyzeJumpCut: async () => {
     throw new Error('Desktop app required')

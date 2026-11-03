@@ -28,6 +28,7 @@ import VideoUpscalerCard from './upscaler/VideoUpscalerCard'
 import CompressCard from './compress/CompressCard'
 import GifCard from './gif/GifCard'
 import JumpCutCard from './jumpcut/JumpCutCard'
+import RestoreCard from './restore/RestoreCard'
 import TaggerCard from './tagger/TaggerCard'
 import TrimCard from './trim/TrimCard'
 
@@ -147,6 +148,17 @@ export function registerCoreFeatures(): void {
       icon: 'tag',
       enabled: true,
       render: TaggerCard,
+      source: 'core',
+    },
+    {
+      id: 'restore',
+      title: 'Restore',
+      tagline: 'Deinterlace · denoise · stabilize',
+      description: 'Clean up old or shaky footage in one pass, with a before and after preview, then upscale and smooth the motion if you like.',
+      scope: 'desktop-exclusive',
+      icon: 'restore',
+      enabled: true,
+      render: RestoreCard,
       source: 'core',
     },
     {
