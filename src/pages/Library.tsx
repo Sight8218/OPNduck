@@ -54,6 +54,7 @@ const RUNNING_LABEL: Record<TaskState['kind'], string> = {
   compress: 'Compressing',
   tag: 'Tagging',
   gif: 'Making a clip',
+  jumpcut: 'Cutting silences',
 }
 
 function statusLabel(task: TaskState): string {

@@ -84,6 +84,7 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
   add('tagger', require('./tagger.cjs').createTagger)
   add('analyze', require('./analyze.cjs').createAnalyze)
   add('gif', require('./gif.cjs').createGif)
+  add('jumpcut', require('./jumpcut.cjs').createJumpCut)
   add('compress', require('./compress.cjs').createCompress) // after gpu: it uses the NVENC check from there
   add('download', require('./download.cjs').createDownload)
   add('recipes', require('./recipes.cjs').createRecipes) // last: it starts steps through the handlers above

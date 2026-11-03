@@ -6,6 +6,7 @@ import {
   IconPlayerTrackNext,
   IconArrowsMinimize,
   IconGif,
+  IconWaveSine,
   IconScissors,
   IconTags,
   IconTextCaption,
@@ -26,6 +27,7 @@ const FEATURE_ICONS: Record<string, Icon> = {
   compress: IconArrowsMinimize,
   tag: IconTags,
   gif: IconGif,
+  jumpcut: IconWaveSine,
 }
 
 export function FeatureIcon({ name, size = 22 }: { name: string; size?: number }) {

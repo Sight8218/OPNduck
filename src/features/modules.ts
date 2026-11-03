@@ -27,6 +27,7 @@ import ImageUpscalerCard from './upscaler/ImageUpscalerCard'
 import VideoUpscalerCard from './upscaler/VideoUpscalerCard'
 import CompressCard from './compress/CompressCard'
 import GifCard from './gif/GifCard'
+import JumpCutCard from './jumpcut/JumpCutCard'
 import TaggerCard from './tagger/TaggerCard'
 import TrimCard from './trim/TrimCard'
 
@@ -146,6 +147,17 @@ export function registerCoreFeatures(): void {
       icon: 'tag',
       enabled: true,
       render: TaggerCard,
+      source: 'core',
+    },
+    {
+      id: 'jumpcut',
+      title: 'Jump Cut',
+      tagline: 'Remove silences · normalize loudness',
+      description: 'For talking videos and podcasts: cut out the silences in one pass and even out the volume.',
+      scope: 'desktop-exclusive',
+      icon: 'jumpcut',
+      enabled: true,
+      render: JumpCutCard,
       source: 'core',
     },
     {

@@ -41,6 +41,8 @@ export function producesFor(tool: string, args: Record<string, unknown>, input: 
     case 'tag_music':
     case 'audio_ai':
       return 'audio'
+    case 'jump_cut':
+      return args.audioOnly ? 'audio' : input
     default:
       return input // trim, compress: same kind of file out as in
   }
@@ -63,6 +65,7 @@ export const TITLES: Record<string, string> = {
   trim: 'Trim',
   compress: 'Compress to a size',
   make_gif: 'GIF or sticker',
+  jump_cut: 'Jump cut and normalize',
   tag_music: 'Tag music',
   audio_ai: 'AI audio',
 }

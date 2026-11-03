@@ -204,6 +204,25 @@ const TOOLS = [
     },
   },
   {
+    name: 'jump_cut',
+    description: 'Remove the silences from a talking video or a podcast (one re-encode), and/or even out the loudness. Returns a job id.',
+    channel: 'tasks:startJumpCut',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        inputPath: FILE,
+        cut: { type: 'boolean', description: 'Cut the silences. Default true.' },
+        thresholdDb: { type: 'number', minimum: -80, maximum: -10, description: 'Anything quieter than this is silence. Default -30.' },
+        minSilence: { type: 'number', minimum: 0.1, maximum: 10, description: 'Only silences at least this many seconds long are cut. Default 0.5.' },
+        padding: { type: 'number', minimum: 0, maximum: 2, description: 'Seconds of silence kept around each part. Default 0.15.' },
+        normalize: { type: 'string', enum: ['off', 'podcast', 'broadcast'], description: 'Even out the loudness: podcast (-14 LUFS, YouTube and Spotify) or broadcast (-23 LUFS). Default off.' },
+        audioOnly: { type: 'boolean', description: 'Write an MP3 without the video. Default false.' },
+      },
+      required: ['inputPath'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'tag_music',
     description: 'Look up a song by its audio fingerprint (AcoustID, MusicBrainz, Cover Art Archive) and write artist, title, album, year, track and cover into the file. It changes the file only when it is sure enough. Returns a job id.',
     channel: 'tasks:startTag',
@@ -293,6 +312,7 @@ const STEP_TYPES = {
   trim: { accepts: ['video', 'audio'], produces: same },
   compress: { accepts: ['video', 'audio'], produces: same },
   make_gif: { accepts: ['video'], produces: 'image' },
+  jump_cut: { accepts: ['video', 'audio'], produces: (a, inputType) => (a.audioOnly ? 'audio' : inputType) },
   tag_music: { accepts: ['audio'], produces: 'audio' },
   audio_ai: { accepts: ['audio', 'video'], produces: 'audio' },
 }
@@ -320,6 +340,7 @@ const DEFAULTS = {
   trim: { end: null, mode: 'fast' },
   compress: { quality: 'fast' },
   make_gif: { preset: 'gif', start: 0, end: null, loop: true },
+  jump_cut: { cut: true, normalize: 'off', audioOnly: false },
   tag_music: { organize: false, minConfidence: 0.9 },
   audio_ai: { format: 'MP3', keepVideo: false },
 }

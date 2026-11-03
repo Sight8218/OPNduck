@@ -14,6 +14,7 @@ const MCP_NAME = {
   trim: 'trim',
   compress: 'compress',
   gif: 'make_gif',
+  jumpcut: 'jump_cut',
   tagger: 'tag_music',
 }
 
@@ -40,6 +41,12 @@ const LABELS = {
   width: 'Width (px)',
   fps: 'Frames per second',
   loop: 'Loop forever',
+  cut: 'Cut the silences',
+  thresholdDb: 'Silence level (dB)',
+  minSilence: 'Shortest silence (s)',
+  padding: 'Keep around cuts (s)',
+  normalize: 'Normalize loudness',
+  audioOnly: 'Audio only (MP3)',
   minConfidence: 'Needs to be this sure (0.5-1)',
 }
 

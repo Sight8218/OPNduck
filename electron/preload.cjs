@@ -78,6 +78,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     run: (id, input, opts) => ipcRenderer.invoke('recipes:run', id, input, opts ?? null),
     resume: (runId) => ipcRenderer.invoke('recipes:resume', runId),
   },
+  analyzeJumpCut: (req) => ipcRenderer.invoke('jumpcut:analyze', req),
   suggestSettings: (tool, filePath, opts) => ipcRenderer.invoke('auto:suggest', tool, filePath, opts ?? null),
   tagger: {
     identify: (filePath) => ipcRenderer.invoke('tagger:identify', filePath),
@@ -200,6 +201,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     startTag: (req) => ipcRenderer.invoke('tasks:startTag', req),
     fileOf: (id) => ipcRenderer.invoke('tasks:file', id),
     startGif: (req) => ipcRenderer.invoke('tasks:startGif', req),
+    startJumpCut: (req) => ipcRenderer.invoke('tasks:startJumpCut', req),
     startSubtitles: (req) => ipcRenderer.invoke('tasks:startSubtitles', req),
     cancel: (taskId) => ipcRenderer.send('tasks:cancel', taskId),
     rerun: (taskId, opts) => ipcRenderer.invoke('tasks:rerun', taskId, opts),

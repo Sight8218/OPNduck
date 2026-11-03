@@ -421,6 +421,33 @@ export interface CompressRequest {
   destination?: string
 }
 
+export type LoudnessTarget = 'off' | 'podcast' | 'broadcast'
+
+export interface JumpCutRequest {
+  batch?: BatchInfo
+  inputPath: string
+  /** Cut the silences (default true). */
+  cut?: boolean
+  /** Anything quieter than this (dB) is silence. */
+  thresholdDb?: number
+  /** Only silences at least this many seconds long are cut. */
+  minSilence?: number
+  /** Seconds kept around each cut. */
+  padding?: number
+  normalize?: LoudnessTarget
+  /** Write an MP3 without the video. */
+  audioOnly?: boolean
+  destination?: string
+}
+
+/** The dry run of a jump cut: how much would go. */
+export interface JumpCutAnalysis {
+  duration: number
+  keptSeconds: number
+  removedSeconds: number
+  parts: number
+}
+
 export interface TrimRequest {
   /** Set by the card when it starts several jobs at once. */
   batch?: BatchInfo
@@ -473,7 +500,7 @@ export interface SubtitlesRequest {
   destination?: string
 }
 
-export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress' | 'tag' | 'gif'
+export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress' | 'tag' | 'gif' | 'jumpcut'
 export type TaskStatus = 'queued' | 'running' | 'done' | 'error' | 'canceled'
 
 export interface TaskState {
@@ -559,6 +586,7 @@ export interface HostTasks {
   startCompress(req: CompressRequest): Promise<string>
   startTag(req: TagRequest): Promise<string>
   startGif(req: GifRequest): Promise<string>
+  startJumpCut(req: JumpCutRequest): Promise<string>
   cancel(taskId: string): void
   /** Replays a finished task's original request as a new task. Resolves to the new id (null if it can't be replayed). */
   rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
@@ -728,6 +756,8 @@ export interface Host {
     run(id: string, input: string, opts?: { destination?: string; keepIntermediate?: boolean }): Promise<RecipeRun>
     resume(runId: string): Promise<RecipeRun>
   }
+  /** Finds the silences and says how much a jump cut would remove (starts no job). Throws a readable message. */
+  analyzeJumpCut(req: Pick<JumpCutRequest, 'inputPath' | 'thresholdDb' | 'minSilence' | 'padding'>): Promise<JumpCutAnalysis>
   suggestSettings(tool: AutoTool, filePath: string, opts?: { container?: string }): Promise<AutoSuggestion>
   /** Music tagger lookups. They contact AcoustID, MusicBrainz and the Cover Art Archive, only when called. */
   tagger: {
@@ -1015,6 +1045,9 @@ const browserTasks: HostTasks = {
     browserListeners.forEach((l) => l(browserTaskList))
     return id
   },
+  startJumpCut: async () => {
+    throw new Error('Desktop app required')
+  },
   startGif: async (req) => {
     const id = crypto.randomUUID()
     browserTaskList = [
@@ -1181,6 +1214,9 @@ const browserHost: Host = {
     resume: async () => {
       throw new Error('Desktop app required')
     },
+  },
+  analyzeJumpCut: async () => {
+    throw new Error('Desktop app required')
   },
   suggestSettings: async () => {
     throw new Error('Desktop app required')
