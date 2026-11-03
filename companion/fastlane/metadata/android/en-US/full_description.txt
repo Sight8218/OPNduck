@@ -1,0 +1,11 @@
+OPNduck is a free, open-source, local-first media tool for your computer (downloader, converter, upscalers, subtitles and more). This app is its remote control: all the work happens on your own computer or on your own OPNduck Server, never on the phone and never on someone else's server.
+
+<ul>
+<li>Send a link from any app with Share, or paste it. Pick the format, or ask for a phone-friendly copy.</li>
+<li>Watch the queue and cancel or run jobs again.</li>
+<li>Download the finished file to your phone with one tap, straight into Downloads/OPNduck.</li>
+<li>Get a notification when a job is ready.</li>
+<li>Pair by scanning a QR code. Works over Tailscale or your own HTTPS address.</li>
+</ul>
+
+No account, no ads, no tracking, and no Google services. Your device token is kept under an Android Keystore key. Links can also travel end-to-end encrypted through the optional ntfy relay.

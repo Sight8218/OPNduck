@@ -1,0 +1,1 @@
+First version: pair by QR code, send links (also from Share), queue, finished jobs, download to phone, notifications.

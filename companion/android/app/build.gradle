@@ -7,7 +7,7 @@ android {
         applicationId "dev.opnduck.companion"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        versionCode 1 // raise by one for every release
         versionName "0.1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
@@ -16,8 +16,22 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // A release is signed only when the key is given (CI passes it as environment variables); otherwise it stays unsigned,
+    // which is also what F-Droid builds and then signs with its own key.
+    signingConfigs {
+        release {
+            def ks = System.getenv('OPNDUCK_KEYSTORE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('OPNDUCK_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('OPNDUCK_KEY_ALIAS')
+                keyPassword System.getenv('OPNDUCK_KEY_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
+            if (System.getenv('OPNDUCK_KEYSTORE')) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

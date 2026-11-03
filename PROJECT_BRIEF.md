@@ -206,3 +206,7 @@ mount (`hideSplash()`).
 ## Servers and the Engine API
 
 `engine-api/` is the network face of the job core (pairing, tasks, uploads, files; see `docs/SERVER.md`). `server/` runs the same core headless (`opnduck-server`, Docker). The desktop app can share its own engine and can run jobs on a server through mirror tasks (`electron/core/remote/hosts.cjs`), chosen per tool card (`RunOnSelector`) or by default in Settings > Servers.
+
+## Android companion app
+
+`companion/` is a Capacitor app (own small React UI, one native Java plugin) that pairs with an engine and sends links, shows the queue and downloads results. Decision record: `docs/plans/companion-framework.md`; user guide: `docs/COMPANION.md`.
