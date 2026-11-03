@@ -52,7 +52,8 @@ export default function AdaptiveCardGrid() {
           app={{ features, selected: openId, onSelect: choose }}
         />
       ) : (
-      <div className={compact ? 'grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6' : 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'}>
+      // A wrapping row where every tile grows: a last row with fewer tiles stretches them to fill the whole width.
+      <div className={`flex flex-wrap ${compact ? 'gap-1.5' : 'gap-3'}`}>
         {features.map((f, i) => {
           const active = f.id === open?.id
           return (
@@ -62,8 +63,10 @@ export default function AdaptiveCardGrid() {
               onClick={() => choose(active ? null : f.id)}
               aria-pressed={active}
               title={compact ? `${f.title}: ${f.tagline}` : undefined}
-              className={`glass tile-glow-hover pop-in flex items-center text-left transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 ${
-                compact ? 'gap-2 rounded-xl px-2 py-1' : 'gap-3 rounded-2xl p-3'
+              className={`glass tile-glow-hover pop-in flex min-w-0 grow items-center text-left transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 ${
+                compact
+                  ? 'basis-[calc(50%-0.1875rem)] gap-2 rounded-xl px-2 py-1 sm:basis-[calc(25%-0.3rem)] lg:basis-[calc(16.666%-0.32rem)]'
+                  : 'basis-[calc(50%-0.375rem)] gap-3 rounded-2xl p-3 sm:basis-[calc(33.333%-0.5rem)] lg:basis-[calc(25%-0.57rem)]'
               } ${
                 active ? 'border-[var(--accent)] shadow-[0_0_0_1px_var(--accent)]' : ''
               }`}
@@ -102,7 +105,7 @@ export default function AdaptiveCardGrid() {
         </div>
       ) : open ? (
 
-        <div key={open.id} className={`pop-in mx-auto w-full ${open.id === 'gif' ? 'max-w-6xl' : 'max-w-3xl'}`}>
+        <div key={open.id} className="pop-in mx-auto w-full max-w-3xl">
           <open.render feature={open} />
         </div>
       ) : (
