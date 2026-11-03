@@ -63,7 +63,7 @@ export default function Chat({ theme, core, onTyping }) {
       const r = await core.ai.agent({
         messages: next.slice(-30),
         deps: deps(),
-        system: systemPrompt({ files: core.knownFiles(), recentJobs: jobs, web: core.settings.getSettings().ai.web.enabled }),
+        system: systemPrompt({ files: core.knownFiles(), recentJobs: jobs, web: core.settings.getSettings().ai.web.enabled ? { search: core.settings.getSettings().ai.web.search } : false }),
         signal: abort.current.signal,
         onEvent: (ev) => ev.type === 'text' && setLive((t) => t + ev.delta),
       })

@@ -324,7 +324,7 @@ ipcMain.handle('ai:send', async (e, req) => {
   aiRuns.set(requestId, controller)
   try {
     const jobs = [...engine.tasks.values()].slice(-8).map((t) => `${t.state.kind} ${t.state.status}: ${t.state.label}`)
-    const r = await core.ai.agent({ messages, deps: aiDeps(), system: [systemPrompt({ files: core.knownFiles(), recentJobs: jobs, web: getSettings().ai.web.enabled }), aiDev.addendum()].filter(Boolean).join('\n\n'), signal: controller.signal, onEvent: (ev) => e.sender.send('ai:event', { requestId, event: ev }) })
+    const r = await core.ai.agent({ messages, deps: aiDeps(), system: [systemPrompt({ files: core.knownFiles(), recentJobs: jobs, web: getSettings().ai.web.enabled ? { search: getSettings().ai.web.search } : false }), aiDev.addendum()].filter(Boolean).join('\n\n'), signal: controller.signal, onEvent: (ev) => e.sender.send('ai:event', { requestId, event: ev }) })
     return { message: r.message.content, proposals: r.proposals.map(({ tool, args }) => ({ tool, args })), usage: r.usage }
   } catch (err) {
     if (controller.signal.aborted) return { message: '', proposals: [], usage: null, aborted: true }
