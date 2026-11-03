@@ -150,12 +150,13 @@ def run_job(job):
     ffmpeg = job.get("ffmpeg", "ffmpeg")
     w, h, scale, fps = job["width"], job["height"], job["scale"], job["fps"]  # fps as "num/den"
     out_w, out_h = w * scale, h * scale
-    device = "cuda" if torch.cuda.is_available() else None
+    device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else None)  # mps: Apple silicon
     if device is None:
-        raise SystemExit("No CUDA GPU is available to PyTorch")
+        raise SystemExit("No GPU is available to PyTorch (needs CUDA, or Metal on a Mac)")
     emit("STAGE loading-model")
     net = load_model(job["model"], job["weights"], device)
-    torch.backends.cudnn.benchmark = True
+    if device == "cuda":
+        torch.backends.cudnn.benchmark = True
     tile = job.get("tile") or 0
 
     enc_codec = {

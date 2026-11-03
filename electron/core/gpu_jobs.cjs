@@ -462,6 +462,12 @@ function createGpuJobs(ctx) {
   /** x264 on the CPU, or NVENC when it works and the output fits (h264 up to 4096 px wide, else HEVC). */
   async function pickVideoEncoder(outWidth) {
     if (getSettings().videoEncoder === 'cpu') return 'libx264'
+    if (process.platform === 'darwin') {
+      // No NVENC on a Mac: the media engine of Apple's chips is VideoToolbox.
+      if (outWidth <= 4096 && (await hwEncoderWorks('h264_videotoolbox'))) return 'h264_videotoolbox'
+      if (outWidth <= 8192 && (await hwEncoderWorks('hevc_videotoolbox'))) return 'hevc_videotoolbox'
+      return 'libx264'
+    }
     if (outWidth <= 4096 && (await hwEncoderWorks('h264_nvenc'))) return 'h264_nvenc'
     if (outWidth <= 8192 && (await hwEncoderWorks('hevc_nvenc'))) return 'hevc_nvenc'
     return 'libx264'

@@ -68,6 +68,10 @@ function createTools(platform) {
    *  in the default install folders. soffice.com is the console launcher: soffice.exe is a
    *  GUI program that prints nothing to a pipe. */
   function sofficeCommand() {
+    if (process.platform === 'darwin') {
+      const app = '/Applications/LibreOffice.app/Contents/MacOS/soffice' // the installer does not put it on PATH
+      return fs.existsSync(app) ? app : 'soffice'
+    }
     if (process.platform !== 'win32') return 'soffice'
     for (const base of [process.env.ProgramFiles, process.env['ProgramFiles(x86)']]) {
       if (!base) continue
@@ -101,6 +105,7 @@ function createTools(platform) {
    */
   function realesrganInstallHint() {
     if (process.platform === 'linux') return 'yay -S realesrgan-ncnn-vulkan-bin   (AUR; or see the link below on other distros)'
+    if (process.platform === 'darwin') return 'Download the -macos zip from https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/releases and put the program in ~/Applications/OPNduck-tools/ (or anywhere on your PATH)'
     return 'Download from https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/releases'
   }
 
@@ -108,6 +113,7 @@ function createTools(platform) {
   /** Same situation as realesrgan-ncnn-vulkan — essentially never pre-installed. */
   function rifeInstallHint() {
     if (process.platform === 'linux') return 'yay -S rife-ncnn-vulkan-bin   (AUR; or see the link below on other distros)'
+    if (process.platform === 'darwin') return 'Download the -macos zip from https://github.com/nihui/rife-ncnn-vulkan/releases and put the program in ~/Applications/OPNduck-tools/ (or anywhere on your PATH)'
     return 'Download from https://github.com/nihui/rife-ncnn-vulkan/releases'
   }
 

@@ -38,6 +38,22 @@ const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 
+/**
+ * macOS apps started from the Dock do not get the shell's PATH, so Homebrew's folders (and ours) are missing and yt-dlp and
+ * FFmpeg look "not installed". The folders to add in front, when they are not there yet. Other systems: none.
+ */
+function extraToolDirs(pathValue = process.env.PATH ?? '', platform = process.platform, home = os.homedir()) {
+  if (platform !== 'darwin') return []
+  const have = new Set(pathValue.split(path.delimiter))
+  return ['/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin', path.join(home, '.local', 'bin'), path.join(home, 'Applications', 'OPNduck-tools')].filter((d) => !have.has(d))
+}
+
+/** Puts those folders in front of PATH (macOS only). Call once at start, before any tool check. */
+function fixPath() {
+  const extra = extraToolDirs()
+  if (extra.length) process.env.PATH = [...extra, process.env.PATH ?? ''].filter(Boolean).join(path.delimiter)
+}
+
 /** True while a laptop runs on its battery (Linux: /sys/class/power_supply); null when this cannot be told. */
 function linuxOnBattery() {
   const base = '/sys/class/power_supply'
@@ -123,4 +139,4 @@ function createNodePlatform(opts = {}) {
   }
 }
 
-module.exports = { createNodePlatform, userDataDir, linuxOnBattery, systemActionCommand }
+module.exports = { createNodePlatform, userDataDir, linuxOnBattery, systemActionCommand, extraToolDirs, fixPath }

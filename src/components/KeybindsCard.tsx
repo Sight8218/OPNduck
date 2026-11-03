@@ -16,12 +16,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { host } from '../host'
 import { useEffect, useState } from 'react'
 import {
   KEYBINDS,
   comboFromEvent,
   findConflict,
   getCombo,
+  showCombo,
   isDefault,
   resetCombo,
   setCapturing,
@@ -109,7 +111,7 @@ export default function KeybindsCard() {
                     : 'border-[var(--glass-border)] bg-[var(--input-bg)] text-[var(--text)]'
                 }`}
               >
-                {capturing ? 'Press a key combo…' : getCombo(def.id)}
+                {capturing ? 'Press a key combo…' : showCombo(getCombo(def.id), host.platformName)}
               </kbd>
               {capturing ? (
                 <button

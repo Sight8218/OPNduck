@@ -30,7 +30,8 @@
     "test": "node --test test/",
     "build:extension": "node scripts/build-extension.mjs",
     "server:build": "node scripts/build-server.mjs",
-    "server": "node scripts/build-server.mjs && node dist-server/opnduck-server.cjs"
+    "server": "node scripts/build-server.mjs && node dist-server/opnduck-server.cjs",
+    "dist:mac": "npm run build && electron-builder --mac dmg zip"
   },
   "build": {
     "appId": "dev.opnduck.desktop",
@@ -76,7 +77,33 @@
           "opnduck"
         ]
       }
-    ]
+    ],
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.video",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "identity": "-"
+    },
+    "dmg": {
+      "title": "OPNduck ${version}"
+    }
   },
   "devDependencies": {
     "@fontsource/jetbrains-mono": "^5.3.0",

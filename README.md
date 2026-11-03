@@ -79,7 +79,9 @@ Themes are implemented as CSS custom-property tokens switched by a single
 - **Linux** — primary target, fully tested (currently in development on Arch Linux).
 - **Windows** — first-class from the start; cross-platform scripts and path handling
   are baked in.
-- **macOS** — planned later.
+- **macOS** — Beta (Apple silicon and Intel, one universal dmg). It is built and smoke tested on a Mac in CI, but nobody has used
+  it day to day yet. The app is not notarized unless the project has an Apple Developer account, so the first launch needs
+  "Open Anyway" (see `docs/MACOS.md`). Install the tools with `brew install yt-dlp ffmpeg`.
 
 ---
 

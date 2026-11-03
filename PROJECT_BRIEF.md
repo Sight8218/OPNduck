@@ -203,6 +203,10 @@ mount (`hideSplash()`).
 3. Tauri stays postponed until the WebKitGTK/NVIDIA/Wayland issue is fixed upstream,
    or if packaging only for Windows (WebView2) / non-NVIDIA Linux.
 
+## macOS
+
+A universal dmg and zip are built by `.github/workflows/macos-build.yml` (ad-hoc signed, or Developer ID signed and notarized when the secrets exist) and smoke tested with `scripts/macos-smoke.mjs`. Mac specifics: Homebrew folders are added to PATH at start (`fixPath` in `electron/core/platform.cjs`), VideoToolbox replaces NVENC, PyTorch uses Metal, Whisper runs on the CPU, the window uses the system traffic lights, and there is an application menu. See `docs/MACOS.md`.
+
 ## Servers and the Engine API
 
 `engine-api/` is the network face of the job core (pairing, tasks, uploads, files; see `docs/SERVER.md`). `server/` runs the same core headless (`opnduck-server`, Docker). The desktop app can share its own engine and can run jobs on a server through mirror tasks (`electron/core/remote/hosts.cjs`), chosen per tool card (`RunOnSelector`) or by default in Settings > Servers.

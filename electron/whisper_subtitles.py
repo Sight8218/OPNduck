@@ -103,6 +103,8 @@ def run_job(input_path, output_path, model_name, language, fmt, translate=False)
     # "auto" picks CUDA when it's there; a half-working CUDA install (no cuDNN,
     # say) only fails once decoding starts, so retry on CPU if nothing came out yet.
     attempts = [("auto", "default"), ("cpu", "int8")]
+    if sys.platform == "darwin":
+        attempts = [("cpu", "int8")]  # faster-whisper has no Metal backend
     cues = []
     global _START_ATTEMPT
     for i in range(_START_ATTEMPT, len(attempts)):

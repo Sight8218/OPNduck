@@ -33,6 +33,7 @@ const path = require('node:path')
  * @param {string} [deps.pluginWorkerFile]  full path of plugin_worker.cjs when it cannot be found next to this file (bundled builds)
  */
 function createCore({ platform, onFinished = () => {}, registerStart, pickPath, safeMode, pluginWorkerFile, secrets }) {
+  require('./platform.cjs').fixPath() // macOS: find Homebrew's tools
   const settings = require('./settings.cjs')
   settings.configure(platform)
   const { getSettings, ytdlpBaseArgs, hasCookies } = settings

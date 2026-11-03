@@ -59,6 +59,11 @@ function writeOverrides(overrides: Record<string, string>): void {
 
 const BAD_KEY_TOKENS = ['Unidentified', 'Process']
 
+/** A key combo as the person should read it: on a Mac the logical Ctrl is the Command key. */
+export function showCombo(combo: string, platformName: string): string {
+  return platformName === 'darwin' ? combo.replace(/\bCtrl\b/g, '⌘').replace(/\bShift\b/g, '⇧').replace(/\bAlt\b/g, '⌥').replace(/\+/g, '') : combo
+}
+
 export function getCombo(id: string): string {
   const def = KEYBINDS.find((k) => k.id === id)
   const stored = readOverrides()[id]

@@ -109,12 +109,12 @@ function createWindow() {
     // Electron 45: remembers the window's position, size and maximized state between launches.
     name: 'main',
     windowStatePersistence: true,
-    // transparent: true eliminates the gray compositor edge on frameless windows
-    transparent: true,
-    backgroundColor: '#00000000',
-    frame: false,
-    titleBarStyle: 'hidden',
-    autoHideMenuBar: true,
+    // Windows and Linux: a frameless transparent window (transparent: true removes the gray compositor edge).
+    // macOS: the system's own window with its traffic lights inset into our top bar; a transparent window would
+    // lose its shadow and resizing there.
+    ...(process.platform === 'darwin'
+      ? { backgroundColor: '#131110', titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 14, y: 22 } }
+      : { transparent: true, backgroundColor: '#00000000', frame: false, titleBarStyle: 'hidden', autoHideMenuBar: true }),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -1006,7 +1006,7 @@ function commandExists(cmd) {
 async function collectDevInfo() {
   const mem = process.getSystemMemoryInfo?.() ?? {}
   const [gpu, ytdlp, ffmpegLine, hasEsrgan, hasRife, py] = await Promise.all([
-    commandLine('nvidia-smi', ['--query-gpu=name,driver_version,memory.total', '--format=csv,noheader']),
+    process.platform === 'darwin' ? Promise.resolve(/^Apple/.test(os.cpus()[0]?.model ?? '') ? `${os.cpus()[0].model} (integrated GPU, Metal)` : null) : commandLine('nvidia-smi', ['--query-gpu=name,driver_version,memory.total', '--format=csv,noheader']),
     commandLine(ytdlpCommand(), ['--version']),
     commandLine('ffmpeg', ['-version']),
     commandExists('realesrgan-ncnn-vulkan'),
@@ -1429,6 +1429,8 @@ app.whenReady().then(() => {
       return new Response('Not found', { status: 404 })
     }
   })
+  // A Mac needs an application menu, or Cmd+C, V, X, A, W and Q stop working in the window.
+  if (process.platform === 'darwin') Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]))
   createWindow()
   const launchLink = opnduckUrlIn(process.argv) // the app was started by an opnduck:// link
   if (launchLink) handleOpnduckUrl(launchLink)

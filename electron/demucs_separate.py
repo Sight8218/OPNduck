@@ -42,7 +42,7 @@ def separate(src: str, out_dir: str) -> None:
         return apply_model(model, mix[None], device=device, progress=True, split=True, overlap=0.25)[0]
 
     try:
-        sources = run("cuda" if torch.cuda.is_available() else "cpu")
+        sources = run("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
     except RuntimeError as err:  # e.g. CUDA out of memory: retry on the CPU rather than fail the job
         if "out of memory" not in str(err).lower():
             raise

@@ -387,3 +387,12 @@ test('failed jobs: common errors get a plain reason and the right fix; unknown o
   const rule = await explain({ kind: 'download', error: 'HTTP Error 429' }, [], { async *chat() { throw new Error('must not be asked') } })
   assert.equal(rule.source, 'rule')
 })
+
+test('macOS: the folders Homebrew and the app add to PATH are put in front, once, and nothing happens elsewhere', () => {
+  const { extraToolDirs } = require('../electron/core/platform.cjs')
+  assert.deepEqual(extraToolDirs('/usr/bin:/bin', 'linux', '/home/a'), [])
+  assert.deepEqual(extraToolDirs('/usr/bin:/bin', 'win32', 'C:\\Users\\a'), [])
+  const added = extraToolDirs('/usr/bin:/bin', 'darwin', '/Users/a')
+  assert.deepEqual(added, ['/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin', '/Users/a/.local/bin', '/Users/a/Applications/OPNduck-tools'])
+  assert.deepEqual(extraToolDirs('/opt/homebrew/bin:/usr/local/bin:/usr/bin', 'darwin', '/Users/a'), ['/opt/homebrew/sbin', '/Users/a/.local/bin', '/Users/a/Applications/OPNduck-tools'], 'folders already there are not added again')
+})

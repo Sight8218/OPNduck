@@ -52,6 +52,7 @@ const CONTROLS = [
 ]
 
 export default function WindowControls() {
+  if (host.platformName === 'darwin') return null // macOS draws its own traffic lights
   if (!host.isDesktop) return null
 
   return (

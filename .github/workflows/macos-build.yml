@@ -1,0 +1,79 @@
+# Builds OPNduck for macOS (a universal dmg and zip), installs the dmg like a person would, and runs scripts/macos-smoke.mjs
+# against the installed app: the window opens, Settings opens, yt-dlp and FFmpeg are found, and a real FFmpeg conversion
+# finishes. On every pull request that touches the app, on a manual run, and when a release is published (the dmg and zip
+# are attached to it).
+#
+# Signing: with the repository secrets below the app is signed with your Developer ID and notarized (no warnings for users);
+# without them it is ad-hoc signed and users open it once with System Settings > Privacy & Security > "Open Anyway".
+#   CSC_LINK  CSC_KEY_PASSWORD  (the "Developer ID Application" certificate as a base64 .p12)
+#   APPLE_ID  APPLE_APP_SPECIFIC_PASSWORD  APPLE_TEAM_ID
+name: macOS build
+
+on:
+  pull_request:
+    paths: ['electron/**', 'src/**', 'package.json', 'package-lock.json', 'build/**', 'scripts/macos-smoke.mjs', 'tui/**', '.github/workflows/macos-build.yml']
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  tui:
+    # The terminal app has to keep building on a Mac, too.
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - run: npm run tui:build
+
+  app:
+    runs-on: macos-14
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tools the app looks for (as a Mac user would have them)
+        run: brew install yt-dlp ffmpeg
+      - name: Build the app
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$CSC_LINK" ]; then
+            echo "Signing with the Developer ID certificate and notarizing"
+            npm run build
+            npx electron-builder --mac dmg zip -c.mac.identity=null -c.mac.notarize=true
+          else
+            echo "No signing certificate: ad-hoc signing"
+            npm run dist:mac
+          fi
+      - name: Install the dmg and smoke test the installed app
+        run: |
+          DMG=$(ls release-build/*.dmg | head -1)
+          hdiutil attach "$DMG" -mountpoint /Volumes/OPNduck -nobrowse -quiet
+          cp -R /Volumes/OPNduck/OPNduck.app /Applications/
+          hdiutil detach /Volumes/OPNduck -quiet
+          npm i --no-save playwright-core
+          node scripts/macos-smoke.mjs /Applications/OPNduck.app/Contents/MacOS/OPNduck
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opnduck-macos
+          path: |
+            release-build/*.dmg
+            release-build/*.zip
+          if-no-files-found: error
+      - name: Attach to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" release-build/*.dmg release-build/*.zip --clobber

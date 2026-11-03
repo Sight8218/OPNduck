@@ -3,6 +3,7 @@ import HamburgerMenu from './HamburgerMenu'
 import NavMenuCards from './NavMenuCards'
 import SocialLinks from './SocialLinks'
 import WindowControls from './WindowControls'
+import { host } from '../host'
 import { useNavDisplay } from '../lib/navContext'
 import PixelLogo from './PixelLogo'
 import { unlockArcade } from '../lib/arcadeStore'
@@ -44,7 +45,7 @@ export default function NavBar() {
             get an overflow-hidden wrapper — HamburgerMenu's dropdown is an
             absolutely-positioned child, and clipping its own ancestor was
             hiding the open menu instead of just the icon row. */}
-        <div className="titlebar-no-drag flex min-w-0 items-center">
+        <div className="titlebar-no-drag flex min-w-0 items-center" style={host.platformName === 'darwin' ? { paddingLeft: 78 } : undefined}>
           <HamburgerMenu />
           <span className={`hidden h-6 w-px shrink-0 bg-[var(--glass-border)] sm:block ${divider}`} />
           {/* p-1.5 gives the icons' hover:scale-110 room to grow on every side
