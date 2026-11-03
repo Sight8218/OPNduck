@@ -111,6 +111,20 @@ function TaskRowImpl({ task }: { task: TaskState }) {
   const running = task.status === 'queued' || task.status === 'running'
   const [askMatch, setAskMatch] = useState(false)
   const [wordsFile, setWordsFile] = useState<string | null>(null)
+  const [why, setWhy] = useState<Awaited<ReturnType<typeof host.explainJob>> | { error: string } | null>(null)
+  async function applyFix(fix: NonNullable<Awaited<ReturnType<typeof host.explainJob>>['fix']>) {
+    try {
+      if (fix === 'update_ytdlp') {
+        const r = await host.installYtDlp()
+        if (!r.ok) return setWhy({ error: r.error ?? 'The update failed' })
+      } else if (fix === 'cookies_firefox') await host.settings?.set({ cookies: { mode: 'browser', browser: 'firefox' } })
+      else if (fix === 'cpu_encoder') await host.settings?.set({ videoEncoder: 'cpu' })
+      await host.tasks.rerun(task.id)
+      setWhy(null)
+    } catch (e) {
+      setWhy({ error: e instanceof Error ? e.message : String(e) })
+    }
+  }
   // A failed Spotify match: "Run again" offers a different video instead of repeating the same search.
   const retryOtherMatch = task.status === 'error' && !!task.experimentalMatch
   const size = formatBytes(task.sizeBytes)
@@ -158,6 +172,11 @@ function TaskRowImpl({ task }: { task: TaskState }) {
               onClick={async () => setWordsFile((await host.tasks.fileOf(task.id)) ?? null)}
             >
               Spoken words
+            </button>
+          )}
+          {task.status === 'error' && host.isDesktop && (
+            <button type="button" className="glass-btn px-2 py-1 text-xs" title="A plain-language reason, and a fix when there is one" onClick={() => void host.explainJob(task.id).then(setWhy).catch((e) => setWhy({ error: e instanceof Error ? e.message : String(e) }))}>
+              Why?
             </button>
           )}
           {task.status === 'queued' && (
@@ -215,6 +234,28 @@ function TaskRowImpl({ task }: { task: TaskState }) {
       <ProgressBar value={task.progress} status={task.status} />
       <TaskLogs taskId={task.id} />
       {task.error && <span className="text-xs text-red-400">{task.error}</span>}
+      {why && (
+        <div className="flex flex-col gap-1.5 rounded-xl bg-[var(--input-bg)] p-3 text-xs">
+          {'error' in why ? (
+            <span className="text-red-400">{why.error}</span>
+          ) : (
+            <>
+              <span>{why.reason}</span>
+              {why.source === 'ai' && <span className="text-[var(--text-faint)]">This explanation came from your AI model, so it may be wrong.</span>}
+              <div className="flex gap-2">
+                {why.fix && why.fixLabel && (
+                  <button type="button" className="glass-btn px-2 py-1 text-xs" onClick={() => void applyFix(why.fix!)}>
+                    {why.fixLabel}
+                  </button>
+                )}
+                <button type="button" className="glass-btn px-2 py-1 text-xs" onClick={() => setWhy(null)}>
+                  Close
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
       {wordsFile && <VideoAiPanel file={wordsFile} onClose={() => setWordsFile(null)} />}
       {askMatch && (
         <AnotherMatchDialog

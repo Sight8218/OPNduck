@@ -353,3 +353,37 @@ test('the system prompt tells the model it only proposes, lists known files, and
   assert.ok(p.length < 2500)
   assert.ok(!/Recent jobs/.test(systemPrompt()))
 })
+
+test('failed jobs: common errors get a plain reason and the right fix; unknown ones go to the model only when there is one', async () => {
+  const { explain, explainByRules, FIXES, RULES } = require('../electron/core/ai/explain.cjs')
+  const cases = [
+    ["ERROR: [youtube] abc: Sign in to confirm you're not a bot. Use --cookies-from-browser", 'cookies_firefox'],
+    ['ERROR: Requested format is not available. Use --list-formats', 'update_ytdlp'],
+    ['ERROR: unable to download video data: HTTP Error 403: Forbidden', 'update_ytdlp'],
+    ['ERROR: [youtube] abc: Video unavailable. This video is not available in your country', null],
+    ['HTTP Error 429: Too Many Requests', 'retry'],
+    ['Temporary failure in name resolution', 'retry'],
+    ['[h264_nvenc] OpenEncodeSessionEx failed: out of memory (10)', 'cpu_encoder'],
+    ['ncnn vkAllocateMemory failed -1000', 'cpu_encoder'],
+    ['moov atom not found', null],
+    ['Error writing: No space left on device', 'retry'],
+    ["spawn ffmpeg ENOENT", null],
+  ]
+  for (const [text, fix] of cases) {
+    const r = explainByRules(text)
+    assert.ok(r, text)
+    assert.equal(r.fix, fix, text)
+    assert.ok(r.reason.length > 20)
+  }
+  assert.equal(explainByRules('something nobody has seen'), null)
+  for (const f of RULES.map((r) => r[2]).filter(Boolean)) assert.ok(FIXES[f], `${f} is a known fix`)
+  assert.match((await explain({ kind: 'download', error: 'HTTP Error 429' })).fixLabel, /Try again/)
+  assert.equal((await explain({ kind: 'convert', error: 'weird thing' })).source, 'none')
+  const ai = { async *chat() { yield { type: 'text', delta: '{"reason":"The input is odd.","fix":"retry"}' } } }
+  const viaAi = await explain({ kind: 'convert', error: 'weird thing' }, ['line'], ai)
+  assert.deepEqual([viaAi.source, viaAi.fix, viaAi.reason], ['ai', 'retry', 'The input is odd.'])
+  const bad = { async *chat() { yield { type: 'text', delta: '{"reason":"x","fix":"rm -rf"}' } } }
+  assert.equal((await explain({ kind: 'convert', error: 'weird thing' }, [], bad)).fix, null)
+  const rule = await explain({ kind: 'download', error: 'HTTP Error 429' }, [], { async *chat() { throw new Error('must not be asked') } })
+  assert.equal(rule.source, 'rule')
+})

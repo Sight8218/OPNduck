@@ -29,6 +29,8 @@ are only ever sent to their own provider. Plain `http://` addresses are accepted
 - **Colour Grade**: the automatic fix, the looks, matching and the sliders use plain rules, no AI. The optional "Suggest" button
   asks the model for slider values from a description or the first frame; the values are applied by the same filters you can
   adjust by hand.
+- **Why did this fail?** (the "Why?" button on a failed job): rules for the common errors answer first, with a fix button when
+  there is one. Only when no rule matches is your model asked, and its answer is labelled as coming from the AI.
 - **Auto settings** (the Auto buttons on the cards) are rules measured from the file, no AI.
 
 ## Tips for small local models
@@ -39,4 +41,4 @@ thinking: lower Effort in Settings > AI, or set Thinking to Never.
 ## Not built yet
 
 The bundled model download (a small model with llama.cpp), Load/Eject and idle eject, token usage and cost display, the
-terminal Chat screen, hosting the model on an OPNduck Server, and the failed-job explainer.
+terminal Chat screen, hosting the model on an OPNduck Server, cleaning download file names, and the AI thumbnail picker.

@@ -356,6 +356,13 @@ ipcMain.handle('ai:removeKey', (_e, id) => {
 })
 /* --- Spoken words: transcripts of the person's videos, search, summary, chapters, questions (Library) --- */
 const videoAi = require('./core/ai/video.cjs')
+/** "Why did this fail?": rules first, the model only when no rule matches and one is set up. */
+ipcMain.handle('jobs:explain', async (_e, id) => {
+  const entry = engine.tasks.get(String(id))
+  if (!entry || entry.state.status !== 'error') throw new Error('That job did not fail')
+  const ai = getSettings().ai.provider !== 'off' && getSettings().ai.model ? { chat: (o) => core.ai.chat(o) } : null
+  return require('./core/ai/explain.cjs').explain({ kind: entry.state.kind, error: entry.state.error, label: entry.state.label, format: entry.state.format }, entry.log?.lines ? [...entry.log.lines] : [], ai)
+})
 ipcMain.handle('transcripts:list', () => core.transcripts.list())
 ipcMain.handle('transcripts:has', (_e, p) => core.transcripts.has(String(p)))
 ipcMain.handle('transcripts:search', (_e, query) => core.transcripts.search(String(query), { limit: 40 }))

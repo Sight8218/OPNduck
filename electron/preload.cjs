@@ -113,6 +113,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
       removeAll: () => ipcRenderer.invoke('ai:chats:removeAll'),
     },
   },
+  explainJob: (id) => ipcRenderer.invoke('jobs:explain', id),
   transcripts: {
     list: () => ipcRenderer.invoke('transcripts:list'),
     has: (p) => ipcRenderer.invoke('transcripts:has', p),

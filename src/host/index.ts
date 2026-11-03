@@ -995,6 +995,8 @@ export interface Host {
     run(id: string, input: string, opts?: { destination?: string; keepIntermediate?: boolean }): Promise<RecipeRun>
     resume(runId: string): Promise<RecipeRun>
   }
+  /** Why a failed job failed, in plain words, with a fix to click when there is one. Rules first; the model only when none matches. */
+  explainJob(taskId: string): Promise<{ reason: string; fix: 'update_ytdlp' | 'cookies_firefox' | 'cpu_encoder' | 'retry' | null; fixLabel: string | null; source: 'rule' | 'ai' | 'none' }>
   /** The spoken words of the person's videos: search, summary, chapters and questions. All local; the AI parts need a model in Settings > AI. Desktop only. */
   transcripts: {
     list(): Promise<TranscriptInfo[]>
@@ -1519,6 +1521,9 @@ const browserHost: Host = {
     resume: async () => {
       throw new Error('Desktop app required')
     },
+  },
+  explainJob: async () => {
+    throw new Error('Desktop app required')
   },
   transcripts: {
     list: async () => [],
