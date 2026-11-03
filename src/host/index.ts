@@ -1085,6 +1085,11 @@ export interface Host {
     ask(requestId: string, videoPath: string, question: string): Promise<string>
   }
   /** Picks a good still of a video and saves it next to the video. The AI model chooses when it can see pictures; otherwise measurements do. Desktop only. */
+  aiDev: {
+    unlock(user: string, password: string): Promise<{ ok: boolean; wait?: number }>
+    lock(): Promise<boolean>
+    status(): Promise<boolean>
+  }
   thumbnail: {
     pick(videoPath: string): Promise<{ path: string; time: number; why: string; byAi: boolean }>
   }
@@ -1647,6 +1652,11 @@ const browserHost: Host = {
     ask: async () => {
       throw new Error('Desktop app required')
     },
+  },
+  aiDev: {
+    unlock: async () => ({ ok: false }),
+    lock: async () => true,
+    status: async () => false,
   },
   thumbnail: {
     pick: async () => {

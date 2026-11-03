@@ -299,4 +299,4 @@ function hasCookies() {
   )
 }
 
-module.exports = { configure, getSettings, setSettings, ytdlpBaseArgs, hasCookies, loginCookieFile }
+module.exports = { validate, configure, getSettings, setSettings, ytdlpBaseArgs, hasCookies, loginCookieFile }

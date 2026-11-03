@@ -114,6 +114,7 @@ interface ElectronBridge {
   }
   grade: Host['grade']
   thumbnail: Host['thumbnail']
+  aiDev: Host['aiDev']
   transcripts: Host['transcripts']
   explainJob: Host['explainJob']
   bgPreview: Host['bgPreview']
@@ -275,6 +276,7 @@ export function detectElectronHost(): Host | null {
     recipes: bridge.recipes,
     grade: bridge.grade,
     thumbnail: bridge.thumbnail,
+    aiDev: bridge.aiDev,
     transcripts: bridge.transcripts,
     explainJob: (id) => bridge.explainJob(id),
     bgPreview: (p) => bridge.bgPreview(p),

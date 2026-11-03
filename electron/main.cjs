@@ -242,7 +242,7 @@ ipcMain.handle('dialog:pickFolder', async (e) => {
 
 // Shared yt-dlp args (UTF-8 output, proxy, login cookies) come from ytdlpBaseArgs() in settings.cjs.
 ipcMain.handle('settings:get', () => getSettings())
-ipcMain.handle('settings:set', async (_e, patch) => {
+async function applySettingsPatch(patch) {
   const next = setSettings(patch)
   if (patch && 'schedule' in patch) void core.schedule.tick() // new rules apply at once
   if (patch && 'runInTray' in patch) applyTray()
@@ -253,7 +253,8 @@ ipcMain.handle('settings:set', async (_e, patch) => {
   if (patch && ('remoteEnabled' in patch || 'remoteBind' in patch || 'remotePort' in patch || 'shareEngine' in patch)) await applyEngineApi()
   if (patch && ('remoteEnabled' in patch || 'remoteRelay' in patch)) applyRelay()
   return next
-})
+}
+ipcMain.handle('settings:set', (_e, patch) => applySettingsPatch(patch))
 
 // Built-in sign-in window (see login.cjs): the user logs in themselves, OPNduck keeps only cookies.
 ipcMain.handle('login:open', async (e, url) => {
@@ -298,6 +299,10 @@ ipcMain.handle('recipes:resume', (_e, runId) => core.recipes.resume(String(runId
 ipcMain.handle('ai:state', async () => ({ keys: core.aiKeys.has(), encrypted: safeStorage.isEncryptionAvailable(), cloud: Object.fromEntries(Object.entries(core.ai.CLOUD).map(([id, c]) => [id, c.label])), detected: await core.ai.detect() }))
 const { systemPrompt } = require('./core/ai/prompt.cjs')
 const aiRuns = new Map() // requestId -> AbortController
+const aiDev = require('./core/ai/devmode.cjs').createDevGate()
+ipcMain.handle('ai:dev:unlock', (_e, user, password) => aiDev.unlock(user, password))
+ipcMain.handle('ai:dev:lock', () => (aiDev.lock(), true))
+ipcMain.handle('ai:dev:status', () => aiDev.isOn())
 const aiDeps = () => ({
   tasks: engine.tasks,
   isKnownFile: core.isKnownFile,
@@ -306,6 +311,7 @@ const aiDeps = () => ({
   suggest: require('./core/autosettings.cjs').suggest,
   recipes: core.recipes,
   getRecipe: (id) => core.recipes.get(id),
+  getSettings,
 })
 /** One question to the assistant. Progress goes to the window as 'ai:event' (text, thinking, tool results); the answer and the proposed jobs come back here. */
 ipcMain.handle('ai:send', async (e, req) => {
@@ -316,7 +322,7 @@ ipcMain.handle('ai:send', async (e, req) => {
   aiRuns.set(requestId, controller)
   try {
     const jobs = [...engine.tasks.values()].slice(-8).map((t) => `${t.state.kind} ${t.state.status}: ${t.state.label}`)
-    const r = await core.ai.agent({ messages, deps: aiDeps(), system: systemPrompt({ files: core.knownFiles(), recentJobs: jobs }), signal: controller.signal, onEvent: (ev) => e.sender.send('ai:event', { requestId, event: ev }) })
+    const r = await core.ai.agent({ messages, deps: aiDeps(), system: [systemPrompt({ files: core.knownFiles(), recentJobs: jobs }), aiDev.addendum()].filter(Boolean).join('\n\n'), signal: controller.signal, onEvent: (ev) => e.sender.send('ai:event', { requestId, event: ev }) })
     return { message: r.message.content, proposals: r.proposals.map(({ tool, args }) => ({ tool, args })), usage: r.usage }
   } catch (err) {
     if (controller.signal.aborted) return { message: '', proposals: [], usage: null, aborted: true }
@@ -332,6 +338,12 @@ ipcMain.handle('ai:abort', (_e, requestId) => {
 /** Starts a proposed job after the person pressed Run. The proposal is checked again here: whatever the window sends is not trusted. */
 ipcMain.handle('ai:run', async (_e, proposal) => {
   const p = require('./core/ai/tools.cjs').propose(String(proposal?.tool), proposal?.args, aiDeps())
+  if (p.tool === 'change_theme') throw new Error('The theme is applied by the window itself')
+  if (p.tool === 'change_setting') {
+    if (p.change.scope !== 'engine') throw new Error('That setting is applied by the window itself')
+    await applySettingsPatch(require('./core/ai/app_settings.cjs').toPatch(p.change))
+    return { id: `setting:${p.change.label}: ${String(p.change.before)} > ${String(p.change.value)}` }
+  }
   if (p.tool === 'run_recipe') {
     const run = await core.recipes.run(p.args.recipe, p.args.input)
     return { id: run.taskIds[0] }

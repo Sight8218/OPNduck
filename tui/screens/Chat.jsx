@@ -6,6 +6,7 @@ import { useTerminalSize } from '../hooks.js'
 import { systemPrompt } from '../../electron/core/ai/prompt.cjs'
 import { propose } from '../../electron/core/ai/tools.cjs'
 import { suggest } from '../../electron/core/autosettings.cjs'
+import { toPatch } from '../../electron/core/ai/app_settings.cjs'
 
 const clip = (text, n) => (text.length > n ? text.slice(0, Math.max(1, n - 1)) + '…' : text)
 
@@ -42,6 +43,7 @@ export default function Chat({ theme, core, onTyping }) {
     suggest,
     recipes: core.recipes,
     getRecipe: (id) => core.recipes.get(id),
+    getSettings: core.settings.getSettings,
   })
 
   async function send(text) {
@@ -77,6 +79,13 @@ export default function Chat({ theme, core, onTyping }) {
     for (const p of proposals) {
       try {
         const q = propose(p.tool, p.args, deps()) // checked again, as in the desktop app
+        if (q.tool === 'change_setting') {
+          if (q.change.scope !== 'engine') throw new Error('that one is changed in the desktop app')
+          core.settings.setSettings(toPatch(q.change))
+          started.push(`${q.change.label} = ${q.change.value}`)
+          continue
+        }
+        if (q.tool === 'change_theme') throw new Error('themes are changed in the desktop app (the terminal app has its own, in Settings)')
         if (q.tool === 'run_recipe') await core.recipes.run(q.args.recipe, q.args.input)
         else {
           const id = await core.engine.startHandlers.get(q.channel)(null, q.req)

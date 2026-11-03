@@ -445,3 +445,40 @@ test('clean file names: clutter goes, the extension and the real title stay, tid
   assert.equal(cleanFileName('(Official Video).mp4'), null, 'nothing would be left, so no rename')
   assert.equal(cleanFileName('Track [HD].tar.gz'), 'Track.tar.gz', 'the extension is kept as it is')
 })
+
+test('change_theme is a proposal (the window applies it), not a job; an empty theme is refused', () => {
+  const T = require('../electron/core/ai/tools.cjs')
+  assert.ok(T.definitions().some((d) => d.name === 'change_theme'))
+  assert.equal(T.isProposal('change_theme'), true)
+  assert.deepEqual(T.propose('change_theme', { theme: ' green ' }, {}), { tool: 'change_theme', args: { theme: 'green' } })
+  assert.throws(() => T.propose('change_theme', { theme: '' }, {}), /no theme called/)
+})
+
+test('theme names match the palettes; change_setting only takes known, valid, safe settings', () => {
+  const T = require('../electron/core/ai/tools.cjs')
+  const A = require('../electron/core/ai/app_settings.cjs')
+  const palettes = [...require('node:fs').readFileSync(require('node:path').join(__dirname, '../src/themes/omarchyPalettes.ts'), 'utf8').matchAll(/^  '([a-z0-9-]+)':/gm)].map((m) => m[1])
+  for (const p of palettes) assert.ok(T.THEME_NAMES.includes(p), `${p} is missing from THEME_NAMES`)
+  assert.throws(() => T.propose('change_theme', { theme: 'forest' }, {}), /no theme called "forest"/)
+  const deps = { getSettings: () => ({ ai: { effort: 'medium' }, runInTray: false }) }
+  const ok = T.propose('change_setting', { setting: 'ai.effort', value: 'high' }, deps)
+  assert.deepEqual([ok.change.scope, ok.change.before, ok.change.value, A.toPatch(ok.change)], ['engine', 'medium', 'high', { ai: { effort: 'high' } }])
+  assert.equal(T.propose('change_setting', { setting: 'runInTray', value: 'on' }, deps).change.value, true)
+  assert.equal(T.propose('change_setting', { setting: 'app.devMode', value: true }, deps).change.scope, 'window')
+  // Things that open the computer, hold keys or can power it off are not on the list, and bad values are refused.
+  for (const key of ['shareEngine', 'mcpServer', 'remoteMode', 'remoteBind', 'cookies.mode', 'ai.cloud', 'ai.machineUrl', 'schedule.whenDone', 'schedule.powerConfirmed', 'watchFolder.path', 'ai.dir']) assert.throws(() => T.propose('change_setting', { setting: key, value: 'x' }, deps), /not a setting the assistant can change/, key)
+  assert.throws(() => T.propose('change_setting', { setting: 'ai.effort', value: 'extreme' }, deps), /one of/)
+  assert.throws(() => T.propose('change_setting', { setting: 'maxDownloads', value: 99 }, deps), /1 to 6/)
+  assert.ok(T.isRead('list_settings') && T.isProposal('change_setting'))
+  // Every engine key it can change is also accepted by the real validator.
+  const S = require('../electron/core/settings.cjs')
+  for (const [key, def] of Object.entries(A.SETTINGS)) {
+    if (def.scope !== 'engine') continue
+    const sample = def.type === 'enum' ? def.options[0] : def.type === 'boolean' ? false : def.type === 'number' ? def.min : key.endsWith('from') || key.endsWith('to') ? '22:00' : key === 'watchFolder.container' ? 'MP4' : key === 'tuiTheme' ? 'nord' : ''
+    const change = A.check(key, sample, S.getSettings())
+    const patch = A.toPatch(change)
+    const base = JSON.parse(JSON.stringify(S.getSettings()))
+    for (const [g, v] of Object.entries(patch)) base[g] = typeof v === 'object' ? { ...base[g], ...v } : v
+    assert.doesNotThrow(() => S.validate(base), key)
+  }
+})

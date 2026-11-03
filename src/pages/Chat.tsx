@@ -21,6 +21,11 @@ import { Link } from 'react-router-dom'
 import ProgressBar from '../components/ProgressBar'
 import { host, type AiProposal, type AiSettings, type Chat, type ChatMessage } from '../host'
 import { TITLES } from '../features/recipes/chain'
+import { applyTheme } from '../themes/theme'
+import { useBackgroundStyle } from '../lib/backgroundPref'
+import { useDevMode } from '../lib/devMode'
+import { useReduceMotion } from '../lib/motionPrefs'
+import { resolveTheme } from '../themes/resolveTheme'
 import { renderMarkdown } from '../lib/markdownLite'
 import { useTasks } from '../lib/useTasks'
 
@@ -33,12 +38,13 @@ const shortValue = (v: unknown) => (typeof v === 'string' ? (v.length > 60 ? `‚Ä
 function PlanCard({ p, started, onRun, onDismiss, dismissed }: { p: AiProposal; started: string | null; onRun: () => Promise<void>; onDismiss: () => void; dismissed: boolean }) {
   const tasks = useTasks()
   const task = started ? tasks.find((t) => t.id === started) : null
+  const applied = started?.startsWith('theme:') ? started.slice(6) : started?.startsWith('setting:') ? started.slice(8) : null
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   return (
     <div className="glass flex flex-col gap-2 rounded-2xl p-3 text-sm">
       <div className="flex items-center justify-between gap-2">
-        <span className="font-bold">{TITLES[p.tool] ?? p.tool.replace(/_/g, ' ')}</span>
+        <span className="font-bold">{p.tool === 'change_theme' ? 'Change the theme' : p.tool === 'change_setting' ? 'Change a setting' : (TITLES[p.tool] ?? p.tool.replace(/_/g, ' '))}</span>
         {task && <span className="text-xs text-[var(--text-dim)]">{task.status}</span>}
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
@@ -51,6 +57,7 @@ function PlanCard({ p, started, onRun, onDismiss, dismissed }: { p: AiProposal; 
           </div>
         ))}
       </dl>
+      {applied && <span className="text-xs text-[var(--text-dim)]">Applied: {applied}</span>}
       {task && <ProgressBar value={task.progress} status={task.status} />}
       {task?.status === 'error' && <span className="text-xs text-red-400">{task.error}</span>}
       {error && <span className="text-xs text-red-400">{error}</span>}
@@ -111,6 +118,28 @@ function Bubble({ m, onRun, onDismiss, dismissed }: { m: ChatMessage; onRun: (i:
 // @category: chat/page
 /** The Chat page: talk to the assistant, see its look-ups, and run the jobs it proposes with one click each. */
 export default function ChatPage() {
+  const { setReduceMotion, setCompact } = useReduceMotion()
+  const [, setBackground] = useBackgroundStyle()
+  const { devMode, toggle: toggleDev } = useDevMode()
+  const [devOn, setDevOn] = useState(false)
+  const [devLogin, setDevLogin] = useState(false)
+  const [devUser, setDevUser] = useState('')
+  const [devPass, setDevPass] = useState('')
+  const [devError, setDevError] = useState('')
+  useEffect(() => {
+    void host.aiDev.status().then(setDevOn)
+  }, [])
+  async function devUnlock() {
+    const r = await host.aiDev.unlock(devUser, devPass)
+    setDevPass('')
+    if (r.ok) {
+      setDevOn(true)
+      setDevLogin(false)
+      setDevUser('')
+      setDevError('')
+    } else setDevError(r.wait ? `Too many tries. Wait ${r.wait} s.` : 'Wrong login.')
+  }
+  const look = { setReduceMotion, setCompact, setBackground, devMode, toggleDev }
   const [ai, setAi] = useState<AiSettings | null>(null)
   const [chats, setChats] = useState<Omit<Chat, 'messages'>[]>([])
   const [chat, setChat] = useState<Chat>(newChat)
@@ -156,6 +185,17 @@ export default function ChatPage() {
   async function send() {
     const text = input.trim()
     if ((!text && files.length === 0) || request) return
+    // The developer login: these two phrases are handled here and never reach the model or the saved chat.
+    if (text.toLowerCase() === 'go dev mode' && !devOn) {
+      setInput('')
+      setDevLogin(true)
+      return
+    }
+    if (text.toLowerCase() === 'exit dev mode' && devOn) {
+      setInput('')
+      void host.aiDev.lock().then(() => setDevOn(false))
+      return
+    }
     const content = files.length ? `${text}\n\n${files.map((f) => `[file: ${f}]`).join('\n')}`.trim() : text
     const user: ChatMessage = { role: 'user', content }
     const messages = [...chat.messages, user]
@@ -187,7 +227,31 @@ export default function ChatPage() {
 
   async function run(msgIndex: number, i: number) {
     const forChat = chat.id
-    const { id } = await host.ai.run(chat.messages[msgIndex].proposals![i])
+    const proposal = chat.messages[msgIndex].proposals![i]
+    let id: string
+    if (proposal.tool === 'change_theme') {
+      // A look change, not a job: applied right here, and the person can pick another in Settings > Appearance.
+      const found = resolveTheme(String(proposal.args.theme ?? ''))
+      if (!found) throw new Error(`I do not have a theme for "${String(proposal.args.theme)}". Pick one in Settings > Appearance.`)
+      applyTheme(found.theme)
+      id = `theme:${found.label}`
+    } else if (proposal.tool === 'change_setting' && String(proposal.args.setting).startsWith('app.')) {
+      // Settings that belong to the window itself (motion, density, background, developer mode, theme).
+      const key = String(proposal.args.setting)
+      const v = proposal.args.value
+      const on = v === true || v === 'true' || v === 'on'
+      if (key === 'app.reduceMotion') look.setReduceMotion(on)
+      else if (key === 'app.compact') look.setCompact(on)
+      else if (key === 'app.background') look.setBackground(v === 'gradient' ? 'gradient' : 'flat')
+      else if (key === 'app.devMode') {
+        if (look.devMode !== on) look.toggleDev()
+      } else if (key === 'app.theme') {
+        const found = resolveTheme(String(v))
+        if (!found) throw new Error(`I do not have a theme for "${String(v)}". Pick one in Settings > Appearance.`)
+        applyTheme(found.theme)
+      } else throw new Error('Unknown setting')
+      id = `setting:${key.slice(4)} > ${String(v)}`
+    } else id = (await host.ai.run(proposal)).id
     // Read the conversation again after the wait: an answer may have arrived meanwhile, and the person may have switched chats.
     const now = chatRef.current
     if (now.id !== forChat) return
@@ -242,6 +306,7 @@ export default function ChatPage() {
           <span className="truncate">
             {off ? 'AI is off' : `${ai?.provider === 'cloud' ? '‚òÅ ' : ''}${(ai?.provider === 'local' ? ai.localModel : ai?.model) || 'No model chosen'}`}
           </span>
+          {devOn && <span className="border border-[var(--accent)] px-1.5 text-[10px] uppercase tracking-wider">dev</span>}
           <Link to="/settings" className="underline">
             AI settings
           </Link>
@@ -263,6 +328,25 @@ export default function ChatPage() {
           <div ref={bottom} />
         </div>
         <footer className="flex flex-col gap-2 border-t border-[var(--glass-border)] p-3">
+          {devLogin && (
+            <form
+              className="flex flex-wrap items-center gap-2 text-xs"
+              onSubmit={(e) => {
+                e.preventDefault()
+                void devUnlock()
+              }}
+            >
+              <input className="glass-input w-32" aria-label="User" placeholder="user" autoComplete="off" value={devUser} onChange={(e) => setDevUser(e.target.value)} />
+              <input className="glass-input w-32" aria-label="Password" placeholder="password" type="password" autoComplete="off" value={devPass} onChange={(e) => setDevPass(e.target.value)} />
+              <button type="submit" className="glass-btn px-3 py-1">
+                Unlock
+              </button>
+              <button type="button" className="glass-btn px-3 py-1" onClick={() => (setDevLogin(false), setDevPass(''), setDevError(''))}>
+                Cancel
+              </button>
+              {devError && <span className="text-red-400">{devError}</span>}
+            </form>
+          )}
           {files.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {files.map((f) => (

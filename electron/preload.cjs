@@ -143,6 +143,7 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     writeChapters: (p, chapters) => ipcRenderer.invoke('transcripts:writeChapters', p, chapters),
     ask: (requestId, p, question) => ipcRenderer.invoke('transcripts:ask', requestId, p, question),
   },
+  aiDev: { unlock: (u, p) => ipcRenderer.invoke('ai:dev:unlock', u, p), lock: () => ipcRenderer.invoke('ai:dev:lock'), status: () => ipcRenderer.invoke('ai:dev:status') },
   thumbnail: { pick: (p) => ipcRenderer.invoke('thumbnail:pick', p) },
   grade: {
     looks: () => ipcRenderer.invoke('grade:looks'),
