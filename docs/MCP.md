@@ -4,7 +4,7 @@ OPNduck can be driven by any AI app that supports the [Model Context Protocol](h
 
 ## Turn it on
 
-1. Settings → System → **MCP server** → turn it on.
+1. Settings → Connections → **MCP server** → turn it on.
 2. Pick your AI app in the same card. OPNduck shows the exact command to run, or the JSON to paste into that app's MCP settings.
 3. Keep OPNduck running while you use the tools.
 

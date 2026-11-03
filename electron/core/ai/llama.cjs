@@ -269,6 +269,26 @@ function createLlama({ dir, getSettings, fetchFn = fetch, sources = {}, log = ()
     emit()
   }
 
+  const pidFile = () => path.join(dir(), 'server.pid')
+  /** Stops a model server that an earlier OPNduck started and never stopped. Only a process still called llama-server is touched. */
+  function reapStale() {
+    let pid
+    try {
+      pid = Number(fs.readFileSync(pidFile(), 'utf8'))
+    } catch {
+      return
+    }
+    fs.rmSync(pidFile(), { force: true })
+    if (!Number.isInteger(pid) || pid <= 1 || (child && child.pid === pid)) return
+    try {
+      const name = process.platform === 'linux' ? fs.readFileSync(`/proc/${pid}/comm`, 'utf8').trim() : 'llama-server'
+      if (!/^llama-server/.test(name)) return
+      process.kill(pid, 'SIGKILL')
+    } catch {
+      /* not running any more */
+    }
+  }
+
   /** Starts the server with the chosen model; resolves when it answers. Calling it again while loading waits for the same load. */
   function load() {
     if (state === 'ready') return Promise.resolve(status())
@@ -283,10 +303,17 @@ function createLlama({ dir, getSettings, fetchFn = fetch, sources = {}, log = ()
       state = 'loading'
       error = ''
       emit()
+      reapStale() // a server left over from an earlier run (a crash, a restart) still holds the graphics memory
       port = await freePort()
       const args = ['-m', files.model, '--host', '127.0.0.1', '--port', String(port), '-c', String(s.context), '-ngl', s.gpu === 'cpu' ? '0' : '99', '--jinja']
       if (files.mmproj && s.vision && fs.existsSync(files.mmproj)) args.push('--mmproj', files.mmproj)
       child = spawn(bin, args, { cwd: path.dirname(bin), stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, LD_LIBRARY_PATH: [path.dirname(bin), process.env.LD_LIBRARY_PATH].filter(Boolean).join(path.delimiter) } })
+      try {
+        fs.mkdirSync(dir(), { recursive: true })
+        fs.writeFileSync(pidFile(), String(child.pid))
+      } catch {
+        /* the file is only a safety net */
+      }
       let tail = ''
       const keep = (c) => (tail = (tail + c).slice(-1500))
       child.stdout.on('data', keep)
@@ -303,6 +330,11 @@ function createLlama({ dir, getSettings, fetchFn = fetch, sources = {}, log = ()
         emit()
       })
       child.on('close', () => {
+        try {
+          if (fs.readFileSync(pidFile(), 'utf8') === String(mine.pid)) fs.rmSync(pidFile(), { force: true })
+        } catch {
+          /* already gone */
+        }
         if (child !== mine) return
         if (state !== 'unloaded') {
           state = state === 'loading' ? 'error' : 'unloaded'

@@ -180,6 +180,27 @@ test('a model over the 4 GB limit, or one that vanished from its repository, is 
   }
 })
 
+test('a model server left over from an earlier run is stopped before a new one starts', { skip: process.platform !== 'linux' }, async () => {
+  const t = await installed({ vision: false })
+  try {
+    await t.llama.installRuntime()
+    await t.llama.installModel('ministral-3-3b')
+    // A stand-in process that is called llama-server, with its pid file, as a crashed run would leave behind.
+    const bin = path.join(tmp(), 'llama-server')
+    fs.copyFileSync('/bin/sleep', bin)
+    fs.chmodSync(bin, 0o755)
+    const stale = require('node:child_process').spawn(bin, ['60'], { stdio: 'ignore' })
+    fs.mkdirSync(t.dir, { recursive: true })
+    fs.writeFileSync(path.join(t.dir, 'server.pid'), String(stale.pid))
+    const gone = new Promise((r) => stale.on('close', r))
+    await t.llama.load()
+    await Promise.race([gone, new Promise((_r, rej) => setTimeout(() => rej(new Error('the old server is still running')), 3000))])
+    t.llama.eject()
+  } finally {
+    await t.srv.close()
+  }
+})
+
 test('load and eject: the server starts on 127.0.0.1 with the right options, answers, and stops; the picture add-on only with vision on', { skip: process.platform === 'win32' }, async () => {
   const t = await installed({ vision: true })
   try {

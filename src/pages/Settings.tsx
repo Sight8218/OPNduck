@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { IconAdjustmentsHorizontal, IconCpu, IconDownload, IconInfoCircle, IconKeyboard } from '@tabler/icons-react'
+import { IconAdjustmentsHorizontal, IconCpu, IconDownload, IconGauge, IconInfoCircle, IconKeyboard, IconPlugConnected, IconSparkles } from '@tabler/icons-react'
 import GpuPerformanceCard from '../components/GpuPerformanceCard'
 import MusicTaggingCard from '../components/MusicTaggingCard'
 import SendToOpnduckCard from '../components/SendToOpnduckCard'
@@ -30,6 +30,22 @@ import SettingsNav, { type SettingsCategory } from '../components/SettingsNav'
 import ThemeToggle from '../components/ThemeToggle'
 import { useTheme } from '../themes/useTheme'
 
+/** One category of the settings column: its scroll target and its divider label. */
+function Section({ id, label, refs, children }: { id: string; label: string; refs: React.MutableRefObject<Record<string, HTMLElement | null>>; children: React.ReactNode }) {
+  return (
+    <section
+      id={`settings-${id}`}
+      ref={(el) => {
+        refs.current[id] = el
+      }}
+      className="scroll-mt-24 flex flex-col gap-6"
+    >
+      <CategoryLabel label={label} />
+      {children}
+    </section>
+  )
+}
+
 /** Repeats the category name as a divider at the top of its scrolling
  * section, so it's clear what you're looking at independent of the fixed
  * panel's highlight — helpful once a category holds several cards. */
@@ -45,7 +61,10 @@ function CategoryLabel({ label }: { label: string }) {
 const CATEGORIES: SettingsCategory[] = [
   { id: 'appearance', label: 'Appearance', icon: IconAdjustmentsHorizontal },
   { id: 'keybinds', label: 'Keybinds', icon: IconKeyboard },
-  { id: 'downloads', label: 'Downloads', icon: IconDownload },
+  { id: 'downloads', label: 'Downloads & files', icon: IconDownload },
+  { id: 'performance', label: 'Queue & performance', icon: IconGauge },
+  { id: 'ai', label: 'AI assistant', icon: IconSparkles },
+  { id: 'connections', label: 'Connections', icon: IconPlugConnected },
   { id: 'system', label: 'System', icon: IconCpu },
   { id: 'about', label: 'About', icon: IconInfoCircle },
 ]
@@ -61,6 +80,9 @@ export default function Settings() {
   const { devMode } = useDevMode()
   const [activeId, setActiveId] = useState('appearance')
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
+
+  /** Categories that have nothing to show here (the browser has no settings file, only the desktop has an assistant) are left out. */
+  const visible = (id: string) => (id === 'downloads' || id === 'performance' || id === 'connections' ? !!host.settings : id === 'ai' ? !!host.settings && host.isDesktop : true)
 
   const select = (id: string) => {
     setActiveId(id)
@@ -79,6 +101,7 @@ export default function Settings() {
     const onScroll = () => {
       let current = CATEGORIES[0].id
       for (const c of CATEGORIES) {
+        if (!visible(c.id)) continue
         const el = sectionRefs.current[c.id]
         if (!el) continue
         if (el.getBoundingClientRect().top <= TOP_LINE) current = c.id
@@ -103,7 +126,7 @@ export default function Settings() {
           document-relative — no need to scroll to the very end to see it). */}
       {createPortal(
         <div className="fixed left-4 top-24 bottom-6 z-30 w-56 sm:left-5">
-          <SettingsNav categories={CATEGORIES.filter((c) => c.id !== 'downloads' || !!host.settings)} activeId={activeId} onSelect={select} />
+          <SettingsNav categories={CATEGORIES.filter((c) => visible(c.id))} activeId={activeId} onSelect={select} />
         </div>,
         document.body,
       )}
@@ -128,62 +151,46 @@ export default function Settings() {
 
             {devMode && <DevTools />}
           </section>
-          <section
-            id="settings-keybinds"
-            ref={(el) => {
-              sectionRefs.current.keybinds = el
-            }}
-            className="scroll-mt-24 flex flex-col gap-6"
-          >
-            <CategoryLabel label="Keybinds" />
+          <Section id="keybinds" label="Keybinds" refs={sectionRefs}>
             <KeybindsCard />
-          </section>
-          {host.settings && (
-            <section
-              id="settings-downloads"
-              ref={(el) => {
-                sectionRefs.current.downloads = el
-              }}
-              className="scroll-mt-24 flex flex-col gap-6"
-            >
-              <CategoryLabel label="Downloads" />
+          </Section>
+          {visible('downloads') && (
+            <Section id="downloads" label="Downloads & files" refs={sectionRefs}>
               <DownloadsCard />
-            </section>
+              <MusicTaggingCard />
+              <WatchFolderCard />
+            </Section>
           )}
-          <section
-            id="settings-system"
-            ref={(el) => {
-              sectionRefs.current.system = el
-            }}
-            className="scroll-mt-24 flex flex-col gap-6"
-          >
-            <CategoryLabel label="System" />
+          {visible('performance') && (
+            <Section id="performance" label="Queue & performance" refs={sectionRefs}>
+              <QueueCard />
+              {host.isDesktop && <SchedulingCard />}
+              <HardwareAllocation />
+              <GpuPerformanceCard />
+              <NotificationsCard />
+            </Section>
+          )}
+          {visible('ai') && (
+            <Section id="ai" label="AI assistant" refs={sectionRefs}>
+              <AiCard />
+            </Section>
+          )}
+          {visible('connections') && (
+            <Section id="connections" label="Connections" refs={sectionRefs}>
+              <SendToOpnduckCard />
+              <ServersCard />
+              {host.mcp && <McpCard />}
+            </Section>
+          )}
+          <Section id="system" label="System" refs={sectionRefs}>
             <SetupCard />
-            <HardwareAllocation />
-            {host.settings && <GpuPerformanceCard />}
-            {host.settings && <NotificationsCard />}
-            {host.settings && <MusicTaggingCard />}
-            {host.settings && host.isDesktop && <AiCard />}
-            {host.settings && <SendToOpnduckCard />}
-            {host.settings && <ServersCard />}
-            {host.settings && <QueueCard />}
-            {host.settings && host.isDesktop && <SchedulingCard />}
-            {host.settings && <WatchFolderCard />}
-            {host.mcp && <McpCard />}
             {host.plugins && <PluginSafeMode />}
             <StorageCard />
             <UpdatesCard />
-          </section>
-          <section
-            id="settings-about"
-            ref={(el) => {
-              sectionRefs.current.about = el
-            }}
-            className="scroll-mt-24 flex flex-col gap-6"
-          >
-            <CategoryLabel label="About" />
+          </Section>
+          <Section id="about" label="About" refs={sectionRefs}>
             <InfoCard />
-          </section>
+          </Section>
           </div>
         </div>
       </div>
