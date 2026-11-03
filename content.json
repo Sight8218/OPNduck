@@ -31,7 +31,13 @@
       "Faster GPU engine: PyTorch streaming + NVENC",
       "MCP server so AI apps can drive OPNduck",
       "Library with search, filters, groups, export and import",
-      "Themes: Blarange, Monochrome, Osaka Jade + 24 Omarchy palettes"
+      "Themes: Blarange, Monochrome, Osaka Jade + 24 Omarchy palettes",
+      "Recipes: chain tools into one-click pipelines",
+      "Send to OPNduck: links from your phone, browser or another PC",
+      "Colour Grade, Background Remover, Beat Finder, Dubbing (Beta)",
+      "AI: chat, spoken-word search, summaries, chapters, thumbnail picker, a local model of its own",
+      "OPNduck Server and Android app: run jobs on another machine",
+      "macOS beta build"
     ],
     "planned": [
       {
@@ -46,14 +52,19 @@
       {
         "name": "AUR package listing",
         "inProgress": true
-      },
-      {
-        "name": "macOS build",
-        "inProgress": false
       }
     ]
   },
   "blog": [
+    {
+      "slug": "v0-6-0-beta",
+      "title": "v0.6.0 Beta — the biggest update yet",
+      "date": "2026-11-03",
+      "author": "Ducky",
+      "tag": "RELEASE",
+      "excerpt": "The biggest update yet, and possibly ever: recipes, send-to-OPNduck, AI chat and tools, colour grading, background removal, dubbing, a server, an Android app and a macOS beta. It might be super buggy.",
+      "body": "This is the biggest update OPNduck has had, and possibly will ever have, and it might be super buggy. Please report what breaks.\nNew: Recipes (chain tools into one-click pipelines), Send to OPNduck (links from your phone, browser or another PC, end-to-end encrypted), Colour Grade, Background Remover, Beat Finder, Dubbing (Beta, local voice, no cloning), an AI chat that can propose jobs and run them after you confirm, search of the spoken words in your videos, summaries, chapters, a thumbnail picker, and a small local AI model of its own.\nAlso new: OPNduck Server (run jobs on another machine, also as a Docker image), an Android app, a macOS beta (Apple silicon, not notarized) and per-device access when you share your engine.\nThe Windows builds were made from Linux and have not been tried on real Windows. macOS and Android are unsigned. Full notes are on the GitHub release."
+    },
     {
       "slug": "v0-5-3-beta",
       "title": "v0.5.3 Beta — OPNduck in your terminal",
@@ -101,20 +112,28 @@
     }
   ],
   "downloads": {
-    "version": "v0.5.3-Beta",
-    "releaseUrl": "https://github.com/Sight8218/OPNduck/releases/tag/v0.5.3-Beta",
+    "version": "v0.6.0-Beta",
+    "releaseUrl": "https://github.com/Sight8218/OPNduck/releases/tag/v0.6.0-Beta",
     "links": [
       {
         "platform": "Windows",
-        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.5.3-Beta/OPNduck.Setup.0.5.3-beta.exe"
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/OPNduck.Setup.0.6.0-beta.exe"
       },
       {
         "platform": "Linux",
-        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.5.3-Beta/OPNduck-0.5.3-beta.AppImage"
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/OPNduck-0.6.0-beta.AppImage"
       },
       {
         "platform": "Arch Linux",
-        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.5.3-Beta/opnduck-desktop-0.5.3-beta.pacman"
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/opnduck-desktop-0.6.0-beta.pacman"
+      },
+      {
+        "platform": "macOS",
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/OPNduck-0.6.0-beta-arm64.dmg"
+      },
+      {
+        "platform": "Android",
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/opnduck-companion-v0.6.0-Beta-release-unsigned.apk"
       }
     ]
   }
