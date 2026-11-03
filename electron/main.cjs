@@ -246,6 +246,7 @@ ipcMain.handle('settings:set', async (_e, patch) => {
   const next = setSettings(patch)
   if (patch && 'schedule' in patch) void core.schedule.tick() // new rules apply at once
   if (patch && 'runInTray' in patch) applyTray()
+  if (patch && 'ai' in patch) refreshTrayMenu()
   applyQueueLimits()
   if (patch && 'mcpServer' in patch) await applyMcp()
   if (patch && ('remoteEnabled' in patch || 'remoteMode' in patch)) platform.emit('remote:changed', null)
@@ -346,7 +347,7 @@ ipcMain.handle('ai:chats:save', (_e, chat) => (getSettings().ai.keepChats ? core
 ipcMain.handle('ai:chats:remove', (_e, id) => core.chats.remove(String(id)))
 ipcMain.handle('ai:chats:removeAll', () => (core.chats.removeAll(), true))
 /* OPNduck's own local model (llama.cpp): download, load, eject */
-core.llama.onChange((s) => platform.emit('ai:local', s))
+core.llama.onChange((s) => { platform.emit('ai:local', s); refreshTrayMenu() })
 ipcMain.handle('ai:local:status', () => core.llama.status())
 ipcMain.handle('ai:local:installRuntime', () => core.llama.installRuntime().then(() => true))
 ipcMain.handle('ai:local:installModel', (_e, id) => core.llama.installModel(String(id)).then(() => true))
@@ -413,6 +414,10 @@ ipcMain.handle('transcripts:writeChapters', async (_e, p, chapters) => {
   const clean = videoAi.tidyChapters(Array.isArray(chapters) ? chapters : [], t.duration)
   if (!clean.length) throw new Error('There are no chapters to write')
   return videoAi.writeChapters(String(p), clean, t.duration, path.dirname(String(p)), modules.common.uniqueOutputPath)
+})
+ipcMain.handle('thumbnail:pick', (_e, p) => {
+  const ai = getSettings().ai
+  return require('./core/ai/thumbnail.cjs').pickThumbnail(ai.provider !== 'off' && ai.vision ? { chat: (o) => core.ai.chat(o) } : null, String(p), { destDir: path.dirname(String(p)), uniqueOutputPath: modules.common.uniqueOutputPath, canSee: !!ai.vision })
 })
 ipcMain.handle('transcripts:ask', async (e, requestId, p, question) => {
   const t = transcriptOf(p)
@@ -1275,6 +1280,20 @@ function showMainWindow() {
   win.show()
   win.focus()
 }
+/** The tray menu, including Load / Eject for OPNduck's own AI model when that is the chosen provider. */
+function refreshTrayMenu() {
+  if (!tray) return
+  const items = [{ label: 'Show OPNduck', click: showMainWindow }, { label: 'Check subscriptions now', click: () => void subscriptions?.checkNow() }]
+  if (getSettings().ai.provider === 'local') {
+    const st = core.llama.status()
+    items.push({ type: 'separator' })
+    if (st.state === 'ready') items.push({ label: 'Eject the AI model (free memory)', click: () => core.llama.eject() })
+    else if (st.state === 'loading') items.push({ label: 'AI model is loading…', enabled: false })
+    else if (st.runtime && Object.values(st.models).some(Boolean)) items.push({ label: 'Load the AI model', click: () => void core.llama.load().catch(() => {}) })
+  }
+  items.push({ type: 'separator' }, { label: 'Quit', click: () => app.quit() })
+  tray.setContextMenu(Menu.buildFromTemplate(items))
+}
 /** Creates or removes the tray icon to match the setting. */
 function applyTray() {
   const want = getSettings().runInTray
@@ -1282,14 +1301,7 @@ function applyTray() {
     try {
       tray = new Tray(nativeImage.createFromPath(path.join(__dirname, 'tray.png')))
       tray.setToolTip('OPNduck')
-      tray.setContextMenu(
-        Menu.buildFromTemplate([
-          { label: 'Show OPNduck', click: showMainWindow },
-          { label: 'Check subscriptions now', click: () => void subscriptions?.checkNow() },
-          { type: 'separator' },
-          { label: 'Quit', click: () => app.quit() },
-        ]),
-      )
+      refreshTrayMenu()
       tray.on('click', showMainWindow)
     } catch {
       tray = null // no tray support on this desktop: closing the window just quits as before

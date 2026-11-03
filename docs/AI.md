@@ -48,3 +48,11 @@ thinking: lower Effort in Settings > AI, or set Thinking to Never.
 ## Not built yet
 
 The AI thumbnail picker.
+
+## Thumbnail picker
+
+In the Library, open a video's panel and choose **Thumbnail**. OPNduck samples frames across the video, skips dark, bright and blurry ones, and saves the best as `<name>-thumbnail.jpg` next to the video. If your model can see pictures (Settings > AI > vision) it looks at the six best candidates and picks one; it only answers with a frame number. Otherwise the sharpest, best lit frame wins.
+
+## Evals
+
+`AI_EVAL_URL=http://127.0.0.1:1234/v1 AI_EVAL_MODEL=<model> npm run ai:eval` runs the real prompts (summary, chapters, questions, grade looks, thumbnail choice) and checks the answers. Run it after changing a prompt or trying a model.

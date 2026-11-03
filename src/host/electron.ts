@@ -113,6 +113,7 @@ interface ElectronBridge {
     resume(runId: string): Promise<RecipeRun>
   }
   grade: Host['grade']
+  thumbnail: Host['thumbnail']
   transcripts: Host['transcripts']
   explainJob: Host['explainJob']
   bgPreview: Host['bgPreview']
@@ -273,6 +274,7 @@ export function detectElectronHost(): Host | null {
     ai: bridge.ai,
     recipes: bridge.recipes,
     grade: bridge.grade,
+    thumbnail: bridge.thumbnail,
     transcripts: bridge.transcripts,
     explainJob: (id) => bridge.explainJob(id),
     bgPreview: (p) => bridge.bgPreview(p),

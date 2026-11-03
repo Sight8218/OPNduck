@@ -68,7 +68,7 @@ export function SpokenSearch({ query }: { query: string }) {
   )
 }
 
-type Tab = 'words' | 'summary' | 'chapters' | 'ask'
+type Tab = 'words' | 'summary' | 'chapters' | 'ask' | 'thumbnail'
 
 /** Everything the AI can do with one video's words: make them searchable, summarise, chapters, and questions. */
 export default function VideoAiPanel({ file, onClose }: { file: string; onClose: () => void }) {
@@ -83,6 +83,7 @@ export default function VideoAiPanel({ file, onClose }: { file: string; onClose:
   const [answer, setAnswer] = useState('')
   const [request, setRequest] = useState<string | null>(null)
   const [started, setStarted] = useState(false)
+  const [thumb, setThumb] = useState<{ path: string; time: number; why: string; byAi: boolean } | null>(null)
   const reqRef = useRef<string | null>(null)
   reqRef.current = request
 
@@ -113,7 +114,7 @@ export default function VideoAiPanel({ file, onClose }: { file: string; onClose:
   }
 
   const needs = has === false ? <p className="text-sm text-[var(--text-dim)]">This video has no transcript yet. Go to "Spoken words" and make it searchable first.</p> : null
-  const TABS: [Tab, string][] = [['words', 'Spoken words'], ['summary', 'Summary'], ['chapters', 'Chapters'], ['ask', 'Ask']]
+  const TABS: [Tab, string][] = [['words', 'Spoken words'], ['summary', 'Summary'], ['chapters', 'Chapters'], ['ask', 'Ask'], ['thumbnail', 'Thumbnail']]
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div role="dialog" aria-label="Spoken words" className="glass flex max-h-[85vh] w-full max-w-2xl flex-col gap-3 overflow-y-auto rounded-3xl p-5" onClick={(e) => e.stopPropagation()}>
@@ -239,6 +240,19 @@ export default function VideoAiPanel({ file, onClose }: { file: string; onClose:
             )}
             {answer && <div>{renderMarkdown(answer)}</div>}
             {has && <p className="text-[11px] text-[var(--text-faint)]">Answers come only from what is said in the video, with the time in brackets.</p>}
+          </div>
+        )}
+        {tab === 'thumbnail' && (
+          <div className="flex flex-col gap-2 text-sm">
+            <p className="text-[var(--text-dim)]">Finds a good still of this video and saves it next to it as a JPEG. With an AI model that can see pictures (Settings &gt; AI &gt; vision) it picks the most inviting frame; otherwise the sharpest, best lit one.</p>
+            <button type="button" className="glass-btn w-fit px-3 py-1.5 text-xs" disabled={!!busy} onClick={() => void run('thumb', async () => setThumb(await host.thumbnail.pick(file)))}>
+              {busy === 'thumb' ? 'Looking at the frames…' : thumb ? 'Pick again' : 'Pick a thumbnail'}
+            </button>
+            {thumb && (
+              <p className="text-xs text-[var(--text-dim)]">
+                Saved {basename(thumb.path)} (from {clock(thumb.time)}, {thumb.byAi ? 'chosen by the AI model' : 'chosen by measurements'}). {thumb.why}
+              </p>
+            )}
           </div>
         )}
         {error && <p className="text-xs text-red-400">{error}</p>}

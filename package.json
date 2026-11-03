@@ -28,6 +28,7 @@
     "tui:pack": "node scripts/pack-tui.mjs",
     "tui:npm": "node scripts/pack-npm.mjs",
     "test": "node --test test/",
+    "ai:eval": "node scripts/ai-eval.mjs",
     "build:extension": "node scripts/build-extension.mjs",
     "server:build": "node scripts/build-server.mjs",
     "server": "node scripts/build-server.mjs && node dist-server/opnduck-server.cjs",

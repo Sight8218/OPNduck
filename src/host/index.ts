@@ -1083,6 +1083,10 @@ export interface Host {
     /** Answers from the transcript; the text also streams through `ai.onEvent` with this request id. */
     ask(requestId: string, videoPath: string, question: string): Promise<string>
   }
+  /** Picks a good still of a video and saves it next to the video. The AI model chooses when it can see pictures; otherwise measurements do. Desktop only. */
+  thumbnail: {
+    pick(videoPath: string): Promise<{ path: string; time: number; why: string; byAi: boolean }>
+  }
   /** Colour grading helpers for the Colour Grade card (none of them starts a job). Desktop only. */
   grade: {
     looks(): Promise<GradeLook[]>
@@ -1640,6 +1644,11 @@ const browserHost: Host = {
       throw new Error('Desktop app required')
     },
     ask: async () => {
+      throw new Error('Desktop app required')
+    },
+  },
+  thumbnail: {
+    pick: async () => {
       throw new Error('Desktop app required')
     },
   },
