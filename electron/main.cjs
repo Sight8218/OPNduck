@@ -345,6 +345,16 @@ ipcMain.handle('ai:chats:get', (_e, id) => core.chats.get(String(id)))
 ipcMain.handle('ai:chats:save', (_e, chat) => (getSettings().ai.keepChats ? core.chats.save(chat) : false))
 ipcMain.handle('ai:chats:remove', (_e, id) => core.chats.remove(String(id)))
 ipcMain.handle('ai:chats:removeAll', () => (core.chats.removeAll(), true))
+/* OPNduck's own local model (llama.cpp): download, load, eject */
+core.llama.onChange((s) => platform.emit('ai:local', s))
+ipcMain.handle('ai:local:status', () => core.llama.status())
+ipcMain.handle('ai:local:installRuntime', () => core.llama.installRuntime().then(() => true))
+ipcMain.handle('ai:local:installModel', (_e, id) => core.llama.installModel(String(id)).then(() => true))
+ipcMain.handle('ai:local:cancel', () => (core.llama.cancelInstall(), true))
+ipcMain.handle('ai:local:load', () => core.llama.load().then(() => true))
+ipcMain.handle('ai:local:eject', () => (core.llama.eject(), true))
+ipcMain.handle('ai:local:remove', (_e, id) => (core.llama.remove(String(id)), true))
+ipcMain.handle('ai:usage', () => core.ai.usage())
 ipcMain.handle('ai:test', () => core.ai.test())
 ipcMain.handle('ai:setKey', async (_e, id, key) => {
   core.aiKeys.set(String(id), String(key))
@@ -1435,6 +1445,7 @@ app.whenReady().then(() => {
   const launchLink = opnduckUrlIn(process.argv) // the app was started by an opnduck:// link
   if (launchLink) handleOpnduckUrl(launchLink)
   core.schedule.start()
+  core.llama.startIfWanted() // in the background, only when the person asked for it
   void core.plugins.init() // after the window exists: a plugin's activate() must never delay startup
   applyTray()
   trace('window created')

@@ -95,8 +95,23 @@ contextBridge.exposeInMainWorld('opnduckHost', {
   ai: {
     state: () => ipcRenderer.invoke('ai:state'),
     test: () => ipcRenderer.invoke('ai:test'),
+    usage: () => ipcRenderer.invoke('ai:usage'),
     setKey: (id, key) => ipcRenderer.invoke('ai:setKey', id, key),
     removeKey: (id) => ipcRenderer.invoke('ai:removeKey', id),
+    local: {
+      status: () => ipcRenderer.invoke('ai:local:status'),
+      installRuntime: () => ipcRenderer.invoke('ai:local:installRuntime'),
+      installModel: (id) => ipcRenderer.invoke('ai:local:installModel', id),
+      cancel: () => ipcRenderer.invoke('ai:local:cancel'),
+      load: () => ipcRenderer.invoke('ai:local:load'),
+      eject: () => ipcRenderer.invoke('ai:local:eject'),
+      remove: (id) => ipcRenderer.invoke('ai:local:remove', id),
+      onChange: (listener) => {
+        const handler = (_e, s) => listener(s)
+        ipcRenderer.on('ai:local', handler)
+        return () => ipcRenderer.removeListener('ai:local', handler)
+      },
+    },
     send: (req) => ipcRenderer.invoke('ai:send', req),
     abort: (requestId) => ipcRenderer.invoke('ai:abort', requestId),
     run: (proposal) => ipcRenderer.invoke('ai:run', proposal),

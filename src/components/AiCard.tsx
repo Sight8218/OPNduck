@@ -17,11 +17,14 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { host, type AiModel, type AiSettings, type AiState } from '../host'
+import { host, type AiModel, type AiSettings, type AiState, type LocalAiStatus } from '../host'
+import ProgressBar from './ProgressBar'
+import { formatBytes } from '../lib/formatBytes'
 import GlassSelect from './GlassSelect'
 
 const PROVIDERS = [
   { value: 'off', label: 'Off' },
+  { value: 'local', label: "On this computer: OPNduck's own model" },
   { value: 'ollama', label: 'Ollama (on this computer)' },
   { value: 'lmstudio', label: 'LM Studio (on this computer)' },
   { value: 'machine', label: 'Another computer' },
@@ -38,6 +41,8 @@ const REASONING = [
   { value: 'off', label: 'Never' },
 ]
 
+const CONTEXTS = [4096, 8192, 16384, 32768].map((n) => ({ value: String(n), label: `${n / 1024}k` }))
+const IDLE = [0, 5, 15, 30, 60].map((n) => ({ value: String(n), label: n === 0 ? 'Never' : `${n} minutes` }))
 const clean = (e: unknown) => (e instanceof Error ? e.message : String(e)).replace(/^Error invoking remote method '[^']*': (Error: )?/, '')
 
 // @category: settings/ai
@@ -50,6 +55,8 @@ export default function AiCard() {
   const [token, setToken] = useState('')
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
+  const [local, setLocal] = useState<LocalAiStatus | null>(null)
+  const [usage, setUsage] = useState<Record<string, { input: number; output: number; answers: number }>>({})
 
   const refresh = useCallback(async () => {
     setState(await host.ai.state())
@@ -57,6 +64,9 @@ export default function AiCard() {
   useEffect(() => {
     void host.settings?.get().then((s) => setAi(s.ai))
     void refresh()
+    void host.ai.local.status().then(setLocal)
+    void host.ai.usage().then(setUsage)
+    return host.ai.local.onChange(setLocal)
   }, [refresh])
 
   async function save(patch: Partial<AiSettings>) {
@@ -81,8 +91,11 @@ export default function AiCard() {
   }
 
   if (!ai || !state) return null
-  const local = ai.provider === 'ollama' || ai.provider === 'lmstudio' ? state.detected[ai.provider] : null
-  const choices = models.length ? models : (local?.models ?? [])
+  const run = (fn: () => Promise<unknown>) => void fn().catch((e) => setNote({ ok: false, text: clean(e) }))
+  const model = local?.catalog[ai.localModel]
+  const ready = !!local?.runtime && !!local.models[ai.localModel]
+  const detected = ai.provider === 'ollama' || ai.provider === 'lmstudio' ? state.detected[ai.provider] : null
+  const choices = models.length ? models : (detected?.models ?? [])
   const keyId = ai.provider === 'machine' ? 'machine' : ai.cloud
   const hasKey = state.keys.includes(keyId)
   const cloudLabel = state.cloud[ai.cloud] ?? ai.cloud
@@ -99,9 +112,94 @@ export default function AiCard() {
           <GlassSelect id="ai-provider" options={PROVIDERS} value={ai.provider} onChange={(v) => void save({ provider: v as AiSettings['provider'], model: '' }).then(() => setModels([]))} />
         </div>
 
-        {local && (
-          <p className={`text-xs ${local.running ? 'text-[var(--text-dim)]' : 'text-amber-400'}`}>
-            {local.running ? `${ai.provider === 'ollama' ? 'Ollama' : 'LM Studio'} is running with ${local.models.length} model${local.models.length === 1 ? '' : 's'}.` : `${ai.provider === 'ollama' ? 'Ollama' : 'LM Studio'} is not running. Start it, then press Check again.`}
+        {ai.provider === 'local' && local && (
+          <div className="flex flex-col gap-3">
+            <p className="text-xs text-[var(--text-dim)]">A small open model that runs only on this computer. Nothing is sent anywhere. The download is checked against its published checksum.</p>
+            <div>
+              <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Model</span>
+              <GlassSelect id="ai-local-model" options={Object.entries(local.catalog).map(([id, m]) => ({ value: id, label: `${m.label} (${(m.sizeMB / 1000).toFixed(1)} GB)` }))} value={ai.localModel} onChange={(v) => void save({ localModel: v })} />
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-[var(--text-dim)]">Engine: {local.runtime ? 'installed' : 'not installed'} · Model: {local.models[ai.localModel] ? 'downloaded' : 'not downloaded'}</span>
+            </div>
+            {local.installing ? (
+              <div className="flex flex-col gap-1">
+                <ProgressBar value={local.installing.total ? local.installing.done / local.installing.total : 0} status="running" />
+                <span className="text-[11px] text-[var(--text-dim)]">
+                  {local.installing.what}: {formatBytes(local.installing.done)}{local.installing.total ? ` of ${formatBytes(local.installing.total)}` : ''}
+                </span>
+                <button type="button" className="glass-btn w-fit px-3 py-1 text-xs" onClick={() => void host.ai.local.cancel()}>
+                  Stop (it continues where it stopped next time)
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {!local.runtime && (
+                  <button type="button" className="glass-btn px-3 py-1.5 text-xs" onClick={() => run(() => host.ai.local.installRuntime())}>
+                    Download the AI engine (about 30 MB)
+                  </button>
+                )}
+                {local.runtime && !local.models[ai.localModel] && model && (
+                  <button type="button" className="glass-btn px-3 py-1.5 text-xs" onClick={() => run(() => host.ai.local.installModel(ai.localModel))}>
+                    Download the model (about {(model.sizeMB / 1000).toFixed(1)} GB)
+                  </button>
+                )}
+                {ready && local.state !== 'ready' && local.state !== 'loading' && (
+                  <button type="button" className="glass-btn px-3 py-1.5 text-xs" onClick={() => run(() => host.ai.local.load())}>
+                    Load
+                  </button>
+                )}
+                {(local.state === 'ready' || local.state === 'loading') && (
+                  <button type="button" className="glass-btn px-3 py-1.5 text-xs" onClick={() => void host.ai.local.eject()}>
+                    Eject (frees the memory)
+                  </button>
+                )}
+                {local.models[ai.localModel] && (
+                  <button type="button" className="glass-btn px-3 py-1.5 text-xs" onClick={() => void host.ai.local.remove(ai.localModel)}>
+                    Delete the model
+                  </button>
+                )}
+              </div>
+            )}
+            <p className={`text-xs ${local.state === 'error' ? 'text-red-400' : 'text-[var(--text-dim)]'}`}>
+              {local.state === 'ready' ? `Ready: ${local.model}` : local.state === 'loading' ? 'Loading the model…' : local.state === 'error' ? local.error : ready ? 'Not loaded. It loads when you ask something, or press Load.' : ''}
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Memory for the conversation</span>
+                <GlassSelect id="ai-context" options={CONTEXTS} value={String(ai.context)} onChange={(v) => void save({ context: Number(v) as AiSettings['context'] })} />
+              </div>
+              <div>
+                <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Run on</span>
+                <GlassSelect id="ai-gpu" options={[{ value: 'auto', label: 'The graphics card' }, { value: 'cpu', label: 'The processor only' }]} value={ai.gpu} onChange={(v) => void save({ gpu: v as AiSettings['gpu'] })} />
+              </div>
+              <div>
+                <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Eject when idle</span>
+                <GlassSelect id="ai-idle" options={IDLE} value={String(ai.idleEject)} onChange={(v) => void save({ idleEject: Number(v) as AiSettings['idleEject'] })} />
+              </div>
+            </div>
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <input type="checkbox" className="accent-[var(--accent)]" checked={ai.startOnLaunch} onChange={(e) => void save({ startOnLaunch: e.target.checked })} />
+              Load the model when OPNduck starts (in the background)
+            </label>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-dim)]">
+              <span className="min-w-0 truncate">Kept in: {local.dir}</span>
+              <button type="button" className="glass-btn px-3 py-1 text-xs" disabled={!!local.installing} onClick={() =>
+                  void host.pickFolder().then(async (d) => {
+                    if (!d) return
+                    await save({ dir: d })
+                    setLocal(await host.ai.local.status())
+                  })
+                }>
+                Change folder…
+              </button>
+            </div>
+          </div>
+        )}
+
+        {detected && (
+          <p className={`text-xs ${detected.running ? 'text-[var(--text-dim)]' : 'text-amber-400'}`}>
+            {detected.running ? `${ai.provider === 'ollama' ? 'Ollama' : 'LM Studio'} is running with ${detected.models.length} model${detected.models.length === 1 ? '' : 's'}.` : `${ai.provider === 'ollama' ? 'Ollama' : 'LM Studio'} is not running. Start it, then press Check again.`}
           </p>
         )}
 
@@ -167,6 +265,21 @@ export default function AiCard() {
               {note && <span className={`text-xs ${note.ok ? 'text-[var(--text-dim)]' : 'text-red-400'}`}>{note.text}</span>}
             </div>
 
+            {(() => {
+              const u = usage[ai.provider === 'cloud' ? ai.cloud : ai.provider]
+              return (
+                <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--text-dim)]">
+                  <span>{u ? `This month: ${(u.input + u.output).toLocaleString('en')} tokens in ${u.answers} answers` : 'Nothing used this month.'}</span>
+                  {ai.provider === 'cloud' && (
+                    <label className="flex items-center gap-2">
+                      Stop at
+                      <input type="number" min={0} step={10000} className="glass-input w-28" aria-label="Monthly token limit" value={ai.monthlyTokenLimit} onChange={(e) => setAi({ ...ai, monthlyTokenLimit: Math.max(0, Math.floor(Number(e.target.value) || 0)) })} onBlur={() => void save({ monthlyTokenLimit: ai.monthlyTokenLimit })} />
+                      tokens a month (0 = no limit)
+                    </label>
+                  )}
+                </div>
+              )
+            })()}
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Effort</span>

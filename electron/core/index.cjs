@@ -138,6 +138,7 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
   /** Stops everything cleanly: kills queued/running jobs' processes, saves history, stops the model workers and plugins. */
   function shutdown() {
     schedule.stop()
+    core.llama.eject()
     core.transcripts.close()
     void plugins.shutdown()
     modules.subtitles.whisperWorker.stop()
@@ -168,9 +169,10 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
   }
   const knownFiles = () => [...new Set([...picked, ...[...engine.tasks.values()].map((e) => e.finalPath).filter(Boolean)])].slice(-12)
   const aiKeys = require('./ai/keys.cjs').createKeys({ file: path.join(platform.paths.userData, 'ai-keys.json'), ...(secrets ?? {}) })
-  const ai = require('./ai/index.cjs').createAi({ getSettings, keys: aiKeys })
+  const llama = require('./ai/llama.cjs').createLlama({ dir: () => getSettings().ai.dir || process.env.OPNDUCK_AI_DIR || path.join(platform.paths.userData, 'ai'), getSettings, log: (l) => process.stderr.write(`${l}\n`) })
+  const ai = require('./ai/index.cjs').createAi({ getSettings, keys: aiKeys, local: llama, usage: require('./ai/usage.cjs').createUsage({ file: path.join(platform.paths.userData, 'ai-usage.json') }) })
   const transcripts = require('./ai/transcripts.cjs').createTranscripts({ dir: path.join(platform.paths.userData, 'transcripts') })
-  const core = { platform, settings, tools, engine, modules, ctx, startJob, shutdown, recipes: modules.recipes.recipes, schedule, ai, aiKeys, transcripts, makeSearchable, noteFile, isKnownFile, knownFiles, chats: require('./ai/chats.cjs').createChats({ dir: path.join(platform.paths.userData, 'chats') }) }
+  const core = { platform, settings, tools, engine, modules, ctx, startJob, shutdown, recipes: modules.recipes.recipes, schedule, ai, aiKeys, llama, transcripts, makeSearchable, noteFile, isKnownFile, knownFiles, chats: require('./ai/chats.cjs').createChats({ dir: path.join(platform.paths.userData, 'chats') }) }
   // Not started here: the shell calls `core.plugins.init()` once it is ready (after its windows and dialogs exist).
   plugins = core.plugins = require('./plugins.cjs').createPluginHost({
     core,

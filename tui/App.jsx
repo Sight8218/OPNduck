@@ -8,6 +8,7 @@ import Library from './screens/Library.jsx'
 import Settings from './screens/Settings.jsx'
 import Setup from './screens/Setup.jsx'
 import Recipes from './screens/Recipes.jsx'
+import Chat from './screens/Chat.jsx'
 import { makeTheme } from './theme.js'
 import { useCoreEvents } from './hooks.js'
 
@@ -15,6 +16,7 @@ const SCREENS = [
   { id: 'home', label: 'Tools' },
   { id: 'queue', label: 'Queue' },
   { id: 'recipes', label: 'Recipes' },
+  { id: 'chat', label: 'Ask' },
   { id: 'library', label: 'Library' },
   { id: 'settings', label: 'Settings' },
   { id: 'setup', label: 'Setup' },
@@ -23,6 +25,7 @@ const SCREENS = [
 const KEYS = {
   home: '↑↓ move   enter open   tab queue   q quit',
   recipes: '↑↓ move   enter run on a link or file   d remove   tab next   q quit',
+  chat: 'type, enter sends   y run what it suggests   n drop it   esc stops   ctrl+t next screen',
   library: '↑↓ move  o folder  r again  d remove  x clear history  tab next  q quit',
   settings: '↑↓ move   ←→ change   enter edit (proxy)   tab next   q quit',
   setup: '↑↓ move   space tick   i install ticked   r recheck   tab next   q quit',
@@ -54,8 +57,9 @@ export default function App({ core, theme: initialTheme, start = 'home' }) {
   }
   useInput((input, key) => {
     if (key.ctrl && input === 'c') return quit()
-    if (typing) return // a text field is focused: keys belong to the form
-    if (key.tab) {
+    // Ctrl+T moves on even while a text field has the keys (Tab belongs to path completion there).
+    if (typing && !(key.ctrl && input === 't')) return
+    if (key.tab || (key.ctrl && input === 't')) {
       setScreen((s) => SCREENS[(SCREENS.findIndex((x) => x.id === s) + 1) % SCREENS.length].id)
       return
     }
@@ -90,6 +94,8 @@ export default function App({ core, theme: initialTheme, start = 'home' }) {
           />
         ) : screen === 'recipes' ? (
           <Recipes theme={theme} core={core} onTyping={onTyping} onStarted={(msg) => (setNote(msg), setScreen('queue'))} />
+        ) : screen === 'chat' ? (
+          <Chat theme={theme} core={core} onTyping={onTyping} />
         ) : screen === 'library' ? (
           <Library theme={theme} core={core} />
         ) : screen === 'settings' ? (

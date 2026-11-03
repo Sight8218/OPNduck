@@ -7,6 +7,7 @@ without one. OPNduck does not train or ship its own model: it uses one you alrea
 
 | Choice | What leaves your computer |
 | --- | --- |
+| OPNduck's own model (download in Settings > AI, about 3 GB) | Nothing |
 | Ollama or LM Studio on this computer | Nothing |
 | Another computer (an OpenAI-compatible address, for example over Tailscale) | Your messages, to that computer |
 | A cloud API (Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, OpenRouter, Groq, or a custom address) | Your messages, and whatever the feature needs (a transcript, a few frames, file names), to that provider |
@@ -40,5 +41,4 @@ thinking: lower Effort in Settings > AI, or set Thinking to Never.
 
 ## Not built yet
 
-The bundled model download (a small model with llama.cpp), Load/Eject and idle eject, token usage and cost display, the
-terminal Chat screen, hosting the model on an OPNduck Server, cleaning download file names, and the AI thumbnail picker.
+Hosting the model on an OPNduck Server, cleaning download file names, and the AI thumbnail picker.

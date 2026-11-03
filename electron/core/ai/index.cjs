@@ -68,15 +68,18 @@ function addressOk(url, { allowPlain = false } = {}) {
  * @param {object} deps
  * @param {() => object} deps.getSettings
  * @param {{ get(id: string): string|null }} deps.keys  the API keys, by provider id (`machine` is the other computer's token)
+ * @param {object} [deps.usage]  token counter (ai/usage.cjs); cloud use stops at the monthly limit in the settings
+ * @param {object} [deps.local]  the bundled model manager (ai/llama.cjs); without it the `local` provider is unavailable
  * @param {typeof fetch} [deps.fetchFn]
  */
-function createAi({ getSettings, keys, fetchFn = fetch }) {
+function createAi({ getSettings, keys, local = null, usage = null, fetchFn = fetch }) {
   const cfg = () => getSettings().ai
 
   /** The provider the settings point at, or throws a readable message. */
   function provider() {
     const s = cfg()
     if (s.provider === 'off') throw new Error('AI is turned off. Choose a model in Settings > AI.')
+    if (s.provider === 'local') throw new Error('The local model is started on demand')
     if (LOCAL[s.provider]) return createOpenAiProvider({ baseUrl: LOCAL[s.provider].baseUrl, fetchFn })
     if (s.provider === 'machine') {
       if (!s.machineUrl) throw new Error('Enter the address of the other computer in Settings > AI.')
@@ -104,20 +107,53 @@ function createAi({ getSettings, keys, fetchFn = fetch }) {
     return { temperature: s.temperature, reasoning, effort: s.effort, maxTokens: EFFORT[s.effort].maxTokens, ...overrides }
   }
 
-  async function* chat(opts) {
+  async function* rawChat(opts) {
     const s = cfg()
-    const model = opts.model ?? s.model
+    const model = opts.model ?? (s.provider === 'local' ? s.localModel : s.model)
     if (!model) throw new Error('Choose a model in Settings > AI first.')
     const o = options(opts)
     const messages = s.vision ? opts.messages : opts.messages.map(({ images: _drop, ...m }) => m) // Vision off: images are never sent
+    if (s.provider === 'local') {
+      if (!local) throw new Error('The local model is not available in this app.')
+      // OPNduck's own model: started the first time it is needed, and ejected again when idle.
+      const baseUrl = await local.ensureLoaded()
+      const meta = local.modelMeta(s.localModel)
+      yield* createOpenAiProvider({ baseUrl, fetchFn }).chat({ ...o, model: s.localModel, messages, tools: opts.tools, jsonSchema: opts.jsonSchema, signal: opts.signal, extra: o.reasoning === 'off' ? meta?.noThink : undefined })
+      local.touch()
+      return
+    }
     yield* provider().chat({ ...o, model, messages, tools: opts.tools, jsonSchema: opts.jsonSchema, signal: opts.signal })
   }
 
-  const models = () => provider().models()
+  /** The id usage is counted under: the cloud provider's name, or the kind of local provider. */
+  const usageId = () => (cfg().provider === 'cloud' ? cfg().cloud : cfg().provider)
+
+  /** An answer from the chosen model. Counts the tokens, and refuses a cloud provider once this month's limit is reached. */
+  async function* chat(opts) {
+    const s = cfg()
+    if (s.provider === 'cloud' && usage && s.monthlyTokenLimit > 0 && usage.tokens(s.cloud) >= s.monthlyTokenLimit) {
+      throw new Error(`The monthly limit of ${s.monthlyTokenLimit.toLocaleString('en')} tokens for ${CLOUD[s.cloud]?.label ?? s.cloud} is reached. Raise it in Settings > AI, or wait for next month.`)
+    }
+    for await (const ev of rawChat(opts)) {
+      if (ev.type === 'done' && ev.usage && usage) usage.record(usageId(), ev.usage)
+      yield ev
+    }
+  }
+
+  const models = async () => {
+    if (cfg().provider === 'local') return Object.entries(local?.status().catalog ?? {}).map(([id, m]) => ({ id, name: m.label, vision: m.vision }))
+    return provider().models()
+  }
 
   /** Is the chosen provider reachable and does it list models? Never throws. */
   async function test() {
     try {
+      if (cfg().provider === 'local') {
+        const st = local?.status()
+        if (!st?.runtime) throw new Error('The AI engine is not installed yet.')
+        if (!st.models[cfg().localModel]) throw new Error('The model is not downloaded yet.')
+        return { ok: true, models: await models() }
+      }
       const list = await models()
       return { ok: true, models: list }
     } catch (err) {
@@ -184,7 +220,7 @@ function createAi({ getSettings, keys, fetchFn = fetch }) {
     return { message: history[history.length - 1], proposals, usage }
   }
 
-  return { provider, chat, models, test, detect, agent, options, status: () => ({ provider: cfg().provider, model: cfg().model }), CLOUD, LOCAL }
+  return { provider, chat, models, usage: () => usage?.month() ?? {}, test, detect, agent, options, status: () => ({ provider: cfg().provider, model: cfg().model }), CLOUD, LOCAL }
 }
 
 module.exports = { createAi, addressOk, CLOUD, LOCAL, EFFORT }

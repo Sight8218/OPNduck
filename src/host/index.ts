@@ -482,7 +482,7 @@ export interface BeatAnalysis {
 
 /** Settings > AI. Off until a provider is chosen. */
 export interface AiSettings {
-  provider: 'off' | 'ollama' | 'lmstudio' | 'machine' | 'cloud'
+  provider: 'off' | 'local' | 'ollama' | 'lmstudio' | 'machine' | 'cloud'
   model: string
   machineUrl: string
   cloud: string
@@ -492,12 +492,33 @@ export interface AiSettings {
   vision: boolean
   temperature: number
   keepChats: boolean
+  localModel: string
+  context: 4096 | 8192 | 16384 | 32768
+  gpu: 'auto' | 'cpu'
+  startOnLaunch: boolean
+  monthlyTokenLimit: number
+  idleEject: 0 | 5 | 15 | 30 | 60
+  dir: string
 }
 export interface AiModel {
   id: string
   name?: string
   vision?: boolean
 }
+/** OPNduck's own local model: what is installed and what the server is doing. */
+export interface LocalAiStatus {
+  state: 'unloaded' | 'loading' | 'ready' | 'error'
+  error: string
+  model: string | null
+  installing: { what: string; done: number; total: number } | null
+  /** The AI engine (llama.cpp) is downloaded. */
+  runtime: boolean
+  /** Which models are fully downloaded. */
+  models: Record<string, boolean>
+  dir: string
+  catalog: Record<string, { label: string; vision: boolean; sizeMB: number }>
+}
+
 export interface AiProposal {
   tool: string
   args: Record<string, unknown>
@@ -923,8 +944,21 @@ export interface Host {
   ai: {
     state(): Promise<AiState>
     test(): Promise<{ ok: true; models: AiModel[] } | { ok: false; error: string }>
+    /** Tokens used this month per provider (kept on this computer). */
+    usage(): Promise<Record<string, { input: number; output: number; answers: number }>>
     setKey(provider: string, key: string): Promise<boolean>
     removeKey(provider: string): Promise<boolean>
+    /** OPNduck's own model: download the engine and a model, load it into memory, eject it again. */
+    local: {
+      status(): Promise<LocalAiStatus>
+      installRuntime(): Promise<boolean>
+      installModel(id: string): Promise<boolean>
+      cancel(): Promise<boolean>
+      load(): Promise<boolean>
+      eject(): Promise<boolean>
+      remove(id: string): Promise<boolean>
+      onChange(listener: (s: LocalAiStatus) => void): () => void
+    }
     /** Asks the assistant. Progress arrives through onEvent (same requestId); this resolves with the answer and any proposed jobs. */
     send(req: { requestId: string; messages: Pick<ChatMessage, 'role' | 'content' | 'images'>[] }): Promise<AiAnswer>
     abort(requestId: string): Promise<boolean>
@@ -1460,8 +1494,19 @@ const browserHost: Host = {
   ai: {
     state: async () => ({ keys: [], encrypted: false, cloud: {}, detected: {} }),
     test: async () => ({ ok: false, error: 'Desktop app required' }),
+    usage: async () => ({}),
     setKey: async () => false,
     removeKey: async () => false,
+    local: {
+      status: async () => ({ state: 'unloaded', error: '', model: null, installing: null, runtime: false, models: {}, dir: '', catalog: {} }),
+      installRuntime: async () => false,
+      installModel: async () => false,
+      cancel: async () => false,
+      load: async () => false,
+      eject: async () => false,
+      remove: async () => false,
+      onChange: () => () => {},
+    },
     send: async () => {
       throw new Error('Desktop app required')
     },

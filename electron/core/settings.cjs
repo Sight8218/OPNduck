@@ -62,7 +62,7 @@ const DEFAULTS = {
   },
   /** The AI runtime (see core/ai/): which model answers and how. Off until a provider is chosen. */
   ai: {
-    provider: 'off', // 'off' | 'ollama' | 'lmstudio' | 'machine' (another computer) | 'cloud' (the person's own API key)
+    provider: 'off', // 'off' | 'local' (OPNduck's own model) | 'ollama' | 'lmstudio' | 'machine' (another computer) | 'cloud' (the person's own API key)
     model: '',
     machineUrl: '', // the other computer's OpenAI-compatible address
     cloud: 'anthropic',
@@ -72,6 +72,13 @@ const DEFAULTS = {
     vision: false, // send images to the model
     temperature: 0.7,
     keepChats: true,
+    localModel: 'ministral-3-3b', // for the 'local' provider
+    context: 8192,
+    gpu: 'auto', // 'auto' (all layers on the GPU) | 'cpu'
+    startOnLaunch: false,
+    idleEject: 15, // minutes without a question before the local model is ejected; 0 = never
+    monthlyTokenLimit: 0, // cloud providers: stop at this many tokens a month; 0 = no limit
+    dir: '', // where the local engine and models are kept; '' = the app's data folder
   },
   maxDownloads: 3,
   maxConversions: 2,
@@ -146,11 +153,18 @@ function validate(next) {
   if (w.enabled && !w.path) throw new Error('Choose a folder to watch first')
   const ai = next.ai
   if (!ai || typeof ai !== 'object') throw new Error('Invalid AI setting')
-  if (!['off', 'ollama', 'lmstudio', 'machine', 'cloud'].includes(ai.provider)) throw new Error('Invalid AI provider')
+  if (!['off', 'local', 'ollama', 'lmstudio', 'machine', 'cloud'].includes(ai.provider)) throw new Error('Invalid AI provider')
   if (!['low', 'medium', 'high'].includes(ai.effort)) throw new Error('Effort must be low, medium or high')
   if (!['auto', 'on', 'off'].includes(ai.reasoning)) throw new Error('Reasoning must be auto, on or off')
   if (typeof ai.vision !== 'boolean' || typeof ai.keepChats !== 'boolean') throw new Error('Invalid AI setting')
   if (!Number.isFinite(ai.temperature) || ai.temperature < 0 || ai.temperature > 1.5) throw new Error('Temperature must be 0 to 1.5')
+  if (!['ministral-3-3b', 'qwen3-1.7b'].includes(ai.localModel)) throw new Error('Unknown local model')
+  if (![4096, 8192, 16384, 32768].includes(ai.context)) throw new Error('Context must be 4096, 8192, 16384 or 32768')
+  if (!['auto', 'cpu'].includes(ai.gpu)) throw new Error('GPU must be auto or cpu')
+  if (!Number.isInteger(ai.monthlyTokenLimit) || ai.monthlyTokenLimit < 0 || ai.monthlyTokenLimit > 1e9) throw new Error('The monthly limit must be 0 (none) or a number of tokens')
+  if (typeof ai.startOnLaunch !== 'boolean') throw new Error('Invalid AI setting')
+  if (![0, 5, 15, 30, 60].includes(ai.idleEject)) throw new Error('Idle eject must be 0, 5, 15, 30 or 60 minutes')
+  if (typeof ai.dir !== 'string' || (ai.dir !== '' && !path.isAbsolute(ai.dir))) throw new Error('The AI folder must be an absolute path')
   for (const k of ['model', 'machineUrl', 'customUrl', 'cloud']) if (typeof ai[k] !== 'string' || ai[k].length > 300) throw new Error(`Invalid AI ${k}`)
   for (const k of ['machineUrl', 'customUrl']) if (ai[k] && !/^https?:\/\/[^\s]+$/.test(ai[k])) throw new Error('Addresses start with https:// (or http:// on this computer or Tailscale)')
   const sc = next.schedule

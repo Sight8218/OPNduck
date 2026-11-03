@@ -396,3 +396,36 @@ test('macOS: the folders Homebrew and the app add to PATH are put in front, once
   assert.deepEqual(added, ['/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin', '/Users/a/.local/bin', '/Users/a/Applications/OPNduck-tools'])
   assert.deepEqual(extraToolDirs('/opt/homebrew/bin:/usr/local/bin:/usr/bin', 'darwin', '/Users/a'), ['/opt/homebrew/sbin', '/Users/a/.local/bin', '/Users/a/Applications/OPNduck-tools'], 'folders already there are not added again')
 })
+
+test('token use is counted per provider and month, survives a restart, and a cloud provider stops at its monthly limit', async () => {
+  const { createUsage } = require('../electron/core/ai/usage.cjs')
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'use-')), 'u.json')
+  let date = new Date(2026, 10, 3)
+  const u = createUsage({ file, now: () => date })
+  u.record('anthropic', { input: 100, output: 50 })
+  u.record('anthropic', { input: 10, output: 5 })
+  u.record('ollama', { input: 1, output: 1 })
+  assert.deepEqual(u.month().anthropic, { input: 110, output: 55, answers: 2 })
+  assert.equal(u.tokens('anthropic'), 165)
+  assert.equal(createUsage({ file, now: () => date }).tokens('anthropic'), 165, 'kept on disk')
+  date = new Date(2026, 11, 1)
+  assert.equal(u.tokens('anthropic'), 0, 'a new month starts at zero')
+  assert.equal(fs.statSync(file).mode & 0o777, 0o600)
+  date = new Date(2026, 10, 3)
+  const s = await server(() => ({ events: [[null, { choices: [{ delta: { content: 'ok' } }] }], [null, { choices: [], usage: { prompt_tokens: 40, completion_tokens: 60 } }], [null, '[DONE]']] }))
+  try {
+    const settings = { ai: { provider: 'cloud', cloud: 'custom', customUrl: `${s.url}/v1`, model: 'm', effort: 'medium', reasoning: 'auto', vision: false, temperature: 0.7, monthlyTokenLimit: 150 } }
+    const ai = createAi({ getSettings: () => settings, keys: { get: () => 'sk-12345678' }, usage: u, fetchFn: (url, o) => fetch(url.replace('https://', 'http://'), o) })
+    await collect(ai.chat({ messages: [{ role: 'user', content: 'hi' }] }))
+    assert.equal(u.tokens('custom'), 100)
+    await collect(ai.chat({ messages: [{ role: 'user', content: 'hi' }] }))
+    assert.equal(u.tokens('custom'), 200)
+    await assert.rejects(collect(ai.chat({ messages: [{ role: 'user', content: 'hi' }] })), /monthly limit of 150 tokens/)
+    assert.equal(s.seen.length, 2, 'the third question never left the computer')
+    settings.ai.monthlyTokenLimit = 0
+    await collect(ai.chat({ messages: [{ role: 'user', content: 'hi' }] }))
+    assert.equal(ai.usage().custom.answers, 3)
+  } finally {
+    await s.close()
+  }
+})
