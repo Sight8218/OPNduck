@@ -354,6 +354,21 @@ ipcMain.handle('ai:removeKey', (_e, id) => {
   core.aiKeys.remove(String(id))
   return true
 })
+ipcMain.handle('grade:looks', () => modules.grade.listLooks())
+ipcMain.handle('grade:auto', (_e, p) => modules.grade.autoGrade(String(p)))
+ipcMain.handle('grade:preview', (_e, req) => modules.grade.previewGrade(req))
+ipcMain.handle('grade:match', (_e, input, reference) => modules.grade.matchLook(String(input), String(reference)))
+ipcMain.handle('grade:importLut', (_e, file) => modules.grade.importLut(String(file)))
+ipcMain.handle('grade:aiLook', async (_e, req) => {
+  if (getSettings().ai.provider === 'off') throw new Error('Turn on the assistant in Settings > AI first.')
+  const prompt = String(req?.prompt ?? '').trim()
+  let frames = []
+  if (getSettings().ai.vision && req?.inputPath) {
+    const pv = await modules.grade.previewGrade({ inputPath: String(req.inputPath), values: {}, width: 512, time: undefined })
+    frames = [pv.before].filter(Boolean)
+  } else if (!prompt) throw new Error('Describe the look you want, or turn on "Let the model see pictures" in Settings > AI.')
+  return require('./core/ai/looks.cjs').pickLook(core.ai, { frames, prompt })
+})
 ipcMain.handle('beats:result', (_e, id) => modules.beats.beatsResult(String(id)))
 ipcMain.handle('restore:preview', (_e, req) => modules.restore.previewRestore(req))
 ipcMain.handle('jumpcut:analyze', (_e, req) => modules.jumpcut.analyzeJumpCut(req))

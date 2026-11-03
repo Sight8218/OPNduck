@@ -30,6 +30,7 @@ import GifCard from './gif/GifCard'
 import JumpCutCard from './jumpcut/JumpCutCard'
 import RestoreCard from './restore/RestoreCard'
 import BeatFinderCard from './beats/BeatFinderCard'
+import GradeCard from './grade/GradeCard'
 import TaggerCard from './tagger/TaggerCard'
 import TrimCard from './trim/TrimCard'
 
@@ -149,6 +150,17 @@ export function registerCoreFeatures(): void {
       icon: 'tag',
       enabled: true,
       render: TaggerCard,
+      source: 'core',
+    },
+    {
+      id: 'grade',
+      title: 'Colour Grade',
+      tagline: 'Auto fix · looks · sliders',
+      description: 'Fix washed-out or tinted footage by itself, apply a look, match another picture, or grade by hand with a live before and after.',
+      scope: 'desktop-exclusive',
+      icon: 'grade',
+      enabled: true,
+      render: GradeCard,
       source: 'core',
     },
     {

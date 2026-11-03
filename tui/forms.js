@@ -17,6 +17,7 @@ const MCP_NAME = {
   jumpcut: 'jump_cut',
   restore: 'restore',
   beats: 'beat_analyze',
+  grade: 'grade',
   tagger: 'tag_music',
 }
 
@@ -44,6 +45,14 @@ const LABELS = {
   fps: 'Frames per second',
   loop: 'Loop forever',
   writeTags: 'Write BPM and key tags',
+  auto: 'Fix automatically',
+  look: 'Look (id)',
+  intensity: 'Look strength (0-1)',
+  exposure: 'Exposure (stops)',
+  contrast: 'Contrast',
+  saturation: 'Saturation',
+  temperature: 'Warmth (-1 to 1)',
+  tint: 'Magenta (+) or green (-)',
   cut: 'Cut the silences',
   deinterlace: 'Deinterlace',
   denoise: 'Remove noise',

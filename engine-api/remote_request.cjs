@@ -24,7 +24,7 @@
 const { TOOLS, DEFAULTS, buildStartRequest } = require('../electron/mcp_tools.cjs')
 
 /** Tools that work on one uploaded file. The file is named by an upload id, never by a path. */
-const FILE_KINDS = ['convert', 'upscale_image', 'upscale_video', 'interpolate', 'subtitles', 'trim', 'compress', 'make_gif', 'jump_cut', 'restore', 'beat_analyze', 'audio_ai']
+const FILE_KINDS = ['convert', 'upscale_image', 'upscale_video', 'interpolate', 'subtitles', 'trim', 'compress', 'make_gif', 'jump_cut', 'restore', 'grade', 'beat_analyze', 'audio_ai']
 
 /** Job kinds a remote device can start, and the start channel each one uses. */
 const KINDS = { download: 'tasks:start', ...Object.fromEntries(FILE_KINDS.map((k) => [k, TOOLS.find((t) => t.name === k).channel])) }

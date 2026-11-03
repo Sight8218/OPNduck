@@ -87,6 +87,7 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
   add('analyze', require('./analyze.cjs').createAnalyze)
   add('gif', require('./gif.cjs').createGif)
   add('jumpcut', require('./jumpcut.cjs').createJumpCut)
+  add('grade', require('./grade.cjs').createGrade)
   add('beats', require('./beats.cjs').createBeats)
   add('restore', require('./restore.cjs').createRestore) // chains into the recipe runner, which is added last
   add('compress', require('./compress.cjs').createCompress) // after gpu: it uses the NVENC check from there

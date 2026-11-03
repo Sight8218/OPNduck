@@ -35,6 +35,7 @@ const KIND_LABELS: Record<string, string> = {
   jump_cut: 'Jump cuts',
   restore: 'Restore old video',
   beat_analyze: 'Beat Finder',
+  grade: 'Colour grading',
   audio_ai: 'Vocal remover',
 }
 const clean = (e: unknown) => (e instanceof Error ? e.message : String(e)).replace(/^Error invoking remote method '[^']*': (Error: )?/, '')

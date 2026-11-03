@@ -43,6 +43,7 @@ import type {
   BeatAnalyzeRequest,
   BeatCutRequest,
   BeatAnalysis,
+  GradeRequest,
   RestorePreview,
   JumpCutAnalysis,
   TagLookup,
@@ -109,6 +110,7 @@ interface ElectronBridge {
     run(id: string, input: string, opts?: { destination?: string; keepIntermediate?: boolean }): Promise<RecipeRun>
     resume(runId: string): Promise<RecipeRun>
   }
+  grade: Host['grade']
   beatsResult(taskId: string): Promise<BeatAnalysis | null>
   previewRestore(req: Pick<RestoreRequest, 'inputPath' | 'deinterlace' | 'denoise' | 'fixColors'> & { time?: number; width?: number }): Promise<RestorePreview>
   analyzeJumpCut(req: Pick<JumpCutRequest, 'inputPath' | 'thresholdDb' | 'minSilence' | 'padding'>): Promise<JumpCutAnalysis>
@@ -181,6 +183,7 @@ interface ElectronBridge {
     startGif(req: GifRequest): Promise<string>
     startJumpCut(req: JumpCutRequest): Promise<string>
     startRestore(req: RestoreRequest): Promise<string>
+    startGrade(req: GradeRequest): Promise<string>
     startBeatAnalyze(req: BeatAnalyzeRequest): Promise<string>
     startBeatCut(req: BeatCutRequest): Promise<string>
     cancel(taskId: string): void
@@ -258,6 +261,7 @@ export function detectElectronHost(): Host | null {
     schedule: bridge.schedule,
     ai: bridge.ai,
     recipes: bridge.recipes,
+    grade: bridge.grade,
     beatsResult: (id) => bridge.beatsResult(id),
     previewRestore: (req) => bridge.previewRestore(req),
     analyzeJumpCut: (req) => bridge.analyzeJumpCut(req),
@@ -332,6 +336,7 @@ export function detectElectronHost(): Host | null {
       startGif: (req) => bridge.tasks.startGif(withRunOn('make_gif', req)),
       startJumpCut: (req) => bridge.tasks.startJumpCut(withRunOn('jump_cut', req)),
       startRestore: (req) => bridge.tasks.startRestore(withRunOn('restore', req)),
+      startGrade: (req) => bridge.tasks.startGrade(withRunOn('grade', req)),
       startBeatAnalyze: (req) => bridge.tasks.startBeatAnalyze(withRunOn('beat_analyze', req)),
       startBeatCut: (req) => bridge.tasks.startBeatCut(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),

@@ -204,6 +204,27 @@ const TOOLS = [
     },
   },
   {
+    name: 'grade',
+    description: 'Colour grade a video: automatic fixes measured from the picture (levels, brightness, colour cast), a look (warm_film, teal_orange, bleach_bypass, bw_rich, vintage_fade, cool_night, or the id of an imported or matched look), and sliders. HDR video is tone-mapped to SDR first. Returns a job id.',
+    channel: 'tasks:startGrade',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        inputPath: FILE,
+        auto: { type: 'boolean', description: 'Measure the video and fix levels, exposure and colour cast by rules. Default false.' },
+        look: { type: 'string', description: 'A look id, or leave out for none.' },
+        intensity: { type: 'number', minimum: 0, maximum: 1, description: 'How strongly the look applies, 0 to 1. Default 1.' },
+        exposure: { type: 'number', minimum: -2, maximum: 2, description: 'Stops brighter (positive) or darker. Default 0.' },
+        contrast: { type: 'number', minimum: 0.5, maximum: 1.6, description: 'Default 1.' },
+        saturation: { type: 'number', minimum: 0, maximum: 2, description: 'Default 1.' },
+        temperature: { type: 'number', minimum: -1, maximum: 1, description: 'Warmer (positive) or cooler. Default 0.' },
+        tint: { type: 'number', minimum: -1, maximum: 1, description: 'More magenta (positive) or more green. Default 0.' },
+      },
+      required: ['inputPath'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'beat_analyze',
     description: 'Find the tempo (BPM), beat times and musical key of a song. Optionally writes the BPM and key into a tagged copy (MP3, FLAC, Ogg, Opus). Needs the Beat Finder install (librosa). Returns a job id; the BPM and key show in the job status.',
     channel: 'tasks:startBeatAnalyze',
@@ -363,6 +384,7 @@ const STEP_TYPES = {
   trim: { accepts: ['video', 'audio'], produces: same },
   compress: { accepts: ['video', 'audio'], produces: same },
   make_gif: { accepts: ['video'], produces: 'image' },
+  grade: { accepts: ['video'], produces: 'video' },
   beat_analyze: { accepts: ['audio'], produces: 'audio' },
   beat_cut: { accepts: [], produces: 'video' }, // takes a song and a list of clips: a job of its own, never a recipe step
   restore: { accepts: ['video'], produces: 'video' },
@@ -394,6 +416,7 @@ const DEFAULTS = {
   trim: { end: null, mode: 'fast' },
   compress: { quality: 'fast' },
   make_gif: { preset: 'gif', start: 0, end: null, loop: true },
+  grade: { auto: false },
   beat_analyze: { writeTags: false },
   beat_cut: { everyBeats: 4, shuffle: false, skipSeconds: 0 },
   restore: { deinterlace: 'auto', denoise: 'off', stabilize: false, fixColors: false },

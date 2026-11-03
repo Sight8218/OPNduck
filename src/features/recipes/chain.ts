@@ -36,6 +36,7 @@ export function producesFor(tool: string, args: Record<string, unknown>, input: 
     case 'upscale_video':
     case 'interpolate':
     case 'restore':
+    case 'grade':
       return 'video'
     case 'subtitles':
       return 'subtitle'
@@ -68,6 +69,7 @@ export const TITLES: Record<string, string> = {
   make_gif: 'GIF or sticker',
   jump_cut: 'Jump cut and normalize',
   restore: 'Restore old video',
+  grade: 'Colour grade',
   tag_music: 'Tag music',
   audio_ai: 'AI audio',
 }

@@ -541,6 +541,42 @@ export interface AiState {
   detected: Record<string, { running: boolean; models: AiModel[] }>
 }
 
+export interface GradeValues {
+  exposure: number
+  contrast: number
+  saturation: number
+  temperature: number
+  tint: number
+  blackPoint: number
+  whitePoint: number
+}
+export interface GradeRequest {
+  batch?: BatchInfo
+  inputPath: string
+  /** Measure the video and fix levels, exposure and colour cast by rules first. */
+  auto?: boolean
+  /** A look id from `grade.looks()`, or a matched look. */
+  look?: string
+  intensity?: number
+  values?: Partial<GradeValues>
+  destination?: string
+}
+export interface GradeLook {
+  id: string
+  label: string
+  own?: boolean
+}
+export interface AiLook {
+  look: string
+  intensity: number
+  temperature: number
+  tint: number
+  exposure: number
+  contrast: number
+  saturation: number
+  why: string
+}
+
 export type DenoiseLevel = 'off' | 'light' | 'medium' | 'strong'
 
 export interface RestoreRequest {
@@ -644,7 +680,7 @@ export interface SubtitlesRequest {
   destination?: string
 }
 
-export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress' | 'tag' | 'gif' | 'jumpcut' | 'restore' | 'beats' | 'beatcut'
+export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress' | 'tag' | 'gif' | 'jumpcut' | 'restore' | 'beats' | 'beatcut' | 'grade'
 export type TaskStatus = 'queued' | 'running' | 'done' | 'error' | 'canceled'
 
 export interface TaskState {
@@ -734,6 +770,7 @@ export interface HostTasks {
   startGif(req: GifRequest): Promise<string>
   startJumpCut(req: JumpCutRequest): Promise<string>
   startRestore(req: RestoreRequest): Promise<string>
+  startGrade(req: GradeRequest): Promise<string>
   startBeatAnalyze(req: BeatAnalyzeRequest): Promise<string>
   startBeatCut(req: BeatCutRequest): Promise<string>
   cancel(taskId: string): void
@@ -932,6 +969,19 @@ export interface Host {
     duplicate(id: string): Promise<Recipe>
     run(id: string, input: string, opts?: { destination?: string; keepIntermediate?: boolean }): Promise<RecipeRun>
     resume(runId: string): Promise<RecipeRun>
+  }
+  /** Colour grading helpers for the Colour Grade card (none of them starts a job). Desktop only. */
+  grade: {
+    looks(): Promise<GradeLook[]>
+    /** The slider values rules would set for this file, and why. */
+    auto(inputPath: string): Promise<{ values: GradeValues; why: { setting: string; because: string }[] }>
+    /** One frame before and after, as data URLs. */
+    preview(req: { inputPath: string; values?: Partial<GradeValues>; look?: string; intensity?: number; time?: number; width?: number }): Promise<{ before: string | null; after: string | null }>
+    /** Makes a look from a reference picture or video that gives this file its colours. Returns the look id. */
+    match(inputPath: string, referencePath: string): Promise<string>
+    importLut(file: string): Promise<string>
+    /** Asks the assistant for a look from the first frame and/or a description. */
+    aiLook(req: { inputPath?: string; prompt?: string }): Promise<AiLook>
   }
   /** The full analysis of a finished Beat Finder job (null for a job that is not one, or was lost on restart). */
   beatsResult(taskId: string): Promise<BeatAnalysis | null>
@@ -1227,6 +1277,9 @@ const browserTasks: HostTasks = {
     browserListeners.forEach((l) => l(browserTaskList))
     return id
   },
+  startGrade: async () => {
+    throw new Error('Desktop app required')
+  },
   startBeatAnalyze: async () => {
     throw new Error('Desktop app required')
   },
@@ -1424,6 +1477,22 @@ const browserHost: Host = {
       throw new Error('Desktop app required')
     },
     resume: async () => {
+      throw new Error('Desktop app required')
+    },
+  },
+  grade: {
+    looks: async () => [],
+    auto: async () => {
+      throw new Error('Desktop app required')
+    },
+    preview: async () => ({ before: null, after: null }),
+    match: async () => {
+      throw new Error('Desktop app required')
+    },
+    importLut: async () => {
+      throw new Error('Desktop app required')
+    },
+    aiLook: async () => {
       throw new Error('Desktop app required')
     },
   },

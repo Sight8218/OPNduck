@@ -31,6 +31,7 @@ export const FEATURE_KIND: Record<string, string> = {
   jumpcut: 'jump_cut',
   restore: 'restore',
   beats: 'beat_analyze',
+  grade: 'grade',
 }
 
 const key = (kind: string) => `opnduck:runOn:${kind}`

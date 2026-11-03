@@ -31,7 +31,7 @@ const INPUT_TYPES = ['url', 'video', 'audio', 'image']
 const MAX_STEPS = 12
 const MAX_RECIPES = 200
 /** The `kind` shown in the Library for each tool (a skipped step is listed under it). */
-const TOOL_KIND = { download: 'download', convert: 'convert', upscale_image: 'upscale', upscale_video: 'upscale', interpolate: 'interpolate', subtitles: 'subtitles', trim: 'trim', compress: 'compress', make_gif: 'gif', jump_cut: 'jumpcut', restore: 'restore', beat_analyze: 'beats', tag_music: 'tag', audio_ai: 'audio-ai' }
+const TOOL_KIND = { download: 'download', convert: 'convert', upscale_image: 'upscale', upscale_video: 'upscale', interpolate: 'interpolate', subtitles: 'subtitles', trim: 'trim', compress: 'compress', make_gif: 'gif', jump_cut: 'jumpcut', restore: 'restore', beat_analyze: 'beats', grade: 'grade', tag_music: 'tag', audio_ai: 'audio-ai' }
 /** Starting values for required settings that have no default of their own, so a new step is valid straight away. */
 const START_VALUES = { compress: { targetMB: 20 }, trim: { start: 0 }, convert: { container: 'MP4' }, subtitles: {} }
 const RESERVED_ARGS = ['inputPath', 'url', 'destination', 'batch', 'tags', 'hint']
