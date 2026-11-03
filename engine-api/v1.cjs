@@ -66,6 +66,9 @@ function limiter(max, now) {
  * @param {() => object} [deps.info]  extra capabilities for /info (gpus, free disk, tool checks)
  * @param {(line: string) => void} [deps.log]
  */
+/** The model's state for another device: never this computer's folders. */
+const publicAiStatus = (st) => (st?.local ? { ...st, local: { ...st.local, dir: undefined } } : st)
+
 function createV1({ engine, platform, devices, uploads = null, recipes = null, ai = null, name, version, info = () => ({}), log = () => {}, now = Date.now }) {
   const pairLimit = limiter(PAIR_PER_MIN, now)
   const authLimit = limiter(BAD_AUTH_PER_MIN, now)
@@ -325,7 +328,7 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, a
         const { channel, req: clean } = buildRemoteRequest(body.kind, body.req, (uid) => uploads?.resolve(uid, device.id) ?? null)
         const start = engine.startHandlers.get(channel)
         if (!start) return reply(501, { error: 'This engine cannot run that job' })
-        const id = await start(null, clean)
+        const id = await start(null, { ...clean, runOn: 'local' }) // a job that came from another device never bounces on to a third
         const entry = engine.tasks.get(id)
         if (entry) {
           entry.state.source = 'remote'
@@ -340,12 +343,12 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, a
       if (a === 'ai') {
         if (!ai) return reply(501, { error: 'This engine has no AI model to share' })
         const route = parts.slice(2).join('/')
-        if (m === 'GET' && route === 'status') return reply(200, ai.status())
+        if (m === 'GET' && route === 'status') return reply(200, publicAiStatus(ai.status()))
         if (m === 'GET' && route === 'models') return reply(200, { object: 'list', data: (await ai.models()).map((x) => ({ id: x.id, object: 'model', name: x.name ?? x.id })) })
         if (m === 'POST' && (route === 'load' || route === 'eject')) {
           if (route === 'load') await ai.load()
           else ai.eject()
-          return reply(200, ai.status())
+          return reply(200, publicAiStatus(ai.status()))
         }
         if (m === 'POST' && route === 'chat/completions') return aiCompletions(req, res, cors, reply, device)
         return reply(404, { error: 'Not found' })

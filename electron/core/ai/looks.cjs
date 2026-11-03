@@ -50,6 +50,7 @@ function parseLook(text) {
   } catch {
     throw new Error('The model did not answer with a look. Try again, or describe it in other words.')
   }
+  if (!j || typeof j !== 'object') throw new Error('The model did not answer with a look. Try again, or describe it in other words.')
   const out = { look: LOOK_IDS.includes(j.look) ? j.look : '', why: String(j.why ?? '').slice(0, 300) }
   for (const [k, [lo, hi]] of Object.entries(RANGES)) {
     const n = Number(j[k])

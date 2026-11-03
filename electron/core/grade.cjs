@@ -390,7 +390,7 @@ function createGrade(ctx) {
       if (!info?.hasVideo) return updateTask(id, { status: 'error', error: "Couldn't read a video in this file." })
       const hdr = await isHdr(inputPath)
       const filters = buildFilters(values, { lut, intensity, tonemap: hdr })
-      await spawnTracked('ffmpeg', ['-y', '-i', inputPath, '-vf', joinFilters(filters), '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-pix_fmt', 'yuv420p', '-c:a', 'copy', '-movflags', '+faststart', '-progress', 'pipe:1', '-nostats', outputPath], entry, {
+      await spawnTracked('ffmpeg', ['-y', '-i', inputPath, '-vf', joinFilters(filters), '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-pix_fmt', 'yuv420p', '-map', '0:v:0', '-map', '0:a?', '-sn', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-progress', 'pipe:1', '-nostats', outputPath], entry, {
         onStdout: (text) => {
           const m = [...text.matchAll(/out_time_ms=(\d+)/g)].pop()
           if (m) updateTask(id, { progress: Math.min(0.99, Number(m[1]) / 1e6 / info.duration) })

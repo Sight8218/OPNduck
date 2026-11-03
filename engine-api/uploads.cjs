@@ -103,7 +103,19 @@ function createUploads({ dir, maxBytes = 8 * 1024 ** 3, retentionMs = 48 * 3600 
    * Appends one chunk. `range` is the Content-Range header (`bytes start-end/total`), `body` a readable stream. The
    * chunk has to start exactly where the file ends, otherwise the answer says where it ends (409).
    */
+  const busy = new Set()
+  /** One chunk at a time per upload: two writers at the same offset would interleave. */
   async function append(id, deviceId, range, body) {
+    if (busy.has(id)) throw fail(409, 'Another chunk of this upload is still arriving', { offset: received(id, readMeta(id) ?? {}) })
+    busy.add(id)
+    try {
+      return await appendOne(id, deviceId, range, body)
+    } finally {
+      busy.delete(id)
+    }
+  }
+
+  async function appendOne(id, deviceId, range, body) {
     const m = readMeta(id)
     if (!m || m.deviceId !== deviceId) throw fail(404, 'No such upload')
     if (m.complete) throw fail(409, 'That upload is already complete', { offset: m.size })

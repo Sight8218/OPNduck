@@ -141,7 +141,7 @@ test('starting a job: only a cleaned download request reaches the engine, and it
     const token = await h.pairNew()
     const r = await h.call('POST', '/v1/tasks', { token, body: { kind: 'download', req: { url: 'https://example.com/v?1', format: 'MP4', videoQuality: '720', playlist: 'all', bogus: 1 } } })
     assert.equal(r.status, 202)
-    assert.deepEqual(h.engine.started[0], { url: 'https://example.com/v?1', format: 'MP4', videoQuality: '720', audioQuality: 'best', playlist: 'single' })
+    assert.deepEqual(h.engine.started[0], { url: 'https://example.com/v?1', format: 'MP4', videoQuality: '720', audioQuality: 'best', playlist: 'single', runOn: 'local' })
     assert.equal(h.engine.tasks.get(r.json.id).state.source, 'remote')
     const list = (await h.call('GET', '/v1/tasks', { token })).json.tasks
     assert.deepEqual([list.length, list[0].host], [1, 'My PC'])

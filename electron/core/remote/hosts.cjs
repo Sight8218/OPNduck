@@ -124,8 +124,9 @@ function createHosts({ engine, servers, defaultDownloadDir, uniqueOutputPath, ke
     let total = 0
     let failures = 0
     let fd = null
+    let finished = false
     try {
-      while (!total || offset < total) {
+      while (!finished && (!total || offset < total)) {
         if (run.aborted) throw new Error('canceled')
         try {
           const res = await servers.raw(serverId, 'GET', `/v1/files/${encodeURIComponent(remoteId)}`, { headers: offset ? { Range: `bytes=${offset}-` } : {}, signal: run.signal })
@@ -136,6 +137,7 @@ function createHosts({ engine, servers, defaultDownloadDir, uniqueOutputPath, ke
             out = uniqueOutputPath(destDir, path.basename(name, path.extname(name)).replace(/[\\/\0]/g, '_') || 'result', ext)
             fd = fs.openSync(out, 'w')
           }
+          if (res.status === 200) offset = 0 // the server ignored the Range and sent the whole file again
           total = offset + Number(res.headers.get('content-length') ?? 0)
           for await (const chunk of res.body) {
             fs.writeSync(fd, chunk, 0, chunk.length, offset)
@@ -143,6 +145,7 @@ function createHosts({ engine, servers, defaultDownloadDir, uniqueOutputPath, ke
             run.progress(total ? offset / total : 0)
           }
           failures = 0
+          if (!total) finished = true // no length given (or an empty file): the stream ended cleanly, so that is all of it
         } catch (err) {
           if (run.aborted) throw err
           if (++failures > 5) throw new Error(`Download failed: ${err.message}`)

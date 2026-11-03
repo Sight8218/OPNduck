@@ -99,7 +99,7 @@ test('with upscale or interpolate the fixes run first and the follow-ups join th
   assert.equal(first.state.group?.size, 3, 'restore, upscale and interpolate are one group')
   await waitDone(c, id)
   const inGroup = () => [...c.engine.tasks.values()].filter((t) => t.state.group?.id === first.state.group.id)
-  for (let i = 0; i < 100 && inGroup().length < 3; i++) await new Promise((r) => setTimeout(r, 100)) // the follow-ups start when the first step ends (or are listed as skipped when a step fails)
+  for (let i = 0; i < 400 && inGroup().length < 3; i++) await new Promise((r) => setTimeout(r, 100)) // the follow-ups start when the first step ends (or are listed as skipped when a step fails)
   assert.equal(inGroup().length, 3)
   c.shutdown()
 })

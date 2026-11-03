@@ -51,7 +51,7 @@ const backoffMs = (n, random = Math.random) => Math.round(Math.min(60000, 2000 *
  * @param {typeof fetch} [deps.fetchImpl]
  * @param {(ms: number) => Promise<void>} [deps.sleep]
  */
-function createNtfyRelay({ inbox, getConfig, lastId, onStatus, fetchImpl = (...a) => fetch(...a), sleep = (ms) => new Promise((r) => setTimeout(r, ms)), random = Math.random }) {
+function createNtfyRelay({ inbox, getConfig, lastId, onStatus, fetchImpl = (...a) => fetch(...a), sleep = (ms) => new Promise((r) => setTimeout(r, ms)), random = Math.random, idleMs = 120000 }) {
   let status = { state: 'off', error: '', server: '' }
   let run = 0 // bumps on every start/stop so an old loop knows to quit
   let abort = null
@@ -89,7 +89,14 @@ function createNtfyRelay({ inbox, getConfig, lastId, onStatus, fetchImpl = (...a
     setStatus({ state: 'connected', error: '', server })
     let buffer = ''
     const decoder = new TextDecoder()
+    // ntfy sends a keepalive about every 45 s: silence for much longer means the connection is dead, so reconnect.
+    const mine = abort
+    let watchdog = null
+    const rearm = () => (clearTimeout(watchdog), (watchdog = setTimeout(() => mine.abort(), idleMs)), watchdog.unref?.())
+    rearm()
+    try {
     for await (const chunk of res.body) {
+      rearm()
       if (myRun !== run) return
       buffer += decoder.decode(chunk, { stream: true })
       let nl
@@ -99,6 +106,9 @@ function createNtfyRelay({ inbox, getConfig, lastId, onStatus, fetchImpl = (...a
         await handleLine(line)
       }
       if (buffer.length > MAX_LINE) buffer = '' // a line that long is not ours
+    }
+    } finally {
+      clearTimeout(watchdog)
     }
   }
 

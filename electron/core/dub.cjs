@@ -46,10 +46,12 @@ function validate(req, { assertAbsolutePath, assertOneOf }) {
 
 /** The FFmpeg arguments that put the new audio into the video without touching the picture. */
 function muxArgs({ input, audio, output, placement, hasAudio, language }) {
+  // Subtitles are copied only into Matroska; MP4 and MOV take only their own text format, so they are left out there.
+  const subs = /\.mkv$/i.test(output) ? ['-map', '0:s?', '-c:s', 'copy'] : []
   const lang = ['-metadata:s:a:0', `language=${ISO3[language] ?? language}`, '-metadata:s:a:0', 'title=Dubbed']
-  if (placement === 'replace' || !hasAudio) return ['-y', '-i', input, '-i', audio, '-map', '0:v', '-map', '1:a', '-map', '0:s?', '-c:v', 'copy', '-c:s', 'copy', '-c:a', 'aac', '-b:a', '192k', ...lang, output]
+  if (placement === 'replace' || !hasAudio) return ['-y', '-i', input, '-i', audio, '-map', '0:v', '-map', '1:a', ...subs, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', ...lang, output]
   // The dub first (so players pick it), the original after it as a second track.
-  return ['-y', '-i', input, '-i', audio, '-map', '0:v', '-map', '1:a', '-map', '0:a', '-map', '0:s?', '-c:v', 'copy', '-c:s', 'copy', '-c:a', 'aac', '-b:a', '192k', ...lang, '-disposition:a:0', 'default', '-disposition:a:1', '0', output]
+  return ['-y', '-i', input, '-i', audio, '-map', '0:v', '-map', '1:a', '-map', '0:a', ...subs, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', ...lang, '-disposition:a:0', 'default', '-disposition:a:1', '0', output]
 }
 
 function createDub(ctx) {
