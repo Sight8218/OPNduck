@@ -73,7 +73,8 @@ const DEFAULTS = {
     temperature: 0.7,
     keepChats: true,
     localModel: 'ministral-3-3b', // for the 'local' provider
-    context: 8192,
+    context: 16384, // Chat sends about 5,000 tokens of tool descriptions with every question, so 8k runs out after a few turns
+    ctxChosen: false, // true once the person picked a memory size themselves
     gpu: 'auto', // 'auto' (all layers on the GPU) | 'cpu'
     startOnLaunch: false,
     idleEject: 15, // minutes without a question before the local model is ejected; 0 = never
@@ -219,6 +220,7 @@ function read() {
     /* first run, or unreadable — fall back to defaults */
   }
   const merged = { ...DEFAULTS, ...stored, cookies: { ...DEFAULTS.cookies, ...(stored.cookies || {}) }, schedule: { ...DEFAULTS.schedule, ...(stored.schedule || {}) }, ai: { ...DEFAULTS.ai, ...(stored.ai || {}) } }
+  if (merged.ai.context === 8192 && !merged.ai.ctxChosen) merged.ai.context = 16384 // the old default; not a choice
   try {
     validate(merged)
     cache = merged

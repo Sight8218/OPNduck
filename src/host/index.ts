@@ -494,6 +494,7 @@ export interface AiSettings {
   keepChats: boolean
   localModel: string
   context: 4096 | 8192 | 16384 | 32768
+  ctxChosen?: boolean
   gpu: 'auto' | 'cpu'
   startOnLaunch: boolean
   monthlyTokenLimit: number

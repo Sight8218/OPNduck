@@ -240,7 +240,7 @@ export default function ChatPage() {
       <section className="glass flex min-w-0 flex-1 flex-col rounded-3xl">
         <header className="flex items-center justify-between gap-2 border-b border-[var(--glass-border)] px-4 py-2 text-xs text-[var(--text-dim)]">
           <span className="truncate">
-            {off ? 'AI is off' : `${ai?.provider === 'cloud' ? '☁ ' : ''}${ai?.model || 'No model chosen'}`}
+            {off ? 'AI is off' : `${ai?.provider === 'cloud' ? '☁ ' : ''}${(ai?.provider === 'local' ? ai.localModel : ai?.model) || 'No model chosen'}`}
           </span>
           <Link to="/settings" className="underline">
             AI settings

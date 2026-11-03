@@ -108,6 +108,14 @@ function createAi({ getSettings, keys, local = null, usage = null, fetchFn = fet
     return { temperature: s.temperature, reasoning, effort: s.effort, maxTokens: EFFORT[s.effort].maxTokens, ...overrides }
   }
 
+  /** The tools described briefly: a small local model has a small memory, and every word of every tool is paid for on each question. */
+  function compactTools(tools) {
+    if (!Array.isArray(tools)) return tools
+    const cut = (t) => (t.length > 90 ? `${t.slice(0, 87).replace(/\s+\S*$/, '')}...` : t)
+    const walk = (o, top) => (Array.isArray(o) ? o.map((x) => walk(x, false)) : o && typeof o === 'object' ? Object.fromEntries(Object.entries(o).map(([k, v]) => [k, k === 'description' && typeof v === 'string' ? (top ? v : cut(v)) : walk(v, false)])) : o)
+    return tools.map((t) => ({ ...t, parameters: walk(t.parameters, false), description: typeof t.description === 'string' ? cut(t.description) : t.description }))
+  }
+
   async function* rawChat(opts) {
     const s = cfg()
     const model = opts.model ?? (s.provider === 'local' ? s.localModel : s.model)
@@ -119,7 +127,7 @@ function createAi({ getSettings, keys, local = null, usage = null, fetchFn = fet
       // OPNduck's own model: started the first time it is needed, and ejected again when idle.
       const baseUrl = await local.ensureLoaded()
       const meta = local.modelMeta(s.localModel)
-      for await (const ev of createOpenAiProvider({ baseUrl, fetchFn }).chat({ ...o, model: s.localModel, messages, tools: opts.tools, jsonSchema: opts.jsonSchema, signal: opts.signal, extra: o.reasoning === 'off' ? meta?.noThink : undefined })) {
+      for await (const ev of createOpenAiProvider({ baseUrl, fetchFn }).chat({ ...o, model: s.localModel, messages, tools: compactTools(opts.tools), jsonSchema: opts.jsonSchema, signal: opts.signal, extra: o.reasoning === 'off' ? meta?.noThink : undefined })) {
         local.touch() // a long answer is not idle time
         yield ev
       }
@@ -138,9 +146,16 @@ function createAi({ getSettings, keys, local = null, usage = null, fetchFn = fet
     if (s.provider === 'cloud' && usage && s.monthlyTokenLimit > 0 && usage.tokens(s.cloud) >= s.monthlyTokenLimit) {
       throw new Error(`The monthly limit of ${s.monthlyTokenLimit.toLocaleString('en')} tokens for ${CLOUD[s.cloud]?.label ?? s.cloud} is reached. Raise it in Settings > AI, or wait for next month.`)
     }
-    for await (const ev of rawChat(opts)) {
-      if (ev.type === 'done' && ev.usage && usage) usage.record(usageId(), ev.usage)
-      yield ev
+    try {
+      for await (const ev of rawChat(opts)) {
+        if (ev.type === 'done' && ev.usage && usage) usage.record(usageId(), ev.usage)
+        yield ev
+      }
+    } catch (err) {
+      if (/context size has been exceeded|exceeds the available context|context length/i.test(String(err?.message))) {
+        throw new Error(`The conversation no longer fits in the model's memory (${s.context} tokens). Start a new chat, or raise "Memory for the conversation" in Settings > AI.`)
+      }
+      throw err
     }
   }
 

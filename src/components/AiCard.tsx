@@ -41,7 +41,7 @@ const REASONING = [
   { value: 'off', label: 'Never' },
 ]
 
-const CONTEXTS = [4096, 8192, 16384, 32768].map((n) => ({ value: String(n), label: `${n / 1024}k` }))
+const CONTEXTS = [4096, 8192, 16384, 32768].map((n) => ({ value: String(n), label: `${n / 1024}k${n < 16384 ? ' (too small for Chat)' : ''}` }))
 const IDLE = [0, 5, 15, 30, 60].map((n) => ({ value: String(n), label: n === 0 ? 'Never' : `${n} minutes` }))
 const clean = (e: unknown) => (e instanceof Error ? e.message : String(e)).replace(/^Error invoking remote method '[^']*': (Error: )?/, '')
 
@@ -167,7 +167,7 @@ export default function AiCard() {
             <div className="grid gap-3 sm:grid-cols-3">
               <div>
                 <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Memory for the conversation</span>
-                <GlassSelect id="ai-context" options={CONTEXTS} value={String(ai.context)} onChange={(v) => void save({ context: Number(v) as AiSettings['context'] })} />
+                <GlassSelect id="ai-context" options={CONTEXTS} value={String(ai.context)} onChange={(v) => void save({ context: Number(v) as AiSettings['context'], ctxChosen: true })} />
               </div>
               <div>
                 <span className="mb-1 block text-xs font-medium text-[var(--text-dim)]">Run on</span>
