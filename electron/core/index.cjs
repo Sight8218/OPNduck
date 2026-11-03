@@ -16,6 +16,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+const fs = require('node:fs')
 const path = require('node:path')
 
 /**
@@ -113,9 +114,28 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
     engine.saveHistory()
   }
 
+  // Files the assistant may touch: ones the person picked (dialogs, attachments) and ones already in the Library.
+  const picked = new Set()
+  const pickedDirs = new Set()
+  const noteFile = (p) => {
+    if (typeof p !== 'string' || !path.isAbsolute(p)) return
+    try {
+      ;(fs.statSync(p).isDirectory() ? pickedDirs : picked).add(path.resolve(p))
+    } catch {
+      /* gone */
+    }
+  }
+  const isKnownFile = (p) => {
+    if (typeof p !== 'string' || !path.isAbsolute(p)) return false
+    const r = path.resolve(p)
+    if (picked.has(r) || [...pickedDirs].some((d) => r.startsWith(d + path.sep))) return true
+    for (const e of engine.tasks.values()) if (e.finalPath === r || e.req?.inputPath === r) return true
+    return false
+  }
+  const knownFiles = () => [...new Set([...picked, ...[...engine.tasks.values()].map((e) => e.finalPath).filter(Boolean)])].slice(-12)
   const aiKeys = require('./ai/keys.cjs').createKeys({ file: path.join(platform.paths.userData, 'ai-keys.json'), ...(secrets ?? {}) })
   const ai = require('./ai/index.cjs').createAi({ getSettings, keys: aiKeys })
-  const core = { platform, settings, tools, engine, modules, ctx, startJob, shutdown, recipes: modules.recipes.recipes, schedule, ai, aiKeys }
+  const core = { platform, settings, tools, engine, modules, ctx, startJob, shutdown, recipes: modules.recipes.recipes, schedule, ai, aiKeys, noteFile, isKnownFile, knownFiles, chats: require('./ai/chats.cjs').createChats({ dir: path.join(platform.paths.userData, 'chats') }) }
   // Not started here: the shell calls `core.plugins.init()` once it is ready (after its windows and dialogs exist).
   plugins = core.plugins = require('./plugins.cjs').createPluginHost({
     core,

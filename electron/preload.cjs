@@ -97,6 +97,21 @@ contextBridge.exposeInMainWorld('opnduckHost', {
     test: () => ipcRenderer.invoke('ai:test'),
     setKey: (id, key) => ipcRenderer.invoke('ai:setKey', id, key),
     removeKey: (id) => ipcRenderer.invoke('ai:removeKey', id),
+    send: (req) => ipcRenderer.invoke('ai:send', req),
+    abort: (requestId) => ipcRenderer.invoke('ai:abort', requestId),
+    run: (proposal) => ipcRenderer.invoke('ai:run', proposal),
+    onEvent: (listener) => {
+      const handler = (_e, data) => listener(data)
+      ipcRenderer.on('ai:event', handler)
+      return () => ipcRenderer.removeListener('ai:event', handler)
+    },
+    chats: {
+      list: () => ipcRenderer.invoke('ai:chats:list'),
+      get: (id) => ipcRenderer.invoke('ai:chats:get', id),
+      save: (chat) => ipcRenderer.invoke('ai:chats:save', chat),
+      remove: (id) => ipcRenderer.invoke('ai:chats:remove', id),
+      removeAll: () => ipcRenderer.invoke('ai:chats:removeAll'),
+    },
   },
   beatsResult: (id) => ipcRenderer.invoke('beats:result', id),
   previewRestore: (req) => ipcRenderer.invoke('restore:preview', req),

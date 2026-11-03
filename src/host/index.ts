@@ -498,6 +498,40 @@ export interface AiModel {
   name?: string
   vision?: boolean
 }
+export interface AiProposal {
+  tool: string
+  args: Record<string, unknown>
+}
+export type AiEvent =
+  | { type: 'text'; delta: string }
+  | { type: 'thinking'; delta: string }
+  | { type: 'tool_call'; id: string; name: string; args: Record<string, unknown> }
+  | { type: 'tool_result'; name: string; args: Record<string, unknown>; result: unknown }
+export interface AiAnswer {
+  message: string
+  /** Jobs the assistant suggests; none has started. */
+  proposals: AiProposal[]
+  usage: { input: number; output: number } | null
+  aborted?: boolean
+}
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+  thinking?: string
+  /** Look-ups the assistant made while answering. */
+  tools?: { name: string; args: Record<string, unknown>; result: unknown }[]
+  proposals?: AiProposal[]
+  /** Job ids started from this message's proposals (index matches `proposals`). */
+  started?: (string | null)[]
+  images?: string[]
+}
+export interface Chat {
+  id: string
+  title: string
+  updatedAt: number
+  messages: ChatMessage[]
+}
+
 export interface AiState {
   /** Providers that have an API key saved (never the keys). */
   keys: string[]
@@ -646,7 +680,7 @@ export interface TaskState {
   /** Batch this task belongs to, if it was started together with others. */
   group?: BatchInfo | null
   /** 'mcp' when an MCP client (not this window) started the job. */
-  source?: 'mcp' | 'link' | 'remote'
+  source?: 'mcp' | 'link' | 'remote' | 'ai'
   /** The server this job runs on, when it is not this PC. */
   host?: string
   /** What a job on a server is doing now: Uploading, Running on <server>, Downloading result, Reconnecting. */
@@ -829,6 +863,19 @@ export interface Host {
     test(): Promise<{ ok: true; models: AiModel[] } | { ok: false; error: string }>
     setKey(provider: string, key: string): Promise<boolean>
     removeKey(provider: string): Promise<boolean>
+    /** Asks the assistant. Progress arrives through onEvent (same requestId); this resolves with the answer and any proposed jobs. */
+    send(req: { requestId: string; messages: Pick<ChatMessage, 'role' | 'content' | 'images'>[] }): Promise<AiAnswer>
+    abort(requestId: string): Promise<boolean>
+    /** Starts one proposed job. The desktop checks it again; the window is not trusted. */
+    run(proposal: AiProposal): Promise<{ id: string }>
+    onEvent(listener: (data: { requestId: string; event: AiEvent }) => void): () => void
+    chats: {
+      list(): Promise<Omit<Chat, 'messages'>[]>
+      get(id: string): Promise<Chat | null>
+      save(chat: Pick<Chat, 'id' | 'title' | 'messages'>): Promise<boolean>
+      remove(id: string): Promise<boolean>
+      removeAll(): Promise<boolean>
+    }
   }
   /** Smart scheduling: what is holding heavy jobs back, and the countdown before sleep or shutdown. Desktop only. */
   schedule: {
@@ -1320,6 +1367,15 @@ const browserHost: Host = {
     test: async () => ({ ok: false, error: 'Desktop app required' }),
     setKey: async () => false,
     removeKey: async () => false,
+    send: async () => {
+      throw new Error('Desktop app required')
+    },
+    abort: async () => false,
+    run: async () => {
+      throw new Error('Desktop app required')
+    },
+    onEvent: () => () => {},
+    chats: { list: async () => [], get: async () => null, save: async () => false, remove: async () => false, removeAll: async () => false },
   },
   schedule: {
     status: async () => ({ reason: '', hot: false, temp: null, countdown: null }),

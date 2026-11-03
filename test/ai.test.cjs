@@ -321,3 +321,35 @@ test('the agent stops after 10 tool calls in one request', async () => {
     await s.close()
   }
 })
+
+test('conversations: saved as files, listed newest first, bad ids refused, and removable', () => {
+  const { createChats } = require('../electron/core/ai/chats.cjs')
+  const dir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'chats-')), 'chats')
+  const c = createChats({ dir })
+  assert.deepEqual(c.list(), [])
+  const id1 = '11111111-1111-1111-1111-111111111111'
+  const id2 = '22222222-2222-2222-2222-222222222222'
+  c.save({ id: id1, title: 'First', messages: [{ role: 'user', content: 'hi' }] })
+  c.save({ id: id2, title: 'Second', messages: [] })
+  assert.equal(c.get(id1).messages[0].content, 'hi')
+  assert.equal(c.list().length, 2)
+  assert.equal(fs.statSync(path.join(dir, `${id1}.json`)).mode & 0o777, 0o600)
+  assert.throws(() => c.get('../../etc/passwd') ?? (() => { throw new Error('x') })(), /x|Bad/)
+  assert.equal(c.get('../../etc/passwd'), null)
+  assert.throws(() => c.save({ id: '../x', title: 't', messages: [] }), /Bad conversation id/)
+  assert.throws(() => c.save({ id: id1, title: 't', messages: 'no' }), /Not a conversation/)
+  c.remove(id1)
+  assert.equal(c.get(id1), null)
+  c.removeAll()
+  assert.deepEqual(c.list(), [])
+})
+
+test('the system prompt tells the model it only proposes, lists known files, and stays short', () => {
+  const { systemPrompt } = require('../electron/core/ai/prompt.cjs')
+  const p = systemPrompt({ files: ['/media/a.mp4'], recentJobs: ['convert done: a.mp4'] })
+  assert.match(p, /only PROPOSES/)
+  assert.match(p, /\/media\/a\.mp4/)
+  assert.match(p, /convert done: a\.mp4/)
+  assert.ok(p.length < 2500)
+  assert.ok(!/Recent jobs/.test(systemPrompt()))
+})

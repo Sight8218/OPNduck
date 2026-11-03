@@ -216,6 +216,7 @@ ipcMain.handle('dialog:pickFile', async (e, opts) => {
     ? [{ name: 'Files', extensions: opts.extensions }]
     : undefined
   const res = await dialog.showOpenDialog(win ?? undefined, { properties: ['openFile'], filters })
+  if (!res.canceled && res.filePaths[0]) core.noteFile(res.filePaths[0]) // the assistant may use files the person picked
   return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
 })
 
@@ -228,12 +229,14 @@ ipcMain.handle('dialog:pickFiles', async (e, opts) => {
     properties: ['openFile', 'multiSelections'],
     filters,
   })
+  if (!res.canceled) res.filePaths.forEach((f) => core.noteFile(f))
   return res.canceled || res.filePaths.length === 0 ? null : res.filePaths
 })
 
 ipcMain.handle('dialog:pickFolder', async (e) => {
   const win = BrowserWindow.fromWebContents(e.sender)
   const res = await dialog.showOpenDialog(win ?? undefined, { properties: ['openDirectory'] })
+  if (!res.canceled && res.filePaths[0]) core.noteFile(res.filePaths[0])
   return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
 })
 
@@ -292,6 +295,56 @@ ipcMain.handle('recipes:run', (_e, id, input, opts) => core.recipes.run(String(i
 ipcMain.handle('recipes:resume', (_e, runId) => core.recipes.resume(String(runId)))
 /* --- AI: which model answers (Settings > AI). The keys never go to the window; it only learns which providers have one. --- */
 ipcMain.handle('ai:state', async () => ({ keys: core.aiKeys.has(), encrypted: safeStorage.isEncryptionAvailable(), cloud: Object.fromEntries(Object.entries(core.ai.CLOUD).map(([id, c]) => [id, c.label])), detected: await core.ai.detect() }))
+const { systemPrompt } = require('./core/ai/prompt.cjs')
+const aiRuns = new Map() // requestId -> AbortController
+const aiDeps = () => ({
+  tasks: engine.tasks,
+  isKnownFile: core.isKnownFile,
+  probeMedia,
+  analyzeMedia: modules.analyze.analyzeMedia,
+  suggest: require('./core/autosettings.cjs').suggest,
+  recipes: core.recipes,
+  getRecipe: (id) => core.recipes.get(id),
+})
+/** One question to the assistant. Progress goes to the window as 'ai:event' (text, thinking, tool results); the answer and the proposed jobs come back here. */
+ipcMain.handle('ai:send', async (e, req) => {
+  const requestId = String(req?.requestId ?? '')
+  if (!requestId || aiRuns.has(requestId)) throw new Error('Bad request')
+  const messages = (Array.isArray(req.messages) ? req.messages : []).slice(-40).map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content ?? '').slice(0, 20000), ...(Array.isArray(m.images) && m.images.length ? { images: m.images.slice(0, 4).map(String) } : {}) }))
+  const controller = new AbortController()
+  aiRuns.set(requestId, controller)
+  try {
+    const jobs = [...engine.tasks.values()].slice(-8).map((t) => `${t.state.kind} ${t.state.status}: ${t.state.label}`)
+    const r = await core.ai.agent({ messages, deps: aiDeps(), system: systemPrompt({ files: core.knownFiles(), recentJobs: jobs }), signal: controller.signal, onEvent: (ev) => e.sender.send('ai:event', { requestId, event: ev }) })
+    return { message: r.message.content, proposals: r.proposals.map(({ tool, args }) => ({ tool, args })), usage: r.usage }
+  } catch (err) {
+    if (controller.signal.aborted) return { message: '', proposals: [], usage: null, aborted: true }
+    throw err
+  } finally {
+    aiRuns.delete(requestId)
+  }
+})
+ipcMain.handle('ai:abort', (_e, requestId) => {
+  aiRuns.get(String(requestId))?.abort()
+  return true
+})
+/** Starts a proposed job after the person pressed Run. The proposal is checked again here: whatever the window sends is not trusted. */
+ipcMain.handle('ai:run', async (_e, proposal) => {
+  const p = require('./core/ai/tools.cjs').propose(String(proposal?.tool), proposal?.args, aiDeps())
+  if (p.tool === 'run_recipe') {
+    const run = await core.recipes.run(p.args.recipe, p.args.input)
+    return { id: run.taskIds[0] }
+  }
+  const id = await engine.startHandlers.get(p.channel)(null, p.req)
+  const entry = engine.tasks.get(id)
+  if (entry) entry.state.source = 'ai'
+  return { id }
+})
+ipcMain.handle('ai:chats:list', () => core.chats.list())
+ipcMain.handle('ai:chats:get', (_e, id) => core.chats.get(String(id)))
+ipcMain.handle('ai:chats:save', (_e, chat) => (getSettings().ai.keepChats ? core.chats.save(chat) : false))
+ipcMain.handle('ai:chats:remove', (_e, id) => core.chats.remove(String(id)))
+ipcMain.handle('ai:chats:removeAll', () => (core.chats.removeAll(), true))
 ipcMain.handle('ai:test', () => core.ai.test())
 ipcMain.handle('ai:setKey', async (_e, id, key) => {
   core.aiKeys.set(String(id), String(key))
