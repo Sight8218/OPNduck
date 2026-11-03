@@ -59,7 +59,7 @@
     <div style="background:linear-gradient(155deg,#211a13,#171310); border:1px solid rgba(225,137,47,0.25); border-radius:14px; padding:30px;">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:20px;">
         <div>
-          <div style="font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; color:#ede6d9;" data-dl-version-title>V0.6.0-Beta</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; color:#ede6d9;" data-dl-version-title>V0.6.1-Beta</div>
           <div style="font-size:13px; color:#8a7c68; margin-top:4px;">Pre-built binaries, straight from the GitHub release page.</div>
         </div>
         <a href="https://github.com/Sight8218/OPNduck/releases" data-gh-rel-link style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#e1892f;">All releases &rarr;</a>
@@ -124,7 +124,11 @@
     <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:#e1892f; margin-bottom:20px;">RELEASE NOTES</div>
     <div style="border-left:2px solid rgba(225,137,47,0.3); padding-left:24px; margin-left:6px;">
       <div style="margin-bottom:26px;">
-        <div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#e1892f; margin-bottom:6px;">v0.6.0-beta</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#e1892f; margin-bottom:6px;">v0.6.1-beta</div>
+        <div style="font-size:13.5px; color:#a89a86; line-height:1.6; text-wrap:pretty;">A quick follow-up to v0.6.0. The assistant can use the internet (off by default) and change settings and the theme when you ask, and shows what it is doing. Fixes the local model running out of memory in Chat. Tidier Settings and a more compact Home. Still a Beta: expect bugs and please report them.</div>
+      </div>
+      <div style="margin-bottom:26px;">
+<div style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#e1892f; margin-bottom:6px;">v0.6.0-beta</div>
         <div style="font-size:13.5px; color:#a89a86; line-height:1.6; text-wrap:pretty;">The biggest update yet, and possibly ever, and it might be super buggy. Recipes, Send to OPNduck, AI chat and tools, Colour Grade, Background Remover, Dubbing, OPNduck Server, an Android app and a macOS beta. Expect bugs and please report them.</div>
       </div>
       <div style="margin-bottom:26px;">
@@ -177,7 +181,7 @@ class Component extends DCLogic {
   componentDidMount() {
     this._fetchGitHub('Sight8218/OPNduck');
     if (window.OPNduckCMS) window.OPNduckCMS.load().then(c => this._apply(c || {}));
-    else this._renderButtons({ links: [{ platform: 'Windows', url: 'https://github.com/Sight8218/OPNduck/releases/tag/v0.6.0-Beta' }, { platform: 'Linux', url: 'https://github.com/Sight8218/OPNduck/releases/tag/v0.6.0-Beta' }] });
+    else this._renderButtons({ links: [{ platform: 'Windows', url: 'https://github.com/Sight8218/OPNduck/releases/tag/v0.6.1-Beta' }, { platform: 'Linux', url: 'https://github.com/Sight8218/OPNduck/releases/tag/v0.6.1-Beta' }] });
   }
   _apply(c) {
     const d = c.downloads || {};

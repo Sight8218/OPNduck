@@ -37,7 +37,8 @@
       "Colour Grade, Background Remover, Beat Finder, Dubbing (Beta)",
       "AI: chat, spoken-word search, summaries, chapters, thumbnail picker, a local model of its own",
       "OPNduck Server and Android app: run jobs on another machine",
-      "macOS beta build"
+      "macOS beta build",
+      "Assistant: internet access, settings and theme changes, activity icons"
     ],
     "planned": [
       {
@@ -57,6 +58,15 @@
     ]
   },
   "blog": [
+    {
+      "slug": "v0-6-1-beta",
+      "title": "v0.6.1 Beta — a quick follow-up",
+      "date": "2026-11-03",
+      "author": "Ducky",
+      "tag": "RELEASE",
+      "excerpt": "The assistant can use the internet and change settings, shows what it is doing, and the local model no longer runs out of memory. Settings are tidier and Home is more compact. Still a Beta: expect bugs.",
+      "body": "A quick follow-up to v0.6.0, still a very large Beta: expect bugs and report them.\nNEW\nThe assistant can use the internet (off by default): web search and reading pages, with Wikipedia, Brave Search, your own SearXNG server or DuckDuckGo. It never opens addresses on your computer or home network.\nThe assistant can change settings and the theme when you ask (\"something green\", \"reduce motion\"). You confirm each change with a card.\nThe assistant shows what it is doing with an animated icon: waking up, thinking, looking something up, preparing a plan, writing.\nSettings are sorted into 8 categories. Home is more compact while a tool is open. Recipes and Chat have their own menu icon animations.\nFIXED\nChat no longer says \"Context size has been exceeded\" with OPNduck's own model.\nThe local AI engine now stops when you eject it or quit OPNduck, and a leftover one is stopped before a new one loads.\nThe assistant knows where OPNduck's own settings are and says when internet access is off.\nDownloads and notes: github.com/Sight8218/OPNduck/releases"
+    },
     {
       "slug": "v0-6-0-beta",
       "title": "v0.6.0 Beta — the biggest update yet",
@@ -113,24 +123,24 @@
     }
   ],
   "downloads": {
-    "version": "v0.6.0-Beta",
-    "releaseUrl": "https://github.com/Sight8218/OPNduck/releases/tag/v0.6.0-Beta",
+    "version": "v0.6.1-Beta",
+    "releaseUrl": "https://github.com/Sight8218/OPNduck/releases/tag/v0.6.1-Beta",
     "links": [
       {
         "platform": "Windows",
-        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/OPNduck-Windows.exe"
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.1-Beta/OPNduck-Windows.exe"
       },
       {
         "platform": "Linux",
-        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/OPNduck-Linux.zip"
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.1-Beta/OPNduck-Linux.zip"
       },
       {
         "platform": "macOS",
-        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/OPNduck-Mac.dmg"
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.1-Beta/OPNduck-Mac.dmg"
       },
       {
         "platform": "Android",
-        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/OPNduck-Android.apk"
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.1-Beta/OPNduck-Android.apk"
       }
     ]
   }
