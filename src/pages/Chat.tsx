@@ -212,7 +212,7 @@ export default function ChatPage() {
 
   const off = ai?.provider === 'off'
   return (
-    <div className="mx-auto flex h-[calc(100vh-9rem)] w-full max-w-6xl gap-4 px-4 pb-4">
+    <div className="mx-auto mt-4 flex h-[calc(100vh-10rem)] w-full max-w-6xl gap-4 px-4 pb-4">
       <aside className="glass hidden w-56 shrink-0 flex-col gap-2 rounded-3xl p-3 md:flex">
         <button type="button" className="glass-btn px-3 py-1.5 text-xs" onClick={() => (setChat(newChat()), setDismissed({}))}>
           New chat
