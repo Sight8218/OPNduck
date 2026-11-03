@@ -31,7 +31,7 @@ const INPUT_TYPES = ['url', 'video', 'audio', 'image']
 const MAX_STEPS = 12
 const MAX_RECIPES = 200
 /** The `kind` shown in the Library for each tool (a skipped step is listed under it). */
-const TOOL_KIND = { download: 'download', convert: 'convert', upscale_image: 'upscale', upscale_video: 'upscale', interpolate: 'interpolate', subtitles: 'subtitles', trim: 'trim', compress: 'compress', make_gif: 'gif', jump_cut: 'jumpcut', restore: 'restore', tag_music: 'tag', audio_ai: 'audio-ai' }
+const TOOL_KIND = { download: 'download', convert: 'convert', upscale_image: 'upscale', upscale_video: 'upscale', interpolate: 'interpolate', subtitles: 'subtitles', trim: 'trim', compress: 'compress', make_gif: 'gif', jump_cut: 'jumpcut', restore: 'restore', beat_analyze: 'beats', tag_music: 'tag', audio_ai: 'audio-ai' }
 /** Starting values for required settings that have no default of their own, so a new step is valid straight away. */
 const START_VALUES = { compress: { targetMB: 20 }, trim: { start: 0 }, convert: { container: 'MP4' }, subtitles: {} }
 const RESERVED_ARGS = ['inputPath', 'url', 'destination', 'batch', 'tags', 'hint']
@@ -45,7 +45,7 @@ const BUILT_IN = [
   { id: 'builtin:phone-friendly', name: 'Phone-friendly copy', input: 'video', steps: [{ tool: 'convert', args: { container: 'MP4', mode: 'transcode' } }, { tool: 'compress', args: { targetMB: 200, quality: 'fast' } }] },
 ].map((r) => ({ ...r, builtIn: true }))
 
-const isTool = (name) => Object.hasOwn(STEP_TYPES, name) && TOOLS.some((t) => t.name === name && t.channel)
+const isTool = (name) => Object.hasOwn(STEP_TYPES, name) && STEP_TYPES[name].accepts.length > 0 && TOOLS.some((t) => t.name === name && t.channel)
 
 /** Checks a recipe and returns a clean copy; throws a readable Error. Does not touch the disk. */
 function validateRecipe(raw) {
@@ -303,7 +303,7 @@ function createRecipes(ctx) {
 
   /** The tools a step can use, for the editor: title, what it takes and gives, and its settings (without the input). */
   function tools() {
-    return Object.keys(STEP_TYPES).map((name) => {
+    return Object.keys(STEP_TYPES).filter(isTool).map((name) => {
       const def = TOOLS.find((t) => t.name === name)
       const properties = Object.fromEntries(Object.entries(def.inputSchema.properties).filter(([k]) => !RESERVED_ARGS.includes(k)))
       return {

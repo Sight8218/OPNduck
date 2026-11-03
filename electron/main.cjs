@@ -285,6 +285,7 @@ ipcMain.handle('recipes:remove', (_e, id) => core.recipes.remove(String(id)))
 ipcMain.handle('recipes:duplicate', (_e, id) => core.recipes.duplicate(String(id)))
 ipcMain.handle('recipes:run', (_e, id, input, opts) => core.recipes.run(String(id), String(input), { destination: typeof opts?.destination === 'string' ? opts.destination : undefined, keepIntermediate: opts?.keepIntermediate === true }))
 ipcMain.handle('recipes:resume', (_e, runId) => core.recipes.resume(String(runId)))
+ipcMain.handle('beats:result', (_e, id) => modules.beats.beatsResult(String(id)))
 ipcMain.handle('restore:preview', (_e, req) => modules.restore.previewRestore(req))
 ipcMain.handle('jumpcut:analyze', (_e, req) => modules.jumpcut.analyzeJumpCut(req))
 ipcMain.handle('auto:suggest', async (_e, tool, filePath, opts) => {
@@ -299,6 +300,7 @@ ipcMain.handle('system:checkRealesrgan', () => tools.checkRealesrgan())
 ipcMain.handle('system:checkRife', () => tools.checkRife())
 ipcMain.handle('system:checkTorchEngine', () => tools.checkTorchEngine(torchEngineReady))
 ipcMain.handle('system:checkDemucs', () => tools.checkDemucs())
+ipcMain.handle('system:checkBeats', () => tools.checkBeats())
 ipcMain.handle('system:checkFasterWhisper', () => tools.checkFasterWhisper())
 ipcMain.handle('system:installTool', (e, tool) =>
   tools.installTool(tool, (line) => {

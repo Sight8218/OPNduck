@@ -22,6 +22,8 @@ Any client that can start a stdio MCP server works. Clients that only accept a w
 | `trim` | cut a section out of a file |
 | `list_recipes`, `run_recipe` | list saved recipes (chains of tools) and run one on a file or link; the steps appear as one group |
 | `suggest_settings` | look at a file and suggest settings for a tool (model, scale, remux or re-encode...), with the reason for each; starts nothing |
+| `beat_analyze` | find the tempo (BPM), beats and key of a song; optionally write them as tags (needs the Beat Finder install) |
+| `beat_cut` | make a montage that switches clips on the beat of a song |
 | `restore` | clean up old footage: deinterlace, denoise, stabilize, fix colors, then optionally upscale and smooth the motion as follow-up jobs |
 | `jump_cut` | remove the silences from a talking video or podcast and/or even out the loudness (podcast -14 LUFS, broadcast -23 LUFS) |
 | `make_gif` | clip a section to GIF, animated WebP, or a Telegram/Discord sticker (fitted to the size limits) |

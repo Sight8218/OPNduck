@@ -16,6 +16,7 @@ const MCP_NAME = {
   gif: 'make_gif',
   jumpcut: 'jump_cut',
   restore: 'restore',
+  beats: 'beat_analyze',
   tagger: 'tag_music',
 }
 
@@ -42,6 +43,7 @@ const LABELS = {
   width: 'Width (px)',
   fps: 'Frames per second',
   loop: 'Loop forever',
+  writeTags: 'Write BPM and key tags',
   cut: 'Cut the silences',
   deinterlace: 'Deinterlace',
   denoise: 'Remove noise',

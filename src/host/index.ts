@@ -62,7 +62,7 @@ export interface BatchInfo {
 }
 
 /** Python tools OPNduck can install for you into its own environment. */
-export type PythonTool = 'demucs' | 'whisper' | 'whisper-gpu' | 'torch'
+export type PythonTool = 'demucs' | 'whisper' | 'whisper-gpu' | 'torch' | 'beats'
 
 export interface DownloadRequest {
   /** Set by the card when it starts several jobs at once. */
@@ -443,6 +443,42 @@ export interface CompressRequest {
   destination?: string
 }
 
+export interface BeatAnalyzeRequest {
+  inputPath: string
+  /** Write the BPM and key into a tagged copy (MP3, FLAC, Ogg, Opus). */
+  writeTags?: boolean
+  destination?: string
+}
+
+export interface BeatCutRequest {
+  batch?: BatchInfo
+  /** The song. */
+  inputPath: string
+  /** Video files, or folders of them, used in this order. */
+  clips: string[]
+  everyBeats?: 1 | 2 | 4 | 8
+  shuffle?: boolean
+  skipSeconds?: number
+  /** Beat times in seconds from an earlier analysis (after a tap-tempo correction, for example). Omit to analyse first. */
+  beats?: number[]
+  destination?: string
+}
+
+/** What the Beat Finder found in a song. */
+export interface BeatAnalysis {
+  duration: number
+  bpm: number
+  beats: number[]
+  key: string
+  /** The DJ wheel notation, such as 8A. */
+  camelot: string
+  keyStrength: number
+  /** A waveform outline, 0..1. */
+  peaks: number[]
+  /** Moments where the music suddenly gets louder (seconds). */
+  drops: number[]
+}
+
 export type DenoiseLevel = 'off' | 'light' | 'medium' | 'strong'
 
 export interface RestoreRequest {
@@ -546,7 +582,7 @@ export interface SubtitlesRequest {
   destination?: string
 }
 
-export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress' | 'tag' | 'gif' | 'jumpcut' | 'restore'
+export type TaskKind = 'download' | 'convert' | 'upscale' | 'interpolate' | 'subtitles' | 'audio-ai' | 'trim' | 'compress' | 'tag' | 'gif' | 'jumpcut' | 'restore' | 'beats' | 'beatcut'
 export type TaskStatus = 'queued' | 'running' | 'done' | 'error' | 'canceled'
 
 export interface TaskState {
@@ -636,6 +672,8 @@ export interface HostTasks {
   startGif(req: GifRequest): Promise<string>
   startJumpCut(req: JumpCutRequest): Promise<string>
   startRestore(req: RestoreRequest): Promise<string>
+  startBeatAnalyze(req: BeatAnalyzeRequest): Promise<string>
+  startBeatCut(req: BeatCutRequest): Promise<string>
   cancel(taskId: string): void
   /** Replays a finished task's original request as a new task. Resolves to the new id (null if it can't be replayed). */
   rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
@@ -813,6 +851,8 @@ export interface Host {
     run(id: string, input: string, opts?: { destination?: string; keepIntermediate?: boolean }): Promise<RecipeRun>
     resume(runId: string): Promise<RecipeRun>
   }
+  /** The full analysis of a finished Beat Finder job (null for a job that is not one, or was lost on restart). */
+  beatsResult(taskId: string): Promise<BeatAnalysis | null>
   /** A before/after frame for the Restore card (starts no job). Throws a readable message. */
   previewRestore(req: Pick<RestoreRequest, 'inputPath' | 'deinterlace' | 'denoise' | 'fixColors'> & { time?: number; width?: number }): Promise<RestorePreview>
   /** Finds the silences and says how much a jump cut would remove (starts no job). Throws a readable message. */
@@ -835,6 +875,7 @@ export interface Host {
   checkFasterWhisper(): Promise<ToolStatus>
   /** Python with torch + demucs + soundfile, for the AI Audio card. */
   checkDemucs(): Promise<ToolStatus>
+  checkBeats(): Promise<ToolStatus>
   /** Duration and size of a media file (ffprobe). Null if it can't be read. */
   probeMedia(path: string): Promise<MediaInfo | null>
   /** One frame of a video at `time` seconds as an image data URL (null if it can't be read). */
@@ -1104,6 +1145,12 @@ const browserTasks: HostTasks = {
     browserListeners.forEach((l) => l(browserTaskList))
     return id
   },
+  startBeatAnalyze: async () => {
+    throw new Error('Desktop app required')
+  },
+  startBeatCut: async () => {
+    throw new Error('Desktop app required')
+  },
   startRestore: async () => {
     throw new Error('Desktop app required')
   },
@@ -1283,6 +1330,7 @@ const browserHost: Host = {
       throw new Error('Desktop app required')
     },
   },
+  beatsResult: async () => null,
   previewRestore: async () => {
     throw new Error('Desktop app required')
   },
@@ -1303,6 +1351,7 @@ const browserHost: Host = {
   checkRife: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkFasterWhisper: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkDemucs: async () => ({ available: false, installHint: 'Desktop app required' }),
+  checkBeats: async () => ({ available: false, installHint: 'Desktop app required' }),
   checkTorchEngine: async () => ({ available: false, nvidia: false }),
   probeMedia: async () => null,
   mediaFrame: async () => null,

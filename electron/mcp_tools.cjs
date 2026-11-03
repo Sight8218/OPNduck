@@ -204,6 +204,38 @@ const TOOLS = [
     },
   },
   {
+    name: 'beat_analyze',
+    description: 'Find the tempo (BPM), beat times and musical key of a song. Optionally writes the BPM and key into a tagged copy (MP3, FLAC, Ogg, Opus). Needs the Beat Finder install (librosa). Returns a job id; the BPM and key show in the job status.',
+    channel: 'tasks:startBeatAnalyze',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        inputPath: FILE,
+        writeTags: { type: 'boolean', description: 'Write BPM and key tags into a copy of the file. Default false.' },
+      },
+      required: ['inputPath'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'beat_cut',
+    description: 'Make a montage that switches clips on the beat of a song: cuts a list of video clips (or folders of them) every 1, 2, 4 or 8 beats, with the song as the sound. Returns a job id.',
+    channel: 'tasks:startBeatCut',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        inputPath: { type: 'string', description: 'Absolute path to the song.' },
+        clips: { type: 'array', items: { type: 'string' }, description: 'Absolute paths of video files or folders of videos, used in this order.' },
+        everyBeats: { type: 'integer', enum: [1, 2, 4, 8], description: 'Switch clip every this many beats. Default 4.' },
+        shuffle: { type: 'boolean', description: 'Use the clips in random order. Default false.' },
+        skipSeconds: { type: 'number', minimum: 0, maximum: 30, description: 'Seconds to skip at the start of every clip. Default 0.' },
+        beats: { type: 'array', items: { type: 'number' }, description: 'Beat times in seconds (from an earlier analysis). Omit to analyse the song first.' },
+      },
+      required: ['inputPath', 'clips'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'restore',
     description: 'Clean up old or bad footage in one pass: deinterlace, denoise, stabilize and fix the colors. With upscale or interpolate the result then goes through the AI upscaler and the frame interpolator as follow-up jobs in the same group. Returns a job id.',
     channel: 'tasks:startRestore',
@@ -331,6 +363,8 @@ const STEP_TYPES = {
   trim: { accepts: ['video', 'audio'], produces: same },
   compress: { accepts: ['video', 'audio'], produces: same },
   make_gif: { accepts: ['video'], produces: 'image' },
+  beat_analyze: { accepts: ['audio'], produces: 'audio' },
+  beat_cut: { accepts: [], produces: 'video' }, // takes a song and a list of clips: a job of its own, never a recipe step
   restore: { accepts: ['video'], produces: 'video' },
   jump_cut: { accepts: ['video', 'audio'], produces: (a, inputType) => (a.audioOnly ? 'audio' : inputType) },
   tag_music: { accepts: ['audio'], produces: 'audio' },
@@ -360,6 +394,8 @@ const DEFAULTS = {
   trim: { end: null, mode: 'fast' },
   compress: { quality: 'fast' },
   make_gif: { preset: 'gif', start: 0, end: null, loop: true },
+  beat_analyze: { writeTags: false },
+  beat_cut: { everyBeats: 4, shuffle: false, skipSeconds: 0 },
   restore: { deinterlace: 'auto', denoise: 'off', stabilize: false, fixColors: false },
   jump_cut: { cut: true, normalize: 'off', audioOnly: false },
   tag_music: { organize: false, minConfidence: 0.9 },
@@ -384,10 +420,11 @@ function buildStartRequest(name, args) {
     if (value === undefined) continue
     const spec = props[key]
     const types = [].concat(spec.type)
-    const actual = value === null ? 'null' : Number.isInteger(value) ? 'integer' : typeof value
+    const actual = value === null ? 'null' : Array.isArray(value) ? 'array' : Number.isInteger(value) ? 'integer' : typeof value
     const ok = types.includes(actual) || (actual === 'integer' && types.includes('number'))
     if (!ok) throw new Error(`Argument ${key} must be ${types.join(' or ')}`)
     if (spec.enum && !spec.enum.includes(value)) throw new Error(`Argument ${key} must be one of: ${spec.enum.join(', ')}`)
+    if (Array.isArray(value) && (value.length > 5000 || value.some((v) => (spec.items?.type ?? 'string') !== typeof v && !(spec.items?.type === 'integer' && Number.isInteger(v))))) throw new Error(`Argument ${key} must be a list of ${spec.items?.type ?? 'string'}s (at most 5000)`)
     if (typeof value === 'string' && value.length > 4096) throw new Error(`Argument ${key} is too long`)
     if (typeof value === 'number' && (!Number.isFinite(value) || (spec.minimum != null && value < spec.minimum))) throw new Error(`Argument ${key} is out of range`)
     req[key] = value

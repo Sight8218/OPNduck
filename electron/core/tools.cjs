@@ -300,6 +300,7 @@ function createTools(platform) {
     demucs: ['torch', 'demucs', 'soundfile'],
     whisper: ['faster-whisper'],
     torch: ['torch', 'numpy'], // the fast video upscaling engine (CUDA PyTorch)
+    beats: ['librosa', 'soundfile'], // Beat Finder: tempo, beats and key (small, no PyTorch)
     'whisper-gpu': ['faster-whisper', 'nvidia-cublas-cu12', 'nvidia-cudnn-cu12'],
   }
   let installChild = null
@@ -444,6 +445,10 @@ function createTools(platform) {
     }
   }
 
+  async function checkBeats() {
+    return { available: await cachedEngineCheck('beats', demucsPython(), 'import librosa, soundfile'), installHint: 'pip install librosa soundfile' }
+  }
+
   async function checkFasterWhisper() {
     // cwd = userData (see pythonCwd): `python -c` puts the cwd on sys.path, so never a folder that could hold a planted faster_whisper.py.
     const available = await cachedEngineCheck('whisper', whisperPython(), 'import faster_whisper')
@@ -510,7 +515,7 @@ function createTools(platform) {
     venvHasPackage, hasNvidiaGpu, venvNvidiaLibDirs, cachedEngineCheck, clearEngineCache,
     VENV_DIR, VENV_PYTHON,
     checkYtDlp, installYtDlp, checkLibreOffice, checkFfmpeg, checkFpcalc, fpcalcInstallHint, checkRealesrgan, checkRife,
-    checkTorchEngine, checkDemucs, checkFasterWhisper, installTool, cancelInstall,
+    checkBeats, checkTorchEngine, checkDemucs, checkFasterWhisper, installTool, cancelInstall,
   }
 }
 

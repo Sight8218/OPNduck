@@ -17,5 +17,5 @@ await build({
   banner: { js: "#!/usr/bin/env node\nimport { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);" },
   logLevel: 'info',
 })
-for (const py of ['torch_upscale.py', 'demucs_separate.py', 'whisper_subtitles.py']) copyFileSync(`electron/${py}`, `dist-tui/${py}`)
+for (const py of ['torch_upscale.py', 'demucs_separate.py', 'whisper_subtitles.py', 'beat_finder.py']) copyFileSync(`electron/${py}`, `dist-tui/${py}`)
 copyFileSync('electron/core/plugin_worker.cjs', 'dist-tui/plugin_worker.cjs') // loaded as a worker by path, so the bundler cannot include it

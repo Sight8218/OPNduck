@@ -11,7 +11,7 @@ execFileSync('node', ['scripts/build-tui.mjs'], { stdio: 'inherit' })
 const stage = 'release-build/opnduck-tui'
 rmSync(stage, { recursive: true, force: true })
 mkdirSync(stage, { recursive: true })
-for (const f of ['opnduck-tui.mjs', 'torch_upscale.py', 'demucs_separate.py', 'whisper_subtitles.py', 'plugin_worker.cjs']) copyFileSync(`dist-tui/${f}`, `${stage}/${f}`)
+for (const f of ['opnduck-tui.mjs', 'torch_upscale.py', 'demucs_separate.py', 'whisper_subtitles.py', 'beat_finder.py', 'plugin_worker.cjs']) copyFileSync(`dist-tui/${f}`, `${stage}/${f}`)
 chmodSync(`${stage}/opnduck-tui.mjs`, 0o755)
 copyFileSync('LICENSE', `${stage}/LICENSE`)
 writeFileSync(`${stage}/README.md`, `# OPNduck TUI ${version}

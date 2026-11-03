@@ -40,6 +40,9 @@ import type {
   GifRequest,
   JumpCutRequest,
   RestoreRequest,
+  BeatAnalyzeRequest,
+  BeatCutRequest,
+  BeatAnalysis,
   RestorePreview,
   JumpCutAnalysis,
   TagLookup,
@@ -105,6 +108,7 @@ interface ElectronBridge {
     run(id: string, input: string, opts?: { destination?: string; keepIntermediate?: boolean }): Promise<RecipeRun>
     resume(runId: string): Promise<RecipeRun>
   }
+  beatsResult(taskId: string): Promise<BeatAnalysis | null>
   previewRestore(req: Pick<RestoreRequest, 'inputPath' | 'deinterlace' | 'denoise' | 'fixColors'> & { time?: number; width?: number }): Promise<RestorePreview>
   analyzeJumpCut(req: Pick<JumpCutRequest, 'inputPath' | 'thresholdDb' | 'minSilence' | 'padding'>): Promise<JumpCutAnalysis>
   suggestSettings(tool: AutoTool, filePath: string, opts?: { container?: string }): Promise<AutoSuggestion>
@@ -114,6 +118,7 @@ interface ElectronBridge {
   checkRife(): Promise<ToolStatus>
   checkFasterWhisper(): Promise<ToolStatus>
   checkDemucs(): Promise<ToolStatus>
+  checkBeats(): Promise<ToolStatus>
   dev: NonNullable<Host['dev']>
   mcp: { info(): Promise<McpInfo>; resetToken(): Promise<McpInfo> }
   plugins: HostPlugins
@@ -175,6 +180,8 @@ interface ElectronBridge {
     startGif(req: GifRequest): Promise<string>
     startJumpCut(req: JumpCutRequest): Promise<string>
     startRestore(req: RestoreRequest): Promise<string>
+    startBeatAnalyze(req: BeatAnalyzeRequest): Promise<string>
+    startBeatCut(req: BeatCutRequest): Promise<string>
     cancel(taskId: string): void
     rerun(taskId: string, opts?: { anotherMatch?: boolean }): Promise<string | null>
     openFolder(taskId: string): Promise<void>
@@ -249,6 +256,7 @@ export function detectElectronHost(): Host | null {
     servers: bridge.servers,
     schedule: bridge.schedule,
     recipes: bridge.recipes,
+    beatsResult: (id) => bridge.beatsResult(id),
     previewRestore: (req) => bridge.previewRestore(req),
     analyzeJumpCut: (req) => bridge.analyzeJumpCut(req),
     suggestSettings: (tool, filePath, opts) => bridge.suggestSettings(tool, filePath, opts),
@@ -258,6 +266,7 @@ export function detectElectronHost(): Host | null {
     checkRife: () => bridge.checkRife(),
     checkFasterWhisper: () => bridge.checkFasterWhisper(),
     checkDemucs: () => bridge.checkDemucs(),
+    checkBeats: () => bridge.checkBeats(),
     checkTorchEngine: () => bridge.checkTorchEngine(),
     probeMedia: (p) => bridge.probeMedia(p),
     mediaFrame: (p, t, w) => bridge.mediaFrame(p, t, w),
@@ -321,6 +330,8 @@ export function detectElectronHost(): Host | null {
       startGif: (req) => bridge.tasks.startGif(withRunOn('make_gif', req)),
       startJumpCut: (req) => bridge.tasks.startJumpCut(withRunOn('jump_cut', req)),
       startRestore: (req) => bridge.tasks.startRestore(withRunOn('restore', req)),
+      startBeatAnalyze: (req) => bridge.tasks.startBeatAnalyze(withRunOn('beat_analyze', req)),
+      startBeatCut: (req) => bridge.tasks.startBeatCut(req),
       cancel: (taskId) => bridge.tasks.cancel(taskId),
       runNext: (taskId) => bridge.tasks.runNext(taskId),
       logs: (taskId) => bridge.tasks.logs(taskId),

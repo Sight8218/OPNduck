@@ -8,6 +8,7 @@ import {
   IconGif,
   IconWaveSine,
   IconWand,
+  IconMusic,
   IconScissors,
   IconTags,
   IconTextCaption,
@@ -30,6 +31,7 @@ const FEATURE_ICONS: Record<string, Icon> = {
   gif: IconGif,
   jumpcut: IconWaveSine,
   restore: IconWand,
+  beats: IconMusic,
 }
 
 export function FeatureIcon({ name, size = 22 }: { name: string; size?: number }) {

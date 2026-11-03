@@ -29,6 +29,7 @@ import CompressCard from './compress/CompressCard'
 import GifCard from './gif/GifCard'
 import JumpCutCard from './jumpcut/JumpCutCard'
 import RestoreCard from './restore/RestoreCard'
+import BeatFinderCard from './beats/BeatFinderCard'
 import TaggerCard from './tagger/TaggerCard'
 import TrimCard from './trim/TrimCard'
 
@@ -148,6 +149,17 @@ export function registerCoreFeatures(): void {
       icon: 'tag',
       enabled: true,
       render: TaggerCard,
+      source: 'core',
+    },
+    {
+      id: 'beats',
+      title: 'Beat Finder',
+      tagline: 'BPM · key · cut to the beat',
+      description: 'Find the tempo, beats and key of a song, tag it, and make a video montage that switches clips on the beat.',
+      scope: 'desktop-exclusive',
+      icon: 'beats',
+      enabled: true,
+      render: BeatFinderCard,
       source: 'core',
     },
     {

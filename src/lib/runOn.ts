@@ -30,6 +30,7 @@ export const FEATURE_KIND: Record<string, string> = {
   gif: 'make_gif',
   jumpcut: 'jump_cut',
   restore: 'restore',
+  beats: 'beat_analyze',
 }
 
 const key = (kind: string) => `opnduck:runOn:${kind}`

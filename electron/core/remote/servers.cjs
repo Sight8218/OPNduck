@@ -28,7 +28,7 @@ const net = require('node:net')
 const { parseEnginePairLink } = require('../../../engine-api/pairlink.cjs')
 
 const MAX_SERVERS = 10
-const KINDS = ['download', 'convert', 'upscale_image', 'upscale_video', 'interpolate', 'subtitles', 'trim', 'compress', 'make_gif', 'jump_cut', 'restore', 'audio_ai']
+const KINDS = ['download', 'convert', 'upscale_image', 'upscale_video', 'interpolate', 'subtitles', 'trim', 'compress', 'make_gif', 'jump_cut', 'restore', 'beat_analyze', 'audio_ai']
 
 /** How well the connection to an address is protected: 'https', 'loopback', 'tailnet' (WireGuard already encrypts it) or 'lan-http' (not encrypted). */
 function transportOf(baseUrl) {
