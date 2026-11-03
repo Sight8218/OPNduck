@@ -354,6 +354,48 @@ ipcMain.handle('ai:removeKey', (_e, id) => {
   core.aiKeys.remove(String(id))
   return true
 })
+/* --- Spoken words: transcripts of the person's videos, search, summary, chapters, questions (Library) --- */
+const videoAi = require('./core/ai/video.cjs')
+ipcMain.handle('transcripts:list', () => core.transcripts.list())
+ipcMain.handle('transcripts:has', (_e, p) => core.transcripts.has(String(p)))
+ipcMain.handle('transcripts:search', (_e, query) => core.transcripts.search(String(query), { limit: 40 }))
+ipcMain.handle('transcripts:remove', (_e, p) => (core.transcripts.remove(String(p)), true))
+ipcMain.handle('transcripts:make', (_e, p) => core.makeSearchable(String(p)))
+const transcriptOf = (p) => {
+  const t = core.transcripts.get(String(p))
+  if (!t) throw new Error('This video has no transcript yet. Press "Make searchable" first.')
+  return t
+}
+ipcMain.handle('transcripts:summary', (_e, p) => videoAi.summarize(core.ai, transcriptOf(p)))
+ipcMain.handle('transcripts:chapters', async (_e, p) => {
+  const t = transcriptOf(p)
+  const chapters = await videoAi.proposeChapters(core.ai, t)
+  return { chapters, list: videoAi.chaptersList(chapters) }
+})
+ipcMain.handle('transcripts:writeChapters', async (_e, p, chapters) => {
+  const t = transcriptOf(p)
+  const clean = videoAi.tidyChapters(Array.isArray(chapters) ? chapters : [], t.duration)
+  if (!clean.length) throw new Error('There are no chapters to write')
+  return videoAi.writeChapters(String(p), clean, t.duration, path.dirname(String(p)), modules.common.uniqueOutputPath)
+})
+ipcMain.handle('transcripts:ask', async (e, requestId, p, question) => {
+  const t = transcriptOf(p)
+  const controller = new AbortController()
+  aiRuns.set(String(requestId), controller)
+  let text = ''
+  try {
+    for await (const ev of videoAi.ask({ chat: (o) => core.ai.chat({ ...o, signal: controller.signal }) }, t, String(question), (q) => core.transcripts.search(q, { videoPath: String(p), any: true, limit: 12 }))) {
+      if (ev.type === 'text') text += ev.delta
+      if (ev.type === 'text' || ev.type === 'thinking') e.sender.send('ai:event', { requestId: String(requestId), event: ev })
+    }
+    return text
+  } catch (err) {
+    if (controller.signal.aborted) return text
+    throw err
+  } finally {
+    aiRuns.delete(String(requestId))
+  }
+})
 ipcMain.handle('grade:looks', () => modules.grade.listLooks())
 ipcMain.handle('grade:auto', (_e, p) => modules.grade.autoGrade(String(p)))
 ipcMain.handle('grade:preview', (_e, req) => modules.grade.previewGrade(req))

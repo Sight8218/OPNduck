@@ -32,6 +32,17 @@ export const setClipHandoff = (clip: ClipHandoff) => {
   pending = clip
 }
 
+/** A moment in a video waiting for the Trim card to open its visual trimmer there (from a spoken-words search hit). */
+let pendingTrim: ClipHandoff | null = null
+export const setTrimHandoff = (clip: ClipHandoff) => {
+  pendingTrim = clip
+}
+export function takeTrimHandoff(): ClipHandoff | null {
+  const clip = pendingTrim
+  pendingTrim = null
+  return clip
+}
+
 export function takeClipHandoff(): ClipHandoff | null {
   const clip = pending
   pending = null

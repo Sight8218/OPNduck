@@ -42,6 +42,7 @@ import {
 } from '../lib/libraryView'
 import { useQueuePaused } from '../lib/useQueuePaused'
 import { useTasks } from '../lib/useTasks'
+import VideoAiPanel, { SpokenSearch } from '../components/VideoAiPanel'
 
 const RUNNING_LABEL: Record<TaskState['kind'], string> = {
   download: 'Downloading',
@@ -109,6 +110,7 @@ function TaskRowImpl({ task }: { task: TaskState }) {
   const navigate = useNavigate()
   const running = task.status === 'queued' || task.status === 'running'
   const [askMatch, setAskMatch] = useState(false)
+  const [wordsFile, setWordsFile] = useState<string | null>(null)
   // A failed Spotify match: "Run again" offers a different video instead of repeating the same search.
   const retryOtherMatch = task.status === 'error' && !!task.experimentalMatch
   const size = formatBytes(task.sizeBytes)
@@ -146,6 +148,16 @@ function TaskRowImpl({ task }: { task: TaskState }) {
               }}
             >
               Fix tags
+            </button>
+          )}
+          {task.status === 'done' && host.isDesktop && ['download', 'convert', 'upscale', 'interpolate', 'trim', 'compress', 'restore', 'grade', 'jumpcut', 'beatcut'].includes(task.kind) && !AUDIO_FORMATS.includes(String(task.format).toUpperCase()) && (
+            <button
+              type="button"
+              className="glass-btn px-2 py-1 text-xs"
+              title="Search what is said in this video, summarize it, find chapters or ask it questions"
+              onClick={async () => setWordsFile((await host.tasks.fileOf(task.id)) ?? null)}
+            >
+              Spoken words
             </button>
           )}
           {task.status === 'queued' && (
@@ -203,6 +215,7 @@ function TaskRowImpl({ task }: { task: TaskState }) {
       <ProgressBar value={task.progress} status={task.status} />
       <TaskLogs taskId={task.id} />
       {task.error && <span className="text-xs text-red-400">{task.error}</span>}
+      {wordsFile && <VideoAiPanel file={wordsFile} onClose={() => setWordsFile(null)} />}
       {askMatch && (
         <AnotherMatchDialog
           onClose={() => setAskMatch(false)}
@@ -350,6 +363,7 @@ export default function Library() {
   const [pendingImport, setPendingImport] = useState<ImportedTask[] | null>(null)
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null)
   const [tab, setTab] = useState<'history' | 'subscriptions'>('history')
+  const [spoken, setSpoken] = useState(false) // search the words said in videos instead of the job list
   const hasFinished = tasks.some((t) => t.status === 'done' || t.status === 'error' || t.status === 'canceled')
 
   useEffect(() => {
@@ -487,7 +501,14 @@ export default function Library() {
           <GlassSelect id="library-sort" options={SORT_OPTIONS} value={view.sort} onChange={(sort) => update({ sort })} />
         </div>
       )}
-      {tasks.length > 0 && filtering && (
+      {host.isDesktop && (
+        <label className="mb-3 flex w-fit cursor-pointer items-center gap-2 text-xs text-[var(--text-dim)]">
+          <input type="checkbox" className="accent-[var(--accent)]" checked={spoken} onChange={(e) => setSpoken(e.target.checked)} />
+          Spoken words: search what is said in your videos
+        </label>
+      )}
+      {spoken && <SpokenSearch query={view.query} />}
+      {tasks.length > 0 && filtering && !spoken && (
         <div className="mb-3 flex items-center gap-3 text-xs text-[var(--text-dim)]">
           <span>
             Showing {shown} of {tasks.length}
@@ -498,7 +519,7 @@ export default function Library() {
         </div>
       )}
 
-      {tasks.length === 0 ? (
+      {spoken ? null : tasks.length === 0 ? (
         <div className="glass flex items-center justify-center rounded-3xl p-10 text-sm text-[var(--text-dim)]">
           Nothing here yet — start a download or conversion from Home.
         </div>

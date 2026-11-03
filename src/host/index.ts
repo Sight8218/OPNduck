@@ -577,6 +577,31 @@ export interface AiLook {
   why: string
 }
 
+export interface TranscriptInfo {
+  id: string
+  path: string
+  title: string
+  language: string
+  duration: number
+  indexedAt: number
+  segments: number
+}
+export interface SpokenHit {
+  path: string
+  title: string
+  start: number
+  end: number
+  text: string
+}
+export interface VideoSummary {
+  summary: string
+  points: string[]
+}
+export interface Chapter {
+  start: number
+  title: string
+}
+
 export type DenoiseLevel = 'off' | 'light' | 'medium' | 'strong'
 
 export interface RestoreRequest {
@@ -969,6 +994,21 @@ export interface Host {
     duplicate(id: string): Promise<Recipe>
     run(id: string, input: string, opts?: { destination?: string; keepIntermediate?: boolean }): Promise<RecipeRun>
     resume(runId: string): Promise<RecipeRun>
+  }
+  /** The spoken words of the person's videos: search, summary, chapters and questions. All local; the AI parts need a model in Settings > AI. Desktop only. */
+  transcripts: {
+    list(): Promise<TranscriptInfo[]>
+    has(videoPath: string): Promise<boolean>
+    search(query: string): Promise<SpokenHit[]>
+    remove(videoPath: string): Promise<boolean>
+    /** Transcribes a video with Whisper (a job in the queue) so its words become searchable. Returns the job id. */
+    make(videoPath: string): Promise<string>
+    summary(videoPath: string): Promise<VideoSummary>
+    chapters(videoPath: string): Promise<{ chapters: Chapter[]; list: string }>
+    /** Writes chapters into a copy of the video (no re-encode). Returns the new file. */
+    writeChapters(videoPath: string, chapters: Chapter[]): Promise<string>
+    /** Answers from the transcript; the text also streams through `ai.onEvent` with this request id. */
+    ask(requestId: string, videoPath: string, question: string): Promise<string>
   }
   /** Colour grading helpers for the Colour Grade card (none of them starts a job). Desktop only. */
   grade: {
@@ -1477,6 +1517,27 @@ const browserHost: Host = {
       throw new Error('Desktop app required')
     },
     resume: async () => {
+      throw new Error('Desktop app required')
+    },
+  },
+  transcripts: {
+    list: async () => [],
+    has: async () => false,
+    search: async () => [],
+    remove: async () => false,
+    make: async () => {
+      throw new Error('Desktop app required')
+    },
+    summary: async () => {
+      throw new Error('Desktop app required')
+    },
+    chapters: async () => {
+      throw new Error('Desktop app required')
+    },
+    writeChapters: async () => {
+      throw new Error('Desktop app required')
+    },
+    ask: async () => {
       throw new Error('Desktop app required')
     },
   },

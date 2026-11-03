@@ -24,7 +24,7 @@ import Tag from '../../components/Tag'
 import TaskLogs from '../../components/TaskLogs'
 import { useSearchParams } from 'react-router-dom'
 import { host, type MediaInfo, type TrimMode } from '../../host'
-import { setClipHandoff } from '../../lib/clipHandoff'
+import { setClipHandoff, takeTrimHandoff } from '../../lib/clipHandoff'
 import { getDownloadDirOverride } from '../../lib/downloadPrefs'
 import { formatBytes } from '../../lib/formatBytes'
 import { useSubmittedIds } from '../../lib/submittedTasks'
@@ -53,6 +53,22 @@ export default function TrimCard({ feature }: { feature: FeatureDefinition }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [submittedIds, setSubmittedIds] = useSubmittedIds('trim')
   const [, setParams] = useSearchParams()
+  const [openWhenReady, setOpenWhenReady] = useState(false)
+
+  // A search hit sends its video and the moment here: the visual trimmer opens around it.
+  useEffect(() => {
+    const h = takeTrimHandoff()
+    if (!h) return
+    setFile(h.file)
+    setStart(formatTime(h.start))
+    setOpenWhenReady(true)
+  }, [])
+  useEffect(() => {
+    if (openWhenReady && info) {
+      setOpenWhenReady(false)
+      setModalOpen(true)
+    }
+  }, [openWhenReady, info])
 
   const tasks = useTasks()
   const submitted = tasks.filter((t) => submittedIds.includes(t.id))

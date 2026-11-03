@@ -46,8 +46,39 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
       onFinished(state, req)
       plugins?.emit(state.status === 'error' ? 'job:failed' : 'job:finished', { id: state.id, kind: state.kind, status: state.status, label: state.label })
       autoTag(state)
+      indexSubtitles(state, req)
     },
   })
+
+  /**
+   * A finished subtitles job also feeds the spoken-words search (the transcript stays on this computer). A job started
+   * by "Make searchable" wrote its subtitle file to a scratch folder, which is deleted again.
+   */
+  function indexSubtitles(state, req) {
+    if (state.status !== 'done' || state.kind !== 'subtitles') return
+    const entry = engine.tasks.get(state.id)
+    const file = entry?.finalPath
+    if (!file || !/\.(srt|vtt)$/i.test(file) || !req?.inputPath) return
+    try {
+      core.transcripts.addFromSubtitleFile(req.inputPath, file, { language: String(req.language ?? '') })
+    } catch (err) {
+      process.stderr.write(`transcripts: ${err.message}\n`)
+    }
+    if (entry.indexOnly) fs.rmSync(file, { force: true })
+  }
+
+  /** Transcribes a video just to make its words searchable (Whisper, a scratch subtitle file that is deleted). */
+  async function makeSearchable(videoPath) {
+    if (!path.isAbsolute(String(videoPath)) || !isKnownFile(videoPath)) throw new Error('Choose a video from the Library or pick one first')
+    const check = await tools.checkFasterWhisper()
+    if (!check.available) throw new Error('Searching spoken words needs the Subtitles add-on (faster-whisper). Install it from the Subtitles card.')
+    const scratch = path.join(platform.paths.userData, 'transcripts', 'tmp')
+    fs.mkdirSync(scratch, { recursive: true })
+    const id = await core.startJob('tasks:startSubtitles', { inputPath: videoPath, model: 'base', language: 'auto', translate: false, format: 'srt', destination: scratch })
+    const e = engine.tasks.get(id)
+    if (e) e.indexOnly = true
+    return id
+  }
 
   /**
    * After an audio download finishes, tag it by itself, but only when the user turned that on in Settings (it sends the
@@ -106,6 +137,7 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
   /** Stops everything cleanly: kills queued/running jobs' processes, saves history, stops the model workers and plugins. */
   function shutdown() {
     schedule.stop()
+    core.transcripts.close()
     void plugins.shutdown()
     modules.subtitles.whisperWorker.stop()
     modules.audioAi.demucsWorker.stop()
@@ -136,7 +168,8 @@ function createCore({ platform, onFinished = () => {}, registerStart, pickPath, 
   const knownFiles = () => [...new Set([...picked, ...[...engine.tasks.values()].map((e) => e.finalPath).filter(Boolean)])].slice(-12)
   const aiKeys = require('./ai/keys.cjs').createKeys({ file: path.join(platform.paths.userData, 'ai-keys.json'), ...(secrets ?? {}) })
   const ai = require('./ai/index.cjs').createAi({ getSettings, keys: aiKeys })
-  const core = { platform, settings, tools, engine, modules, ctx, startJob, shutdown, recipes: modules.recipes.recipes, schedule, ai, aiKeys, noteFile, isKnownFile, knownFiles, chats: require('./ai/chats.cjs').createChats({ dir: path.join(platform.paths.userData, 'chats') }) }
+  const transcripts = require('./ai/transcripts.cjs').createTranscripts({ dir: path.join(platform.paths.userData, 'transcripts') })
+  const core = { platform, settings, tools, engine, modules, ctx, startJob, shutdown, recipes: modules.recipes.recipes, schedule, ai, aiKeys, transcripts, makeSearchable, noteFile, isKnownFile, knownFiles, chats: require('./ai/chats.cjs').createChats({ dir: path.join(platform.paths.userData, 'chats') }) }
   // Not started here: the shell calls `core.plugins.init()` once it is ready (after its windows and dialogs exist).
   plugins = core.plugins = require('./plugins.cjs').createPluginHost({
     core,

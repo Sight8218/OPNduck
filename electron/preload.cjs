@@ -113,6 +113,17 @@ contextBridge.exposeInMainWorld('opnduckHost', {
       removeAll: () => ipcRenderer.invoke('ai:chats:removeAll'),
     },
   },
+  transcripts: {
+    list: () => ipcRenderer.invoke('transcripts:list'),
+    has: (p) => ipcRenderer.invoke('transcripts:has', p),
+    search: (q) => ipcRenderer.invoke('transcripts:search', q),
+    remove: (p) => ipcRenderer.invoke('transcripts:remove', p),
+    make: (p) => ipcRenderer.invoke('transcripts:make', p),
+    summary: (p) => ipcRenderer.invoke('transcripts:summary', p),
+    chapters: (p) => ipcRenderer.invoke('transcripts:chapters', p),
+    writeChapters: (p, chapters) => ipcRenderer.invoke('transcripts:writeChapters', p, chapters),
+    ask: (requestId, p, question) => ipcRenderer.invoke('transcripts:ask', requestId, p, question),
+  },
   grade: {
     looks: () => ipcRenderer.invoke('grade:looks'),
     auto: (p) => ipcRenderer.invoke('grade:auto', p),
