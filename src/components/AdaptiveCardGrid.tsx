@@ -37,8 +37,11 @@ export default function AdaptiveCardGrid() {
   const open = features.find((f) => f.id === openId) ?? null
   const choose = (id: string | null) => setParams(id ? { tool: id } : {}, { replace: true })
 
+  // While a tool is open the tiles shrink to a one-line strip, so the tool itself is in view instead of below the fold.
+  const compact = !!open
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className={`flex flex-col ${compact ? 'gap-3' : 'gap-6'}`}>
       {selector ? (
         <PluginFrame
           key={`${selector.pluginId}-${selector.version}`}
@@ -49,7 +52,7 @@ export default function AdaptiveCardGrid() {
           app={{ features, selected: openId, onSelect: choose }}
         />
       ) : (
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <div className={compact ? 'grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6' : 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4'}>
         {features.map((f, i) => {
           const active = f.id === open?.id
           return (
@@ -58,17 +61,20 @@ export default function AdaptiveCardGrid() {
               type="button"
               onClick={() => choose(active ? null : f.id)}
               aria-pressed={active}
-              className={`glass tile-glow-hover pop-in flex items-center gap-3 rounded-2xl p-3 text-left transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 ${
+              title={compact ? `${f.title}: ${f.tagline}` : undefined}
+              className={`glass tile-glow-hover pop-in flex items-center text-left transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 ${
+                compact ? 'gap-2 rounded-xl px-2 py-1' : 'gap-3 rounded-2xl p-3'
+              } ${
                 active ? 'border-[var(--accent)] shadow-[0_0_0_1px_var(--accent)]' : ''
               }`}
               style={{ ['--pop-delay' as string]: `${i * 40}ms` }}
             >
-              <span className="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
-                <FeatureIcon name={f.icon} size={20} />
+              <span className={`glass flex shrink-0 items-center justify-center rounded-xl ${compact ? 'h-6 w-6' : 'h-10 w-10'}`}>
+                <FeatureIcon name={f.icon} size={compact ? 14 : 20} />
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-sm font-bold leading-tight">{f.title}</span>
-                <span className="block truncate text-xs text-[var(--text-dim)]">{f.tagline}</span>
+                <span className={`block truncate font-bold leading-tight ${compact ? 'text-xs' : 'text-sm'}`}>{f.title}</span>
+                {!compact && <span className="block truncate text-xs text-[var(--text-dim)]">{f.tagline}</span>}
               </span>
             </button>
           )
@@ -96,7 +102,7 @@ export default function AdaptiveCardGrid() {
         </div>
       ) : open ? (
 
-        <div key={open.id} className="pop-in mx-auto w-full max-w-3xl">
+        <div key={open.id} className={`pop-in mx-auto w-full ${open.id === 'gif' ? 'max-w-6xl' : 'max-w-3xl'}`}>
           <open.render feature={open} />
         </div>
       ) : (

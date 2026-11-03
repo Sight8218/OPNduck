@@ -83,7 +83,7 @@ export default function FeatureCard({
   const { reduceMotion } = useReduceMotion()
   return (
     <section
-      className={`glass relative flex h-full flex-col rounded-3xl p-5 transition-[transform,box-shadow] duration-300 ease-out ${
+      className={`glass relative flex h-full flex-col rounded-3xl p-4 transition-[transform,box-shadow] duration-300 ease-out ${
         reduceMotion ? '' : 'card-glow-hover'
       }`}
       {...dragProps}
@@ -93,9 +93,9 @@ export default function FeatureCard({
           {onDropFiles ? 'Drop files to add them' : 'Drop the link here'}
         </div>
       )}
-      <div className="mb-4 flex items-start justify-between gap-3">
+      <div className="mb-2 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="glass flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg leading-none">
+          <div className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-lg leading-none">
             <FeatureIcon name={feature.icon} />
           </div>
           <div>
@@ -106,12 +106,12 @@ export default function FeatureCard({
         <RunOnSelector featureId={feature.id} />
       </div>
 
-      <p className="mb-4 text-sm leading-relaxed text-[var(--text-dim)]">{feature.description}</p>
+      <p className="mb-3 text-xs leading-relaxed text-[var(--text-dim)]">{feature.description}</p>
 
       {children ? (
         // flex-1 + mt-auto on the last child (the action button) pins buttons to the
         // card bottom so cards in the same row line up.
-        <div className="flex flex-1 flex-col gap-3 [&>:last-child]:mt-auto">{children}</div>
+        <div className="flex flex-1 flex-col gap-2 [&>:last-child]:mt-auto">{children}</div>
       ) : null}
     </section>
   )

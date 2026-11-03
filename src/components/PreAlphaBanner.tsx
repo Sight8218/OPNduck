@@ -13,9 +13,9 @@ export default function PreAlphaBanner() {
   if (!visible) return null
 
   return (
-    <div className="mt-3 flex items-start justify-center px-3">
+    <div className="mt-2 flex items-start justify-center px-3">
       <div
-        className="flex max-w-3xl items-center gap-3 rounded-2xl border px-4 py-2.5 text-sm"
+        className="flex max-w-3xl items-center gap-3 rounded-2xl border px-3 py-1.5 text-xs"
         style={{
           background: 'var(--glass-bg)',
           borderColor: 'var(--glass-border)',

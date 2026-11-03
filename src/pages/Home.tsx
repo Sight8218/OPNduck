@@ -20,12 +20,15 @@
 import PixelLogo from '../components/PixelLogo'
 import AdaptiveCardGrid from '../components/AdaptiveCardGrid'
 import InboxBanner from '../components/InboxBanner'
+import { useSearchParams } from 'react-router-dom'
 
 export default function Home() {
+  const [params] = useSearchParams()
+  const toolOpen = !!params.get('tool') // the logo and the spacing shrink while a tool is open
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <h1 className="mb-6" aria-label="OPNduck">
-        <PixelLogo cell={6} banded />
+    <div className={`mx-auto max-w-7xl px-4 sm:px-6 ${toolOpen ? 'py-3' : 'py-8'}`}>
+      <h1 className={toolOpen ? 'mb-2' : 'mb-6'} aria-label="OPNduck">
+        <PixelLogo cell={toolOpen ? 3 : 6} banded />
       </h1>
 
       <InboxBanner />

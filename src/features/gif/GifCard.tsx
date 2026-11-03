@@ -115,6 +115,9 @@ export default function GifCard({ feature }: { feature: FeatureDefinition }) {
 
   return (
     <FeatureCard feature={feature} onDropFiles={running ? undefined : (paths) => paths[0] && setFile(paths[0])} dropExtensions={EXTENSIONS}>
+      {/* Two columns when there is room: the clip on the left, the output settings and the result on the right. */}
+      <div className="grid gap-x-6 gap-y-2 lg:grid-cols-2">
+      <div className="flex flex-col gap-2">
       <button type="button" className="glass-btn" onClick={pick} disabled={running}>
         {file ? 'Choose another video…' : 'Choose a video…'}
       </button>
@@ -159,6 +162,8 @@ export default function GifCard({ feature }: { feature: FeatureDefinition }) {
         </div>
         <span className="mt-1 block text-[11px] text-[var(--text-faint)]">{current.hint}</span>
       </div>
+      </div>
+      <div className="flex flex-col gap-2">
       {!isSticker && (
         <>
           <div className="grid grid-cols-2 gap-3">
@@ -197,6 +202,8 @@ export default function GifCard({ feature }: { feature: FeatureDefinition }) {
       <button type="button" className="glass-btn" onClick={() => void run()} disabled={!file || !info || !info.hasVideo || running}>
         Make {current.label}
       </button>
+      </div>
+      </div>
       {file && info && (
         <TrimModal
           open={modalOpen}
