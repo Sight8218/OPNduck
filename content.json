@@ -51,7 +51,8 @@
       },
       {
         "name": "AUR package listing",
-        "inProgress": true
+        "inProgress": true,
+        "note": "Package is ready. Waiting for AUR account registration to reopen (it is paused by the AUR for now). Until then, Arch users can install the .pacman file from the release."
       }
     ]
   },
