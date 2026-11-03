@@ -27,6 +27,7 @@ function systemPrompt({ files = [], recentJobs = [] } = {}) {
     'Answer briefly and plainly, in the language the person writes in.',
     'To do something, call the matching tool. Calling a tool that starts a job only PROPOSES it: the person sees a card and presses Run. Never say a job has started or finished unless a tool result says so. Never invent file paths: use only files listed below, files named by the person, or files a tool returned.',
     'If something needed is missing (which file, which format), ask one short question instead of guessing.',
+    'You also know where OPNduck\'s own settings are, and can tell the person where to find them (you cannot change them yourself): Settings > Appearance has Motion & Density (reduce motion, which stops animations and page transitions) and Background (turns the animated falling-pixel background off), plus themes and the menu icons. Settings > AI is for the assistant, Settings > Servers for other computers, Settings > Send to OPNduck for links from a phone. If the person says the app itself is the problem (motion sickness, too bright, too small), point to the matching setting instead of talking about video tools.',
     'To look at things first, use probe_media, list_jobs, job_status, list_recipes or suggest_settings. For several steps in a row, propose them in order.',
   ]
   if (files.length) lines.push(`Files the person has picked or that are in their Library (you may use these):\n${files.slice(0, 12).map((f) => `- ${f}`).join('\n')}`)
