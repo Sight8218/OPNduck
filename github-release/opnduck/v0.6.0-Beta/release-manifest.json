@@ -1,0 +1,68 @@
+{
+  "project": "opnduck-desktop",
+  "version": "0.6.0-Beta",
+  "manifest_version_field": "0.6.0-beta",
+  "release_type": "beta (pre-release)",
+  "tag": "v0.6.0-Beta",
+  "branch": "main",
+  "base_tag": "v0.5.3-Beta",
+  "base_commit": "504ff6b",
+  "mode": "automated (authorized by caller)",
+  "stages": {
+    "discovery": "complete",
+    "version": "complete",
+    "changelog": "complete",
+    "docs": "complete",
+    "build": "complete",
+    "package": "complete",
+    "checksum": "complete",
+    "scan": "complete",
+    "validation": "complete",
+    "publication": "GitHub release only; npm, GHCR, AUR, F-Droid, website, Discord not performed"
+  },
+  "platforms": [
+    "linux",
+    "windows"
+  ],
+  "architectures": [
+    "x64"
+  ],
+  "checksums": {
+    "OPNduck-0.6.0-beta.AppImage": "6719d00984a7aef9c9e9ff39e3c9bb1615052ff2316f88eaec4d5ec7f82f1f78",
+    "OPNduck.0.6.0-beta.exe": "2cb4dbfc9c334953bff32ce5df532307dfdf427bd638c9bef68c91d235d28614",
+    "opnduck-desktop-0.6.0-beta.pacman": "979bef1e05d65d6b807396d923431704367181c6197b6a0f63db6b7034501716",
+    "OPNduck.Setup.0.6.0-beta.exe": "734b81b7a07dbae877183873f6bcb9df5cf5acbafb35a8821ad8a6f309521bae",
+    "opnduck-tui-0.6.0-beta.tar.gz": "3ddd0f1da62277a90cd35cfcfb5960990c3340be1cdaf8ad325e12b7e7a7af59"
+  },
+  "tests": {
+    "typecheck": "clean",
+    "lint": "0 errors (warnings only)",
+    "unit": "299 tests, 298 pass, 0 fail, 1 skipped",
+    "smoke_test": "not run"
+  },
+  "secret_scan": {
+    "gitleaks": "5 generic-api-key hits, all reviewed false positives: public AcoustID app key (electron/core/tagger.cjs:78, and its copy in the built app.asar) and committed test vectors (test/vectors/envelope.json:5-6)",
+    "trufflehog": "0 verified, 0 unverified since v0.5.3-Beta"
+  },
+  "packaging": {
+    "appimage": "built",
+    "pacman": "built",
+    "nsis": "built (wine, untested on real Windows)",
+    "portable": "built (wine, untested on real Windows)",
+    "tui_tarball": "built",
+    "aur": "PKGBUILD/.SRCINFO synced to 0.6.0beta, sha256sums=SKIP until the tag tarball hash is computed; not published (deferred)",
+    "signing": "not implemented (deferred)",
+    "macos_android": "not built here"
+  },
+  "documentation_changes": [
+    "CHANGELOG.md",
+    "README.md",
+    "package.json",
+    "package-lock.json",
+    "packaging/aur/PKGBUILD",
+    "packaging/aur/.SRCINFO",
+    ".github/ISSUE_TEMPLATE/bug_report.yml",
+    ".github/workflows/publish-tui.yml",
+    "docs/TUI.md"
+  ]
+}

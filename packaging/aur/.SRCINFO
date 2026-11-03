@@ -1,6 +1,6 @@
 pkgbase = opnduck
 	pkgdesc = Local-first, open-source media suite: downloader, converter, upscalers, subtitles, AI audio
-	pkgver = 0.5.3beta
+	pkgver = 0.6.0beta
 	pkgrel = 1
 	url = https://github.com/Sight8218/OPNduck
 	arch = x86_64
@@ -13,7 +13,7 @@ pkgbase = opnduck
 	optdepends = python: AI audio and subtitles (OPNduck can install its own Python packages)
 	optdepends = realesrgan-ncnn-vulkan: image and video upscaling
 	optdepends = rife-ncnn-vulkan: frame interpolation
-	source = opnduck-0.5.3beta.tar.gz::https://github.com/Sight8218/OPNduck/archive/refs/tags/v0.5.3-Beta.tar.gz
-	sha256sums = 3bd57aab42aa80431b67c4956fa22b435c9c1b22943c611f7e30d5f2e06a2eff
+	source = opnduck-0.6.0beta.tar.gz::https://github.com/Sight8218/OPNduck/archive/refs/tags/v0.6.0-Beta.tar.gz
+	sha256sums = SKIP
 
 pkgname = opnduck

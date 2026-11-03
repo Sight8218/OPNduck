@@ -12,7 +12,7 @@ body:
     attributes:
       label: OPNduck version
       description: Shown at the bottom right of the app, or run `opnduck-tui --help`.
-      placeholder: v0.5.3-beta
+      placeholder: v0.6.0-beta
     validations:
       required: true
   - type: dropdown

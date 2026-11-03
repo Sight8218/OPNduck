@@ -1,0 +1,7 @@
+{
+  "note": "DRAFT ONLY - not sent.",
+  "project": "OPNduck",
+  "version": "v0.6.0-Beta",
+  "content": "**OPNduck v0.6.0-Beta** \ud83e\udd86\n\nThe biggest update yet for OPNduck, and possibly ever. It might be super buggy: expect bugs and report them.\n\n**New**\n\u2022 Send to OPNduck: links from your phone and browser\n\u2022 OPNduck Server and Android companion\n\u2022 AI runtime, Chat and an optional local model\n\u2022 Recipes, Colour Grade, Background Remover, Dubbing, Beat Finder\n\u2022 macOS beta (not attached)\n\nWindows installers untested on real Windows.",
+  "url": "https://github.com/Sight8218/OPNduck/releases/tag/v0.6.0-Beta"
+}

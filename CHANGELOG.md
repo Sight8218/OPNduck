@@ -6,6 +6,10 @@ history; entries are curated for readability.
 
 ## [Unreleased]
 
+## [0.6.0-Beta] - 2026-11-03
+
+The biggest update yet for OPNduck, and possibly ever. It might be super buggy: expect bugs and report them on GitHub.
+
 ### Added
 - **Send to OPNduck** (first part): links from other devices land in OPNduck. Turn it on in Settings (off by default). An `opnduck://send?url=…` link (from a web page, a launcher or the command line) puts the link in a banner on Home with Download and Dismiss; it never downloads by itself, even if you chose "Download straight away", because any web page can open such a link. Under the hood there is an encrypted message format (AES-256-GCM, keys derived from one pairing secret that stays on your computer), an inbox that drops junk, old and repeated messages and allows at most 30 a minute, and a rule that a remote message can only ever carry a link: the format, quality and folder come from your own settings ("Download as", default MP4 best quality). Downloads that came this way show a "via link" tag in the Library. 
 - **Send to OPNduck, direct connection:** an optional small server (off by default) that your phone or browser can send links to. Choose who can reach it: only this computer, this computer plus your Tailscale network, or (advanced) the whole home network. It only answers a health check and one request that needs your private key, never serves files, refuses anything over 8 KB, and only lets the project page and browser extensions call it from a web page. Settings shows a QR code and a copy button for the pair link, a Reset pairing button, the server status, and (for Tailscale) your Tailscale address and an "Enable HTTPS over Tailscale" button that runs `tailscale serve` for you (or shows the exact command if Tailscale does not allow it). 
