@@ -118,23 +118,19 @@
     "links": [
       {
         "platform": "Windows",
-        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/OPNduck.Setup.0.6.0-beta.exe"
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/OPNduck-Windows.exe"
       },
       {
         "platform": "Linux",
-        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/OPNduck-0.6.0-beta.AppImage"
-      },
-      {
-        "platform": "Arch Linux",
-        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/opnduck-desktop-0.6.0-beta.pacman"
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/OPNduck-Linux.zip"
       },
       {
         "platform": "macOS",
-        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/OPNduck-0.6.0-beta-arm64.dmg"
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/OPNduck-Mac.dmg"
       },
       {
         "platform": "Android",
-        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/opnduck-companion-v0.6.0-Beta-release-unsigned.apk"
+        "url": "https://github.com/Sight8218/OPNduck/releases/download/v0.6.0-Beta/OPNduck-Android.apk"
       }
     ]
   }
