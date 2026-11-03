@@ -21,6 +21,7 @@
  * propose jobs. No Electron. The person's data goes only to the provider they chose; with the provider "off" nothing
  * here does anything.
  */
+const net = require('node:net')
 const { createOpenAiProvider } = require('./providers/openai.cjs')
 const { createAnthropicProvider } = require('./providers/anthropic.cjs')
 const { createGeminiProvider } = require('./providers/gemini.cjs')
@@ -59,7 +60,7 @@ function addressOk(url, { allowPlain = false } = {}) {
   if (u.protocol !== 'http:') return false
   const h = u.hostname
   if (['localhost', '127.0.0.1', '[::1]'].includes(h) || /\.ts\.net$/i.test(h)) return true
-  const m = /^100\.(\d+)\./.exec(h)
+  const m = net.isIPv4(h) ? /^100\.(\d+)\./.exec(h) : null // a hostname such as 100.64.0.1.example.com is not a tailnet address
   if (m && Number(m[1]) >= 64 && Number(m[1]) <= 127) return true
   return allowPlain
 }

@@ -21,7 +21,6 @@
  * a path. The still is saved beside the video. Pure helpers plus a function that runs FFmpeg. No Electron.
  */
 const fs = require('node:fs')
-const os = require('node:os')
 const path = require('node:path')
 const { spawn } = require('node:child_process')
 

@@ -81,7 +81,7 @@ function propose(name, args, deps) {
       throw fail('url must be a full http(s) link')
     }
   } else {
-    for (const p of [req.inputPath, ...(Array.isArray(req.clips) ? req.clips : [])].filter(Boolean)) {
+    for (const p of [req.inputPath, req.backgroundImage, ...(Array.isArray(req.clips) ? req.clips : [])].filter(Boolean)) {
       if (!path.isAbsolute(p)) throw fail('Paths must be absolute')
       if (!deps.isKnownFile(p)) throw fail(`${path.basename(p)} is not a file the person picked or one in the Library. Ask them to add it.`)
     }

@@ -70,8 +70,8 @@ function createChats({ dir }) {
     const tmp = `${f}.tmp`
     fs.writeFileSync(tmp, body, { mode: 0o600 })
     fs.renameSync(tmp, f)
-    const all = list()
-    for (const old of all.slice(MAX_CHATS)) fs.rmSync(file(old.id), { force: true })
+    // Reading every chat just to prune is only worth it once there could be too many.
+    if (fs.readdirSync(dir).length > MAX_CHATS) for (const old of list().slice(MAX_CHATS)) fs.rmSync(file(old.id), { force: true })
     return true
   }
 

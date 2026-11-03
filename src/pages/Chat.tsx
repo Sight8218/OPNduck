@@ -186,18 +186,21 @@ export default function ChatPage() {
   }
 
   async function run(msgIndex: number, i: number) {
-    const m = chat.messages[msgIndex]
-    const { id } = await host.ai.run(m.proposals![i])
-    const started = [...(m.started ?? [])]
+    const forChat = chat.id
+    const { id } = await host.ai.run(chat.messages[msgIndex].proposals![i])
+    // Read the conversation again after the wait: an answer may have arrived meanwhile, and the person may have switched chats.
+    const now = chatRef.current
+    if (now.id !== forChat) return
+    const started = [...(now.messages[msgIndex].started ?? [])]
     started[i] = id
-    const next = { ...chat, messages: chat.messages.map((x, n) => (n === msgIndex ? { ...x, started } : x)) }
+    const next = { ...now, messages: now.messages.map((x, n) => (n === msgIndex ? { ...x, started } : x)) }
     setChat(next)
     persist(next)
   }
 
   async function open(id: string) {
     const c = await host.ai.chats.get(id)
-    if (c) setChat(c)
+    if (c) (setChat(c), setDismissed({}))
   }
 
   function onKey(e: React.KeyboardEvent) {
@@ -211,7 +214,7 @@ export default function ChatPage() {
   return (
     <div className="mx-auto flex h-[calc(100vh-9rem)] w-full max-w-6xl gap-4 px-4 pb-4">
       <aside className="glass hidden w-56 shrink-0 flex-col gap-2 rounded-3xl p-3 md:flex">
-        <button type="button" className="glass-btn px-3 py-1.5 text-xs" onClick={() => setChat(newChat())}>
+        <button type="button" className="glass-btn px-3 py-1.5 text-xs" onClick={() => (setChat(newChat()), setDismissed({}))}>
           New chat
         </button>
         <div className="flex flex-1 flex-col gap-1 overflow-y-auto">

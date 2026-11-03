@@ -489,7 +489,7 @@ function buildStartRequest(name, args) {
     if (spec.enum && !spec.enum.includes(value)) throw new Error(`Argument ${key} must be one of: ${spec.enum.join(', ')}`)
     if (Array.isArray(value) && (value.length > 5000 || value.some((v) => (spec.items?.type ?? 'string') !== typeof v && !(spec.items?.type === 'integer' && Number.isInteger(v))))) throw new Error(`Argument ${key} must be a list of ${spec.items?.type ?? 'string'}s (at most 5000)`)
     if (typeof value === 'string' && value.length > 4096) throw new Error(`Argument ${key} is too long`)
-    if (typeof value === 'number' && (!Number.isFinite(value) || (spec.minimum != null && value < spec.minimum))) throw new Error(`Argument ${key} is out of range`)
+    if (typeof value === 'number' && (!Number.isFinite(value) || (spec.minimum != null && value < spec.minimum) || (spec.maximum != null && value > spec.maximum))) throw new Error(`Argument ${key} is out of range`)
     req[key] = value
   }
   return { channel: tool.channel, req }

@@ -35,7 +35,7 @@ function transportOf(baseUrl) {
   const u = new URL(baseUrl)
   if (u.protocol === 'https:') return 'https'
   const host = u.hostname.replace(/^\[|\]$/g, '')
-  if (host === 'localhost' || host === '::1' || /^127\./.test(host)) return 'loopback'
+  if (host === 'localhost' || host === '::1' || (net.isIPv4(host) && host.startsWith('127.'))) return 'loopback'
   if (net.isIPv4(host)) {
     const [a, b] = host.split('.').map(Number)
     if (a === 100 && b >= 64 && b <= 127) return 'tailnet'

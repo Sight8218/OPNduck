@@ -194,6 +194,7 @@ function createLlama({ dir, getSettings, fetchFn = fetch, sources = {}, log = ()
 
   /** Downloads the llama.cpp server for this system (about 20 to 40 MB). */
   async function installRuntime() {
+    if (installing) throw new Error('A download is already running. Wait for it or stop it first.')
     installAbort = new AbortController()
     try {
       installing = { what: 'The AI engine (llama.cpp)', done: 0, total: 0 }
@@ -231,6 +232,7 @@ function createLlama({ dir, getSettings, fetchFn = fetch, sources = {}, log = ()
   async function installModel(id) {
     const m = MODELS[id]
     if (!m) throw new Error('Unknown model')
+    if (installing) throw new Error('A download is already running. Wait for it or stop it first.')
     installAbort = new AbortController()
     try {
       installing = { what: m.label, done: 0, total: 0 }
@@ -289,6 +291,16 @@ function createLlama({ dir, getSettings, fetchFn = fetch, sources = {}, log = ()
       child.stdout.on('data', keep)
       child.stderr.on('data', keep)
       const mine = child
+      // A server that cannot even start (missing, not executable) reports through 'error'; without a listener that would crash the app.
+      child.on('error', (err) => {
+        if (child !== mine) return
+        state = 'error'
+        error = `The AI engine could not be started: ${err.message}`
+        child = null
+        port = null
+        loadedModel = null
+        emit()
+      })
       child.on('close', () => {
         if (child !== mine) return
         if (state !== 'unloaded') {
@@ -316,8 +328,9 @@ function createLlama({ dir, getSettings, fetchFn = fetch, sources = {}, log = ()
         }
         await new Promise((r) => setTimeout(r, 500))
       }
-      eject()
-      throw new Error(error || 'The AI engine did not start in time. Try a smaller context or the CPU option.')
+      const failure = state === 'error' ? error : '' // the server stopped by itself: keep that reason on show
+      if (state !== 'error') eject()
+      throw new Error(failure || error || 'The AI engine did not start in time. Try a smaller context or the CPU option.')
     })().finally(() => {
       loadPromise = null
     })

@@ -53,6 +53,8 @@ const GIVE_UP_MS = 2 * 60 * 1000 // a server that stays unreachable this long fa
 function remoteArgs(kind, req) {
   if (kind === 'download') return Object.fromEntries(DOWNLOAD_ARGS.filter((k) => req[k] != null).map((k) => [k, req[k]]))
   const props = TOOLS.find((t) => t.name === kind)?.inputSchema.properties ?? {}
+  // The colour grader's card nests its sliders under `values`; the Engine API takes them flat.
+  if (kind === 'grade' && req.values && typeof req.values === 'object') req = { ...req.values, ...req, values: undefined }
   return Object.fromEntries(Object.entries(req).filter(([k, v]) => k !== 'inputPath' && k !== 'destination' && Object.hasOwn(props, k) && v != null))
 }
 

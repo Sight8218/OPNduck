@@ -33,6 +33,7 @@ const ID_RE = /^[0-9a-f]{32}$/
 function safeName(name) {
   let n = String(name ?? '').replace(/\p{Cc}/gu, '').split(/[\\/]/).pop().replace(/^\.+/, '').trim()
   if (!n) n = 'upload'
+  if (n === 'meta.json' || n === 'data.part') n = `_${n}` // would collide with the upload's own bookkeeping files
   const ext = path.extname(n).slice(0, 12)
   const base = n.slice(0, n.length - path.extname(n).length).slice(0, 120 - ext.length)
   return base + ext
@@ -82,7 +83,7 @@ function createUploads({ dir, maxBytes = 8 * 1024 ** 3, retentionMs = 48 * 3600 
     if (size > maxBytes) throw fail(413, `Files over ${Math.round(maxBytes / 1024 ** 3)} GB are not accepted`)
     if (sha256 != null && !/^[0-9a-f]{64}$/i.test(String(sha256))) throw fail(400, 'sha256 must be 64 hex characters')
     sweep()
-    const active = fs.readdirSync(dir).length
+    const active = fs.readdirSync(dir).filter((id) => !readMeta(id)?.complete).length // finished uploads wait for their job and expire on their own
     if (active >= MAX_ACTIVE) throw fail(429, 'Too many uploads are waiting; finish or wait for the old ones to expire')
     if (freeBytes(dir) < size * 1.1 + 512 * 1024 ** 2) throw fail(507, 'Not enough free disk space for that file')
     const id = crypto.randomBytes(16).toString('hex')
@@ -122,7 +123,15 @@ function createUploads({ dir, maxBytes = 8 * 1024 ** 3, retentionMs = 48 * 3600 
         if (got > expected) {
           body.destroy()
           out.destroy()
-          reject(fail(400, 'The chunk is longer than its Content-Range says'))
+          // Bytes beyond the range may already be on disk: cut the file back to where this chunk began.
+          out.once('close', () => {
+            try {
+              fs.truncateSync(partPath(id), have)
+            } catch {
+              /* nothing was written */
+            }
+            reject(fail(400, 'The chunk is longer than its Content-Range says'))
+          })
         }
       })
       body.on('error', (e) => (out.destroy(), reject(e)))

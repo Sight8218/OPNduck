@@ -41,7 +41,7 @@ function whyRefused(value, depth = 0) {
   if (Array.isArray(value)) return value.length > 100 ? 'too long' : value.map((v) => whyRefused(v, depth + 1)).find(Boolean) ?? ''
   if (value && typeof value === 'object') {
     for (const [k, v] of Object.entries(value)) {
-      if (/^(destination|inputPath|path|cookies?|cookieMode|cookieFile|output)/i.test(k)) return `${k} cannot be set from another device`
+      if (/^(destination|inputPath|path|cookies?|cookieMode|cookieFile|output(?:Path|Dir|Folder|File))/i.test(k)) return `${k} cannot be set from another device`
       const why = whyRefused(v, depth + 1)
       if (why) return why
     }

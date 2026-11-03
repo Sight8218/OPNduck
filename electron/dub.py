@@ -96,14 +96,19 @@ def translator(src, dst):
     return run
 
 
+_loaded_voices = {}
+
+
 def speak(voice_dir, lang, text, out_wav):
     from piper import PiperVoice
 
     rel = VOICES[lang]
     base = os.path.join(voice_dir, os.path.basename(rel))
-    fetch(VOICE_URL + rel + ".onnx", base + ".onnx")
-    fetch(VOICE_URL + rel + ".onnx.json", base + ".onnx.json")
-    voice = PiperVoice.load(base + ".onnx")
+    voice = _loaded_voices.get(base)
+    if voice is None:  # loading the model once per language, not once per spoken line
+        fetch(VOICE_URL + rel + ".onnx", base + ".onnx")
+        fetch(VOICE_URL + rel + ".onnx.json", base + ".onnx.json")
+        voice = _loaded_voices[base] = PiperVoice.load(base + ".onnx")
     with wave.open(out_wav, "wb") as w:
         voice.synthesize_wav(text, w)
     return out_wav

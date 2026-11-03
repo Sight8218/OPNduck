@@ -621,7 +621,7 @@ function aiShare() {
       if (!usable()) throw new Error('This computer shares no AI model: choose OPNduck\'s own, Ollama or LM Studio in Settings > AI.')
       return core.ai.chat(o)
     },
-    models: () => core.ai.models(),
+    models: async () => (usable() ? core.ai.models() : []), // a cloud provider's model list would be fetched with the owner's key
     status: () => ({ provider: getSettings().ai.provider, model: getSettings().ai.provider === 'local' ? getSettings().ai.localModel : getSettings().ai.model, shared: usable(), local: core.llama.status() }),
     load: () => (getSettings().ai.provider === 'local' ? core.llama.load() : Promise.resolve()),
     eject: () => core.llama.eject(),

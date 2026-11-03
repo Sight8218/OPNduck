@@ -79,9 +79,11 @@ function createIndex(dir) {
         }
       },
       remove: (video) => void db.prepare('DELETE FROM seg WHERE video = ?').run(video),
-      search(ws, limit, any = false) {
+      search(ws, limit, any = false, only = null) {
         const q = ws.map((w) => `"${w}"*`).join(any ? ' OR ' : ' AND ')
-        return db.prepare('SELECT video, start, end, text, bm25(seg) AS score FROM seg WHERE seg MATCH ? ORDER BY score LIMIT ?').all(q, limit).map((r) => ({ video: r.video, start: r.start, end: r.end, text: r.text }))
+        // One video's hits are picked inside the query: filtering afterwards would lose them behind better matches in other videos.
+        const rows = only ? db.prepare('SELECT video, start, end, text, bm25(seg) AS score FROM seg WHERE seg MATCH ? AND video = ? ORDER BY score LIMIT ?').all(q, only, limit) : db.prepare('SELECT video, start, end, text, bm25(seg) AS score FROM seg WHERE seg MATCH ? ORDER BY score LIMIT ?').all(q, limit)
+        return rows.map((r) => ({ video: r.video, start: r.start, end: r.end, text: r.text }))
       },
       close: () => db.close(),
     }
@@ -97,9 +99,9 @@ function createIndex(dir) {
       remove(video) {
         for (let i = rows.length - 1; i >= 0; i--) if (rows[i].video === video) rows.splice(i, 1)
       },
-      search: (ws, limit, any = false) =>
+      search: (ws, limit, any = false, only = null) =>
         rows
-          .filter((r) => (any ? ws.some((w) => r.lower.includes(w)) : ws.every((w) => r.lower.includes(w))))
+          .filter((r) => (!only || r.video === only) && (any ? ws.some((w) => r.lower.includes(w)) : ws.every((w) => r.lower.includes(w))))
           .slice(0, limit)
           .map(({ lower: _l, ...r }) => r),
       close() {},
@@ -169,7 +171,7 @@ function createTranscripts({ dir }) {
     const only = videoPath ? idOf(videoPath) : null
     const byId = new Map(all().map((t) => [t.id, t]))
     const out = []
-    for (const r of index.search(ws, only ? 500 : Math.min(200, limit * 3), any)) {
+    for (const r of index.search(ws, only ? Math.max(limit, 500) : Math.min(200, limit * 3), any, only)) {
       if (only && r.video !== only) continue
       const t = byId.get(r.video)
       if (!t || !fs.existsSync(t.path)) continue
