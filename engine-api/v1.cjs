@@ -77,7 +77,20 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, a
 
   // `downloadable` is false once the file is gone (a recipe's working files, or a result someone deleted): nothing to fetch.
   const stateOf = (entry) => ({ ...entry.state, host: name(), downloadable: entry.state.status === 'done' ? !!engine.taskFile?.(entry.state.id) : false })
-  const allTasks = () => [...engine.tasks.values()].map(stateOf)
+  /**
+   * Who may see and change which job: a 'desktop' device sees every job; any other device only the jobs it started
+   * (and the follow-up steps of those jobs). Jobs started on this computer itself belong to no device.
+   */
+  const groupOwners = new Map()
+  const admin = (device) => device?.kind === 'desktop'
+  const owns = (device, entry) => !!entry && (admin(device) || entry.ownerDevice === device?.id || (entry.state.group?.id && groupOwners.get(entry.state.group.id) === device?.id))
+  const claim = (device, id) => {
+    const entry = engine.tasks.get(id)
+    if (!entry) return
+    entry.ownerDevice = device.id
+    if (entry.state.group?.id) groupOwners.set(entry.state.group.id, device.id)
+  }
+  const allTasks = (device) => [...engine.tasks.values()].filter((e) => owns(device, e)).map(stateOf)
 
   /* --- live events: one 'tasks:update' listener feeds every connected client, coalesced per client --- */
   function ensureListener() {
@@ -93,7 +106,7 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, a
     }
   }
 
-  function openStream(req, res, cors) {
+  function openStream(req, res, cors, device) {
     res.writeHead(200, { ...cors, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' })
     const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
     let pending = null // { full, byId }
@@ -105,7 +118,7 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, a
           pending.full = true
           pending.byId.clear()
         }
-        for (const s of payload.tasks) pending.byId.set(s.id, { ...s, host: name() })
+        for (const s of payload.tasks) if (owns(device, engine.tasks.get(s.id))) pending.byId.set(s.id, { ...s, host: name() })
         timer ??= setTimeout(flush, EVENT_INTERVAL_MS)
       },
     }
@@ -118,7 +131,7 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, a
     }
     streams.add(stream)
     ensureListener()
-    send('tasks', allTasks())
+    send('tasks', allTasks(device))
     const beat = setInterval(() => res.write(': keep-alive\n\n'), HEARTBEAT_MS)
     req.on('close', () => {
       clearInterval(beat)
@@ -178,8 +191,9 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, a
     return start <= end && start < size ? [start, end] : null
   }
 
-  function sendFile(req, res, taskId, cors, reply) {
+  function sendFile(req, res, taskId, cors, reply, device = null) {
     const entry = engine.tasks.get(taskId)
+    if (device && !owns(device, entry)) return reply(404, { error: 'That job has no finished file' })
     const file = entry?.state.status === 'done' ? engine.taskFile(taskId) : null
     if (!file) return reply(404, { error: 'That job has no finished file' })
     const size = fs.statSync(file).size
@@ -277,7 +291,7 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, a
       if (m === 'POST' && a === 'pair' && parts.length === 2) {
         if (!pairLimit.hit(ip)) return reply(429, { error: 'Too many attempts, wait a minute' })
         const body = await readJson(req)
-        const done = devices.pair({ code: body.code, deviceName: body.deviceName, deviceKind: body.deviceKind })
+        const done = devices.pair({ code: body.code, deviceName: body.deviceName })
         if (!done) return reply(403, { error: 'That pairing code is wrong or has expired' })
         log('engine-api: a device paired')
         return reply(200, done)
@@ -310,8 +324,8 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, a
         const kinds = [...Object.entries(KINDS).filter(([k]) => k === 'download' || uploads).map(([k]) => k), ...(recipes ? ['recipe'] : [])]
         return reply(200, { name: name(), version, apiVersion: 1, kinds, uploads: !!uploads, ...info() })
       }
-      if (m === 'GET' && a === 'tasks' && !b) return reply(200, { tasks: allTasks() })
-      if (m === 'GET' && a === 'events') return openStream(req, res, cors)
+      if (m === 'GET' && a === 'tasks' && !b) return reply(200, { tasks: allTasks(device) })
+      if (m === 'GET' && a === 'events') return openStream(req, res, cors, device)
       if (m === 'POST' && a === 'tasks' && !b) {
         const body = await readJson(req)
         if (body.kind === 'recipe') {
@@ -323,12 +337,14 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, a
           buildRemoteRequest('download', { url: r.url }) // the same link checks as a plain download
           const run = await recipes.run(recipe.id, r.url)
           log(`engine-api: ${device.name} started the recipe ${recipe.name}`)
+          for (const t of run.taskIds) claim(device, t)
           return reply(202, { id: run.taskIds[0], taskIds: run.taskIds })
         }
         const { channel, req: clean } = buildRemoteRequest(body.kind, body.req, (uid) => uploads?.resolve(uid, device.id) ?? null)
         const start = engine.startHandlers.get(channel)
         if (!start) return reply(501, { error: 'This engine cannot run that job' })
         const id = await start(null, { ...clean, runOn: 'local' }) // a job that came from another device never bounces on to a third
+        claim(device, id)
         const entry = engine.tasks.get(id)
         if (entry) {
           entry.state.source = 'remote'
@@ -337,8 +353,13 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, a
         log(`engine-api: ${device.name} started a ${body.kind} job`)
         return reply(202, { id })
       }
+      if (a === 'tasks' && b && !owns(device, engine.tasks.get(b))) return reply(404, { error: 'No such job' })
       if (m === 'POST' && a === 'tasks' && b && c === 'cancel') return reply(200, { ok: engine.cancelTask(b) })
-      if (m === 'POST' && a === 'tasks' && b && c === 'rerun') return reply(200, { ok: engine.rerunTask(b) })
+      if (m === 'POST' && a === 'tasks' && b && c === 'rerun') {
+        const again = await engine.rerunTask(b)
+        if (typeof again === 'string') claim(device, again)
+        return reply(200, { ok: !!again })
+      }
       if (m === 'DELETE' && a === 'tasks' && b && !c) return reply(200, { removed: engine.removeTasks([b]) })
       if (a === 'ai') {
         if (!ai) return reply(501, { error: 'This engine has no AI model to share' })
@@ -371,9 +392,9 @@ function createV1({ engine, platform, devices, uploads = null, recipes = null, a
         }
       }
       if (a === 'files' && b) {
-        if ((m === 'GET' || m === 'HEAD') && !c) return sendFile(req, res, b, cors, reply)
+        if ((m === 'GET' || m === 'HEAD') && !c) return sendFile(req, res, b, cors, reply, device)
         if (m === 'POST' && c === 'link') {
-          if (!engine.taskFile(b)) return reply(404, { error: 'That job has no finished file' })
+          if (!owns(device, engine.tasks.get(b)) || !engine.taskFile(b)) return reply(404, { error: 'That job has no finished file' })
           const exp = now() + LINK_TTL_MS
           return reply(200, { url: `/v1/files/${encodeURIComponent(b)}?exp=${exp}&sig=${sign(b, exp)}`, expires: exp })
         }

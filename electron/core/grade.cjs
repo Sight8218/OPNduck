@@ -33,7 +33,7 @@ const round = (v, n = 4) => Math.round(v * 10 ** n) / 10 ** n
 
 /** The looks that ship with OPNduck: a function from an RGB colour (0..1 each) to a new one. Self-made, no third-party files. */
 const LOOKS = {
-  warm_film: { label: 'Warm film', fn: ([r, g, b]) => curve(tint([r * 1.04 + 0.01, g * 1.0 + 0.005, b * 0.92], 0), 0.12) },
+  warm_film: { label: 'Warm film', fn: ([r, g, b]) => curve([r * 1.04 + 0.01, g * 1.0 + 0.005, b * 0.92], 0.12) },
   teal_orange: {
     label: 'Teal and orange',
     fn: ([r, g, b]) => {
@@ -76,7 +76,6 @@ function curve(c, k) {
     return clamp(x + k * (x * x * (3 - 2 * x) - x), 0, 1)
   })
 }
-const tint = (c) => c
 
 /** A .cube file's text for a colour function, `size` points per side (the red value changes fastest, as the format wants). */
 function cubeText(fn, size = 17, title = 'OPNduck') {
@@ -192,7 +191,6 @@ function buildFilters(values, { lut = null, intensity = 1, tonemap = false } = {
 }
 
 /** The list as one -vf value. A filter that starts a labelled graph is joined with a comma to the chain before it. */
-const joinFilters = (list) => list.join(',')
 
 /* ----------------------------------------------------------------------------------------- colour matching */
 
@@ -336,7 +334,7 @@ function createGrade(ctx) {
     const width = clamp(Number(req.width) || 640, 160, 1280)
     const filters = buildFilters(req.values, { lut: resolveLut(req.look), intensity: req.intensity ?? 1 })
     const frame = async (list) => {
-      const vf = joinFilters([...list, `scale=${width}:-2`])
+      const vf = [...list, `scale=${width}:-2`].join(',')
       const buf = await capture(['-ss', String(t), '-i', req.inputPath, '-vf', vf, '-frames:v', '1', '-f', 'image2pipe', '-c:v', 'mjpeg', '-q:v', '5', '-'], { binary: true }).catch(() => null)
       return buf?.length ? `data:image/jpeg;base64,${buf.toString('base64')}` : null
     }
@@ -354,7 +352,7 @@ function createGrade(ctx) {
     const lut = resolveLut(req.look)
     const intensity = clamp(Number(req.intensity ?? 1), 0, 1)
     const filters = buildFilters(values, { lut, intensity })
-    if (filters.length === 0 && !req.hdr) throw new Error('Nothing to change: move a slider, pick a look or use Auto')
+    if (filters.length === 0) throw new Error('Nothing to change: move a slider, pick a look or use Auto')
     const id = crypto.randomUUID()
     const destDir = req.destination || defaultDownloadDir()
     fs.mkdirSync(destDir, { recursive: true })
@@ -390,7 +388,7 @@ function createGrade(ctx) {
       if (!info?.hasVideo) return updateTask(id, { status: 'error', error: "Couldn't read a video in this file." })
       const hdr = await isHdr(inputPath)
       const filters = buildFilters(values, { lut, intensity, tonemap: hdr })
-      await spawnTracked('ffmpeg', ['-y', '-i', inputPath, '-vf', joinFilters(filters), '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-pix_fmt', 'yuv420p', '-map', '0:v:0', '-map', '0:a?', '-sn', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-progress', 'pipe:1', '-nostats', outputPath], entry, {
+      await spawnTracked('ffmpeg', ['-y', '-i', inputPath, '-vf', filters.join(','), '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-pix_fmt', 'yuv420p', '-map', '0:v:0', '-map', '0:a?', '-sn', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-progress', 'pipe:1', '-nostats', outputPath], entry, {
         onStdout: (text) => {
           const m = [...text.matchAll(/out_time_ms=(\d+)/g)].pop()
           if (m) updateTask(id, { progress: Math.min(0.99, Number(m[1]) / 1e6 / info.duration) })

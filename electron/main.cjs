@@ -613,20 +613,8 @@ const { buildEnginePairLink } = require('../engine-api/pairlink.cjs')
 const { createServers } = require('./core/remote/servers.cjs')
 let engineApi = null
 let sharing = null // { devices, uploads, v1 }: made the first time this PC's engine is shared
-/** The model of this computer, offered to paired devices only while it is chosen and set up here (never a cloud key's model). */
-function aiShare() {
-  const usable = () => ['local', 'ollama', 'lmstudio'].includes(getSettings().ai.provider)
-  return {
-    chat: (o) => {
-      if (!usable()) throw new Error('This computer shares no AI model: choose OPNduck\'s own, Ollama or LM Studio in Settings > AI.')
-      return core.ai.chat(o)
-    },
-    models: async () => (usable() ? core.ai.models() : []), // a cloud provider's model list would be fetched with the owner's key
-    status: () => ({ provider: getSettings().ai.provider, model: getSettings().ai.provider === 'local' ? getSettings().ai.localModel : getSettings().ai.model, shared: usable(), local: core.llama.status() }),
-    load: () => (getSettings().ai.provider === 'local' ? core.llama.load() : Promise.resolve()),
-    eject: () => core.llama.eject(),
-  }
-}
+const { createAiShare } = require('../engine-api/ai_share.cjs')
+const aiShare = () => createAiShare({ ai: core.ai, llama: core.llama, getSettings })
 function needSharing() {
   if (sharing) return sharing
   const dir = path.join(platform.paths.userData, 'engine')

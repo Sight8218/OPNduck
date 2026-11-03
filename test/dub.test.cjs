@@ -20,10 +20,10 @@ test('requests are validated: target language, placement, model, source code', (
 
 test('the mux keeps the picture untouched and puts the dub first, or alone', () => {
   const base = { input: '/i.mp4', audio: '/d.wav', output: '/o.mp4', language: 'sv' }
-  const track = D.muxArgs({ ...base, placement: 'track', hasAudio: true })
+  const track = D.muxArgs({ ...base, placement: 'track' })
   assert.deepEqual(track.slice(track.indexOf('-map'), track.indexOf('-map') + 6), ['-map', '0:v', '-map', '1:a', '-map', '0:a'])
   assert.ok(track.includes('copy') && track[track.indexOf('-c:v') + 1] === 'copy')
-  const only = D.muxArgs({ ...base, placement: 'replace', hasAudio: true })
+  const only = D.muxArgs({ ...base, placement: 'replace' })
   assert.ok(!only.includes('0:a'), 'the original audio is dropped')
   assert.ok(track.includes('language=swe'))
 })

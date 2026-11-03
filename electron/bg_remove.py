@@ -8,10 +8,31 @@
 # through FFmpeg pipes, so no temporary images are written. Prints "@@STAGE <text>", "@@PROGRESS <0..1>", then "@@DONE"
 # or "@@FAIL <why>".
 import json
+import signal
 import subprocess
 import sys
 
 import numpy as np
+
+_children = []
+
+
+def _track(p):
+    _children.append(p)
+    return p
+
+
+def _stop(*_):
+    # Canceled: take the FFmpeg helpers down with us, or they keep running and writing.
+    for c in _children:
+        try:
+            c.kill()
+        except Exception:
+            pass
+    sys.exit(143)
+
+
+signal.signal(signal.SIGTERM, _stop)
 
 
 def say(kind, value=""):
@@ -88,12 +109,12 @@ def video(job):
     w, h, fps = job["width"], job["height"], job["fps"]
     mode = job["mode"]
     ffmpeg = job.get("ffmpeg", "ffmpeg")
-    dec = subprocess.Popen([ffmpeg, "-v", "error", "-i", job["input"], "-vf", f"scale={w}:{h}", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
+    dec = _track(subprocess.Popen([ffmpeg, "-v", "error", "-i", job["input"], "-vf", f"scale={w}:{h}", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE))
     transparent = mode == "transparent"
     pix = "rgba" if transparent else "rgb24"
     codec = job["codec"] if transparent else None
     enc_args = (["-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "0", "-crf", "28", "-auto-alt-ref", "0"] if codec == "webm" else ["-c:v", "prores_ks", "-profile:v", "4444", "-pix_fmt", "yuva444p10le"]) if transparent else ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18"]
-    enc = subprocess.Popen([ffmpeg, "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", pix, "-s", f"{w}x{h}", "-r", str(fps), "-i", "-", "-i", job["input"], "-map", "0:v", "-map", "1:a?", *enc_args, "-c:a", "copy" if not transparent or codec != "webm" else "libopus", "-shortest", job["output"]], stdin=subprocess.PIPE)
+    enc = _track(subprocess.Popen([ffmpeg, "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", pix, "-s", f"{w}x{h}", "-r", str(fps), "-i", "-", "-i", job["input"], "-map", "0:v", "-map", "1:a?", *enc_args, "-c:a", "copy" if not transparent or codec != "webm" else "libopus", "-shortest", job["output"]], stdin=subprocess.PIPE))
     plain = background(mode, w, h, job.get("color", "#00ff00"), job.get("bgImage"), None)
     n = 0
     total = max(1, int(job.get("frames", 1)))

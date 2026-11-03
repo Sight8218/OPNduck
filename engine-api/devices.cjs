@@ -72,7 +72,10 @@ function createDevices({ file, codesFile = null, now = Date.now }) {
     if (!codesFile) return
     codes.clear()
     try {
-      for (const [h, exp] of Object.entries(JSON.parse(fs.readFileSync(codesFile, 'utf8')))) if (typeof exp === 'number') codes.set(h, exp)
+      for (const [h, v] of Object.entries(JSON.parse(fs.readFileSync(codesFile, 'utf8')))) {
+        if (typeof v === 'number') codes.set(h, { exp: v, kind: 'phone' }) // older file: no kind was recorded
+        else if (v && typeof v.exp === 'number' && KINDS.includes(v.kind)) codes.set(h, v)
+      }
     } catch {
       /* none yet */
     }
@@ -82,29 +85,34 @@ function createDevices({ file, codesFile = null, now = Date.now }) {
   function sweep() {
     loadCodes()
     const t = now()
-    for (const [c, exp] of codes) if (exp <= t) codes.delete(c)
+    for (const [c, v] of codes) if (v.exp <= t) codes.delete(c)
   }
 
-  /** A one-time pairing code, good for 5 minutes. The newest few stay valid, older ones are dropped. */
-  function newPairCode() {
+  /**
+   * A one-time pairing code, good for 5 minutes. The newest few stay valid, older ones are dropped. The kind of device
+   * is decided here, by whoever makes the code, never by the device: only 'desktop' devices can see every job and
+   * manage the other devices.
+   */
+  function newPairCode(kind = 'phone') {
+    if (!KINDS.includes(kind)) throw new Error(`Unknown device kind: ${kind}`)
     sweep()
     while (codes.size >= MAX_CODES) codes.delete(codes.keys().next().value)
     const code = crypto.randomBytes(18).toString('base64url')
-    codes.set(hash(code), now() + CODE_TTL_MS)
+    codes.set(hash(code), { exp: now() + CODE_TTL_MS, kind })
     saveCodes()
     return code
   }
 
   /** Trades a valid code for a device token (shown once). Returns null for a wrong, used or expired code. */
-  function pair({ code, deviceName, deviceKind }) {
+  function pair({ code, deviceName }) {
     sweep()
     if (typeof code !== 'string' || !codes.has(hash(code))) return null
+    const kind = codes.get(hash(code)).kind
     codes.delete(hash(code)) // single use, whatever happens next
     saveCodes()
     load()
     if (devices.length >= MAX_DEVICES) throw new Error('Too many paired devices: remove one first')
     const name = typeof deviceName === 'string' ? deviceName.replace(/\p{Cc}/gu, ' ').trim().slice(0, 60) : ''
-    const kind = KINDS.includes(deviceKind) ? deviceKind : 'phone'
     const token = crypto.randomBytes(32).toString('base64url')
     const device = { id: crypto.randomUUID(), name: name || 'Device', kind, tokenHash: hash(token), createdAt: now(), lastSeen: 0 }
     devices.push(device)

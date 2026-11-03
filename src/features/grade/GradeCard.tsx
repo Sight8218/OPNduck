@@ -184,9 +184,9 @@ export default function GradeCard({ feature }: { feature: FeatureDefinition }) {
       setIntensity(r.intensity)
       setWhy([{ setting: 'the assistant', because: r.why || 'chose these values' }])
     })
-  const run = (useAuto: boolean) =>
+  const run = () =>
     guard('run', async () => {
-      const id = await host.tasks.startGrade({ inputPath: file!, auto: useAuto, look: look || undefined, intensity, values, destination: getDownloadDirOverride() ?? undefined })
+      const id = await host.tasks.startGrade({ inputPath: file!, auto: false, look: look || undefined, intensity, values, destination: getDownloadDirOverride() ?? undefined })
       setSubmittedIds([id])
     })
 
@@ -319,7 +319,7 @@ export default function GradeCard({ feature }: { feature: FeatureDefinition }) {
           </div>
         </div>
       ))}
-      <button type="button" className="glass-btn" onClick={() => void run(false)} disabled={!file || !info?.hasVideo || running || !changed}>
+      <button type="button" className="glass-btn" onClick={() => void run()} disabled={!file || !info?.hasVideo || running || !changed}>
         Apply the grade
       </button>
     </FeatureCard>

@@ -76,7 +76,7 @@ async function running(opts = {}) {
       req.on('error', reject)
       req.end(raw ?? (body ? JSON.stringify(body) : undefined))
     })
-  const pairNew = async (kind = 'phone') => (await call('POST', '/v1/pair', { body: { code: devices.newPairCode(), deviceName: 'Test', deviceKind: kind } })).json.deviceToken
+  const pairNew = async (kind = 'phone') => (await call('POST', '/v1/pair', { body: { code: devices.newPairCode(kind), deviceName: 'Test', deviceKind: kind } })).json.deviceToken
   return { api, engine, devices, platform, call, pairNew, st, dir, uploads, ran, aiLog }
 }
 
@@ -229,7 +229,7 @@ test('an oversized or non-JSON body is refused', async () => {
 test('events: a snapshot first, then updates at most four times a second, and the listener goes away with the last client', async () => {
   const h = await running()
   try {
-    const token = await h.pairNew()
+    const token = await h.pairNew('desktop')
     const got = []
     const req = http.get({ host: '127.0.0.1', port: h.st.port, path: '/v1/events', headers: { Authorization: `Bearer ${token}` }, agent: false }, (res) => {
       assert.equal(res.headers['content-type'], 'text/event-stream')
@@ -237,6 +237,7 @@ test('events: a snapshot first, then updates at most four times a second, and th
     })
     await new Promise((r) => setTimeout(r, 150))
     assert.match(got.join(''), /^event: tasks\ndata: \[\]/)
+    h.engine.tasks.set('a', { state: { id: 'a', kind: 'convert', status: 'running', progress: 0 } })
     for (let i = 1; i <= 20; i++) h.platform.emit('tasks:update', { full: false, tasks: [{ id: 'a', status: 'running', progress: i / 20 }] })
     await new Promise((r) => setTimeout(r, 500))
     const updates = got.join('').split('\n\n').filter((b) => b.startsWith('event: task\n'))
@@ -331,7 +332,7 @@ test('files: the finished result streams, resumes with Range, and a signed link 
   let t = 1_000_000
   const h = await running({ now: () => t })
   try {
-    const token = await h.pairNew()
+    const token = await h.pairNew('desktop')
     const file = path.join(h.dir, 'résumé "x".mp4')
     const data = crypto.randomBytes(500)
     fs.writeFileSync(file, data)
@@ -364,7 +365,7 @@ test('files: the finished result streams, resumes with Range, and a signed link 
 test('a recipe that starts from a link can be run on a link; others and bad links are refused; finished tasks say whether the file is still there', async () => {
   const h = await running()
   try {
-    const token = await h.pairNew()
+    const token = await h.pairNew('desktop')
     const ok = await h.call('POST', '/v1/tasks', { token, body: { kind: 'recipe', req: { recipeId: 'builtin:link', url: 'https://example.com/v' } } })
     assert.deepEqual([ok.status, ok.json.id, ok.json.taskIds], [202, 't1', ['t1', 't2']])
     assert.deepEqual(h.ran, [['builtin:link', 'https://example.com/v']])
@@ -434,5 +435,32 @@ test('the AI model of this computer is offered to paired devices in the OpenAI s
     assert.deepEqual([r.status, r.json.error], [502, 'model down'])
   } finally {
     await bad.api.stop()
+  }
+})
+
+test('a device is only what its pairing code says, and a phone only sees, changes and downloads its own jobs', async () => {
+  const h = await running()
+  try {
+    // Claiming to be a desktop with a phone's code does nothing.
+    const liar = (await h.call('POST', '/v1/pair', { body: { code: h.devices.newPairCode('phone'), deviceName: 'X', deviceKind: 'desktop' } })).json.deviceToken
+    assert.equal((await h.call('GET', '/v1/devices', { token: liar })).status, 403)
+    assert.throws(() => h.devices.newPairCode('root'), /Unknown device kind/)
+    const a = await h.pairNew('phone')
+    const b = await h.pairNew('phone')
+    const boss = await h.pairNew('desktop')
+    const mine = (await h.call('POST', '/v1/tasks', { token: a, body: { kind: 'download', req: { url: 'https://example.com/v' } } })).json.id
+    const local = 'local-job' // started on the computer itself
+    h.engine.tasks.set(local, { state: { id: local, kind: 'convert', status: 'done', progress: 1 }, finalPath: null })
+    const ids = async (token) => (await h.call('GET', '/v1/tasks', { token })).json.tasks.map((t) => t.id)
+    assert.deepEqual(await ids(a), [mine])
+    assert.deepEqual(await ids(b), [])
+    assert.deepEqual((await ids(boss)).sort(), [local, mine].sort())
+    assert.equal((await h.call('POST', `/v1/tasks/${mine}/cancel`, { token: b })).status, 404)
+    assert.equal((await h.call('DELETE', `/v1/tasks/${mine}`, { token: b })).status, 404)
+    assert.equal((await h.call('GET', `/v1/files/${mine}`, { token: b })).status, 404)
+    assert.equal((await h.call('POST', `/v1/tasks/${mine}/link`, { token: b })).status, 404)
+    assert.equal((await h.call('DELETE', `/v1/tasks/${mine}`, { token: a })).status, 200)
+  } finally {
+    await h.api.stop()
   }
 })

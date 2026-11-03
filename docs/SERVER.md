@@ -8,6 +8,7 @@ desktop OPNduck that shares its engine**.
 
 1. On the server: `opnduck-server pair` prints a one-time link and QR code (`opnduck://pair?...`). On a desktop: Settings,
    Servers, turn on **Share this PC's engine**, choose who can connect, press **New pair link**.
+   Each device is a phone by default: it sees and changes only its own jobs. `opnduck-server pair --admin` makes a desktop-class device that sees every job and can manage the other devices (the first device on a new server is one automatically).
 2. On your computer: Settings, Servers, paste the link, **Add server**. The code works once and expires after 5 minutes.
 3. The server gives your computer its own access token. Only a hash of it is kept on the server, so you can remove a
    device at any time (`opnduck-server devices revoke <id>`, or Remove in the desktop list).
@@ -38,7 +39,7 @@ All routes are under `/v1`, JSON, and need `Authorization: Bearer <deviceToken>`
 | Route | What it does |
 | --- | --- |
 | `GET /health` | `{ ok, name, apiVersion }`, no sign-in |
-| `POST /pair` | `{ code, deviceName, deviceKind }` returns `{ deviceId, deviceToken }` |
+| `POST /pair` | `{ code, deviceName }` returns `{ deviceId, deviceToken }` |
 | `GET /info` | version, job kinds, GPUs, free disk, installed tools |
 | `GET /tasks`, `GET /events` | task list; live updates as server-sent events (progress at most 4 times a second) |
 | `POST /tasks` | `{ kind, req }`; a file job takes `uploadId` instead of a path; returns `{ id }` |

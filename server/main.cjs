@@ -29,6 +29,7 @@ const path = require('node:path')
 const pkg = require('../package.json')
 const { loadConfig, reachableUrls } = require('./config.cjs')
 const { createDevices } = require('../engine-api/devices.cjs')
+const { createAiShare } = require('../engine-api/ai_share.cjs')
 const { createUploads } = require('../engine-api/uploads.cjs')
 const { createV1 } = require('../engine-api/v1.cjs')
 const { createEngineApi } = require('../engine-api/server.cjs')
@@ -39,6 +40,7 @@ const HELP = `opnduck-server ${pkg.version}: the OPNduck engine on another machi
 
   opnduck-server                 start the server
   opnduck-server pair            a one-time pair link and QR code for a new device (valid 5 minutes)
+                                 add --admin for a device that may see every job and manage the other devices
   opnduck-server devices         the paired devices
   opnduck-server devices revoke <id>
   opnduck-server send-link       the link for Send to OPNduck (phone page, browser extension)
@@ -139,7 +141,7 @@ async function serve(cfg) {
 
   const devices = createDevices({ file: p.devices, codesFile: p.codes })
   const uploads = createUploads({ dir: p.uploads, maxBytes: cfg.maxUploadGB * 1024 ** 3, retentionMs: cfg.retentionHours * 3600 * 1000 })
-  const v1 = createV1({ engine: core.engine, platform, devices, uploads, recipes: core.recipes, ai: { chat: (o) => (['local', 'ollama', 'lmstudio'].includes(core.settings.getSettings().ai.provider) ? core.ai.chat(o) : (() => { throw new Error('This server shares no AI model: set OPNduck\'s own model, Ollama or LM Studio in its settings.') })()), models: async () => (['local', 'ollama', 'lmstudio'].includes(core.settings.getSettings().ai.provider) ? core.ai.models() : []), status: () => ({ provider: core.settings.getSettings().ai.provider, local: core.llama.status() }), load: () => core.llama.load(), eject: () => core.llama.eject() }, name: () => cfg.name, version: pkg.version, info: createInfo({ outputDir: () => path.join(cfg.output, 'OPNduck'), ytdlpCommand: () => core.ctx.ytdlpCommand?.() ?? 'yt-dlp' }), log: (l) => console.log(l) })
+  const v1 = createV1({ engine: core.engine, platform, devices, uploads, recipes: core.recipes, ai: createAiShare({ ai: core.ai, llama: core.llama, getSettings: core.settings.getSettings }), name: () => cfg.name, version: pkg.version, info: createInfo({ outputDir: () => path.join(cfg.output, 'OPNduck'), ytdlpCommand: () => core.ctx.ytdlpCommand?.() ?? 'yt-dlp' }), log: (l) => console.log(l) })
   const api = createEngineApi({ inbox, name: () => cfg.name, v1, log: (l) => console.log(l) })
   const st = await api.start({ mode: 'address', address: cfg.bind, port: cfg.port })
   if (!st.running) {
@@ -155,7 +157,7 @@ async function serve(cfg) {
   console.log(`Data: ${cfg.data}   Results: ${path.join(cfg.output, 'OPNduck')}   Results and uploads are kept ${cfg.retentionHours} hours`)
   if (devices.list().length === 0) {
     console.log('\nNo device is paired yet. Scan this on the device (or paste it into OPNduck > Settings > Servers):\n')
-    await printPairLink({ ...cfg, port: st.port }, devices.newPairCode())
+    await printPairLink({ ...cfg, port: st.port }, devices.newPairCode('desktop')) // the first device is the owner
   }
   const stop = async () => {
     console.log('Stopping…')
@@ -177,7 +179,7 @@ async function main(argv) {
   fs.mkdirSync(cfg.data, { recursive: true, mode: 0o700 })
   const p = paths(cfg)
   if (cmd === undefined || cmd === 'serve') return serve(cfg)
-  if (cmd === 'pair') return printPairLink(cfg, createDevices({ file: p.devices, codesFile: p.codes }).newPairCode())
+  if (cmd === 'pair') return printPairLink(cfg, createDevices({ file: p.devices, codesFile: p.codes }).newPairCode(argv.includes('--admin') ? 'desktop' : 'phone'))
   if (cmd === 'devices') {
     const devices = createDevices({ file: p.devices, codesFile: p.codes })
     if (sub === 'revoke') {

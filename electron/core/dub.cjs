@@ -45,11 +45,11 @@ function validate(req, { assertAbsolutePath, assertOneOf }) {
 }
 
 /** The FFmpeg arguments that put the new audio into the video without touching the picture. */
-function muxArgs({ input, audio, output, placement, hasAudio, language }) {
+function muxArgs({ input, audio, output, placement, language }) {
   // Subtitles are copied only into Matroska; MP4 and MOV take only their own text format, so they are left out there.
   const subs = /\.mkv$/i.test(output) ? ['-map', '0:s?', '-c:s', 'copy'] : []
   const lang = ['-metadata:s:a:0', `language=${ISO3[language] ?? language}`, '-metadata:s:a:0', 'title=Dubbed']
-  if (placement === 'replace' || !hasAudio) return ['-y', '-i', input, '-i', audio, '-map', '0:v', '-map', '1:a', ...subs, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', ...lang, output]
+  if (placement === 'replace') return ['-y', '-i', input, '-i', audio, '-map', '0:v', '-map', '1:a', ...subs, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', ...lang, output]
   // The dub first (so players pick it), the original after it as a second track.
   return ['-y', '-i', input, '-i', audio, '-map', '0:v', '-map', '1:a', '-map', '0:a', ...subs, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', ...lang, '-disposition:a:0', 'default', '-disposition:a:1', '0', output]
 }
@@ -118,7 +118,7 @@ function createDub(ctx) {
       }
       if (isCanceled(id)) return
       updateTask(id, { progress: 0.96, stage: 'Putting the new voice in the video' })
-      await spawnTracked('ffmpeg', muxArgs({ input: o.inputPath, audio: dubWav, output: outputPath, placement: o.placement, hasAudio: true, language: o.target }), entry)
+      await spawnTracked('ffmpeg', muxArgs({ input: o.inputPath, audio: dubWav, output: outputPath, placement: o.placement, language: o.target }), entry)
       const lines = Number(/"lines": ?(\d+)/.exec(text)?.[1] ?? 0)
       updateTask(id, { status: 'done', progress: 1, stage: null, label: path.basename(outputPath), quality: `${LANGUAGES[o.target]}, ${lines} lines`, sizeBytes: fs.statSync(outputPath).size })
     } catch (err) {

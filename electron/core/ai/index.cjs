@@ -119,7 +119,10 @@ function createAi({ getSettings, keys, local = null, usage = null, fetchFn = fet
       // OPNduck's own model: started the first time it is needed, and ejected again when idle.
       const baseUrl = await local.ensureLoaded()
       const meta = local.modelMeta(s.localModel)
-      yield* createOpenAiProvider({ baseUrl, fetchFn }).chat({ ...o, model: s.localModel, messages, tools: opts.tools, jsonSchema: opts.jsonSchema, signal: opts.signal, extra: o.reasoning === 'off' ? meta?.noThink : undefined })
+      for await (const ev of createOpenAiProvider({ baseUrl, fetchFn }).chat({ ...o, model: s.localModel, messages, tools: opts.tools, jsonSchema: opts.jsonSchema, signal: opts.signal, extra: o.reasoning === 'off' ? meta?.noThink : undefined })) {
+        local.touch() // a long answer is not idle time
+        yield ev
+      }
       local.touch()
       return
     }
