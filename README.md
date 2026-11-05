@@ -89,8 +89,10 @@ Themes are implemented as CSS custom-property tokens switched by a single
 ## 🌟 Key Feature Modules
 
 1. **Media Downloader**: Download individual video/audio files or entire playlists from
-   YouTube, TikTok, and SoundCloud up to 8K resolution. (Not Spotify — its tracks are
-   DRM-protected and there's no legitimate way to pull audio directly from it.)
+   YouTube, TikTok, and SoundCloud up to 8K resolution. Spotify track links work through
+   an experimental YouTube match: OPNduck identifies the song and downloads a matching
+   YouTube video as MP3 (single tracks only, no albums or playlists, and the result is a
+   match, not a download from Spotify itself).
 2. **Universal Transcoder**: Convert media formats using hardware-accelerated local
    FFmpeg pipelines. Supports both individual files and batch folder directories.
 3. **AI Video Interpolator**: Increase frame rates (e.g. 24fps to 60fps) using local
