@@ -99,6 +99,12 @@ function rendererTarget() {
   return fs.existsSync(index) ? { file: index } : { url: DEV_SERVER_URL }
 }
 
+/** With "keep running in the tray" the hidden window is destroyed after this long, so the React renderer (and its
+ *  memory and timers) goes away; a click on the tray icon builds it again. OPNDUCK_TRAY_DESTROY_MS is for perf runs. */
+const TRAY_DESTROY_MS = Number(process.env.OPNDUCK_TRAY_DESTROY_MS) || 60_000
+let trayDestroyTimer = null
+let savedRoute = '' // the page the window was on when it was destroyed (e.g. "#/library")
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
@@ -142,8 +148,10 @@ function createWindow() {
 
   win.webContents.once('did-finish-load', () => trace('renderer did-finish-load'))
   const target = rendererTarget()
-  if (target.file) win.loadFile(target.file)
-  else win.loadURL(target.url)
+  const route = savedRoute
+  savedRoute = ''
+  if (target.file) win.loadFile(target.file, route ? { hash: route.replace(/^#/, '') } : undefined)
+  else win.loadURL(target.url + route)
 
   // "Sync with Omarchy" theme option: push live Omarchy theme changes to
   // this window for as long as it's open. Total no-op on non-Omarchy
@@ -157,6 +165,8 @@ function createWindow() {
     if (!quitting && tray && getSettings().runInTray) {
       event.preventDefault()
       win.hide()
+      clearTimeout(trayDestroyTimer)
+      trayDestroyTimer = setTimeout(() => destroyHiddenWindow(win), TRAY_DESTROY_MS)
     }
   })
 
@@ -1275,7 +1285,21 @@ function sweepStaleTempDirs() {
 /* --- Tray + "job finished" notifications --- */
 let tray = null
 let quitting = false
+/** Throws a window that has stayed hidden in the tray away; app state lives in the main process, localStorage and the
+ *  window's saved bounds, so only the open page is carried over (savedRoute). */
+function destroyHiddenWindow(win) {
+  trayDestroyTimer = null
+  if (win.isDestroyed() || win.isVisible() || quitting) return
+  try {
+    savedRoute = new URL(win.webContents.getURL()).hash
+  } catch {
+    savedRoute = ''
+  }
+  win.destroy()
+}
 function showMainWindow() {
+  clearTimeout(trayDestroyTimer)
+  trayDestroyTimer = null
   const win = BrowserWindow.getAllWindows()[0]
   if (!win) return createWindow()
   if (win.isMinimized()) win.restore()
@@ -1311,7 +1335,7 @@ function applyTray() {
   } else if (!want && tray) {
     tray.destroy()
     tray = null
-    BrowserWindow.getAllWindows().forEach((w) => w.show()) // never strand a hidden window
+    showMainWindow() // never strand a hidden (or already destroyed) window
   }
 }
 
@@ -1532,5 +1556,6 @@ app.on('before-quit', () => {
 })
 
 app.on('window-all-closed', () => {
+  if (tray && !quitting) return // the tray keeps the app alive while its window is destroyed
   if (process.platform !== 'darwin') app.quit()
 })
