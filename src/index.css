@@ -585,12 +585,14 @@ body {
   }
 }
 .pixel-layer {
-  animation: pixel-fall linear infinite;
+  /* The drift is only 2-4 px a second, so it advances in quarter-second steps (steps(duration x 4)) instead of
+     continuously: a smooth animation made the compositor redraw at 60 fps all day (~50% of a core at idle). */
+  animation: pixel-fall infinite;
   will-change: transform;
 }
-.pixel-layer-0 { animation-duration: 250s; }
-.pixel-layer-1 { animation-duration: 175s; }
-.pixel-layer-2 { animation-duration: 125s; }
+.pixel-layer-0 { animation-duration: 250s; animation-timing-function: steps(1000); }
+.pixel-layer-1 { animation-duration: 175s; animation-timing-function: steps(700); }
+.pixel-layer-2 { animation-duration: 125s; animation-timing-function: steps(500); }
 @media (prefers-reduced-motion: reduce) {
   .pixel-layer { animation: none; }
 }
