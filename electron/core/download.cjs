@@ -25,13 +25,15 @@ const os = require('node:os')
 const path = require('node:path')
 
 /**
- * Keeps Basic-auth credentials out of the process list. A URL like https://user:pass@host/x would
- * otherwise be visible to every local account via the downloader's argument list. The credentials are
- * moved into a private (0600, in a 0700 dir) yt-dlp config file as an Authorization header, and the URL
- * handed to yt-dlp has them removed. `cleanup()` deletes the file; it is safe to call more than once.
+ * A link with a user name and password in it (http://user:pass@host/...) must not put them in yt-dlp's argument list,
+ * where any local account can read them. The whole link goes into a private (0600) config file instead, and yt-dlp then
+ * applies the login to that link's own origin only. (A global `--add-headers Authorization` would be sent to every
+ * origin yt-dlp talks to, including media hosted elsewhere, so that is deliberately not used.)
+ * Returns `tail` (what to append to the argument list: `-- <url>`, or nothing when the link is in the config file),
+ * `args` (the config file option), `url` (the link without credentials, for labels and logs) and `cleanup`.
  */
 function protectUrlCredentials(rawUrl) {
-  const none = { url: rawUrl, args: [], cleanup() {} }
+  const none = { url: rawUrl, tail: ['--', rawUrl], args: [], cleanup() {} }
   let u
   try {
     u = new URL(rawUrl)
@@ -39,17 +41,17 @@ function protectUrlCredentials(rawUrl) {
     return none
   }
   if (!u.username && !u.password) return none
-  const user = decodeURIComponent(u.username)
-  const pass = decodeURIComponent(u.password)
-  u.username = ''
-  u.password = ''
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opnduck-auth-'))
   fs.chmodSync(dir, 0o700)
   const file = path.join(dir, 'auth.conf')
-  const token = Buffer.from(`${user}:${pass}`).toString('base64')
-  fs.writeFileSync(file, `--add-headers "Authorization:Basic ${token}"\n`, { mode: 0o600 })
+  // yt-dlp reads one shell-quoted argument per config line; '#' would start a comment, so the link is double-quoted.
+  const quoted = `"${u.toString().replace(/[\\"]/g, '\\$&')}"`
+  fs.writeFileSync(file, quoted + '\n', { mode: 0o600 })
+  u.username = ''
+  u.password = ''
   return {
     url: u.toString(),
+    tail: [],
     args: ['--config-locations', file],
     cleanup() {
       fs.rmSync(dir, { recursive: true, force: true })
@@ -241,7 +243,7 @@ function createDownload(ctx) {
       let child
       const auth = protectUrlCredentials(url)
       try {
-        child = spawn(ytdlpCommand(), [...ytdlpBaseArgs(), ...auth.args, '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', '5000', '--', auth.url])
+        child = spawn(ytdlpCommand(), [...ytdlpBaseArgs(), ...auth.args, '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', '5000', ...auth.tail])
       } catch {
         auth.cleanup()
         resolve(null)
@@ -319,7 +321,7 @@ function createDownload(ctx) {
       let child
       const auth = protectUrlCredentials(effectiveUrl)
       try {
-        child = spawn(ytdlpCommand(), [...ytdlpBaseArgs(), ...auth.args, '--dump-json', '--no-warnings', '--no-playlist', '--', auth.url])
+        child = spawn(ytdlpCommand(), [...ytdlpBaseArgs(), ...auth.args, '--dump-json', '--no-warnings', '--no-playlist', ...auth.tail])
       } catch {
         auth.cleanup()
         resolve(fallback)
@@ -608,7 +610,7 @@ function createDownload(ctx) {
         ]
     // Credentials in the link go to yt-dlp through a private config file, never the argument list.
     const auth = protectUrlCredentials(effectiveUrl)
-    args[args.length - 1] = auth.url
+    args.splice(-2, 2, ...auth.tail) // drops the trailing `-- <link>`: with credentials the link lives in the config file
     args.unshift(...auth.args)
 
     // Wait for a free download slot (the task shows as 'queued'); released when it finishes.
@@ -766,7 +768,7 @@ function createDownload(ctx) {
       let child
       const auth = protectUrlCredentials(url)
       try {
-        child = spawn(ytdlpCommand(), [...ytdlpBaseArgs(), ...auth.args, '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', String(limit), '--', auth.url])
+        child = spawn(ytdlpCommand(), [...ytdlpBaseArgs(), ...auth.args, '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', String(limit), ...auth.tail])
       } catch {
         auth.cleanup()
         resolve(null)
@@ -819,4 +821,4 @@ function pickSmallThumbnail(thumbnails, fallback = null) {
   return small ? small.url : fallback
 }
 
-module.exports = { createDownload, pickSmallThumbnail }
+module.exports = { createDownload, pickSmallThumbnail, protectUrlCredentials }
