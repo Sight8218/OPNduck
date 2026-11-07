@@ -62,7 +62,6 @@ const settings = require('./core/settings.cjs')
 const { getSettings, setSettings } = settings
 const { openLoginWindow, clearLogin, loginStatus, loginContents } = require('./login.cjs')
 const { createSubscriptionManager } = require('./subscriptions.cjs')
-const { createMcpServer } = require('./mcp.cjs')
 const platform = require('./platform_electron.cjs')
 const core = require('./core/index.cjs').createCore({
   platform,
@@ -588,10 +587,9 @@ ipcMain.handle('tasks:probe', (_e, req) => {
 // because it needs userData; IPC before that point is rejected.
 /* --- Send to OPNduck: links from other devices (see core/remote/) --- */
 // @category: remote/inbox-main
-const { createRemoteInbox } = require('./core/remote/inbox.cjs')
 let remoteInbox = null
 function needRemote() {
-  remoteInbox ??= createRemoteInbox({
+  remoteInbox ??= require('./core/remote/inbox.cjs').createRemoteInbox({
     file: path.join(platform.paths.userData, 'remote.json'),
     // The only way a received link becomes a job: the normal download handler, tagged so the Library shows "via link".
     startDownload: async (req, via) => {
@@ -627,25 +625,17 @@ ipcMain.handle('remote:state', () => {
   return { enabled: s.remoteEnabled, mode: s.remoteMode, pending: r.list() }
 })
 const tailscale = require('./core/remote/tailscale.cjs')
-const { createEngineApi } = require('../engine-api/server.cjs')
-const { buildPairLink } = require('./core/remote/envelope.cjs')
-const { createDevices } = require('../engine-api/devices.cjs')
-const { createUploads } = require('../engine-api/uploads.cjs')
-const { createV1 } = require('../engine-api/v1.cjs')
-const { createInfo } = require('../engine-api/info.cjs')
-const { buildEnginePairLink } = require('../engine-api/pairlink.cjs')
 const { createServers } = require('./core/remote/servers.cjs')
 let engineApi = null
 let sharing = null // { devices, uploads, v1 }: made the first time this PC's engine is shared
-const { createAiShare } = require('../engine-api/ai_share.cjs')
-const aiShare = () => createAiShare({ ai: core.ai, llama: core.llama, getSettings })
+const aiShare = () => require('../engine-api/ai_share.cjs').createAiShare({ ai: core.ai, llama: core.llama, getSettings })
 function needSharing() {
   if (sharing) return sharing
   const dir = path.join(platform.paths.userData, 'engine')
-  const devices = createDevices({ file: path.join(dir, 'devices.json'), codesFile: path.join(dir, 'pair-codes.json') })
-  const uploads = createUploads({ dir: path.join(dir, 'uploads') })
-  const info = createInfo({ outputDir: () => defaultDownloadDir(), ytdlpCommand: () => core.ctx.ytdlpCommand?.() ?? 'yt-dlp' })
-  const real = createV1({ engine, platform, devices, uploads, recipes: core.recipes, ai: aiShare(), name: () => os.hostname(), version: platform.version, info, log: (m) => console.log(m) })
+  const devices = require('../engine-api/devices.cjs').createDevices({ file: path.join(dir, 'devices.json'), codesFile: path.join(dir, 'pair-codes.json') })
+  const uploads = require('../engine-api/uploads.cjs').createUploads({ dir: path.join(dir, 'uploads') })
+  const info = require('../engine-api/info.cjs').createInfo({ outputDir: () => defaultDownloadDir(), ytdlpCommand: () => core.ctx.ytdlpCommand?.() ?? 'yt-dlp' })
+  const real = require('../engine-api/v1.cjs').createV1({ engine, platform, devices, uploads, recipes: core.recipes, ai: aiShare(), name: () => os.hostname(), version: platform.version, info, log: (m) => console.log(m) })
   // The routes exist only while sharing is switched on; with it off the server answers only health checks and Send to OPNduck.
   const v1 = {
     handle: (req, res, ctx) => (getSettings().shareEngine ? real.handle(req, res, ctx) : ctx.reply(404, { error: 'Not found' })),
@@ -657,7 +647,7 @@ function needSharing() {
 async function applyEngineApi() {
   const s = getSettings()
   const inbox = needRemote()
-  engineApi ??= createEngineApi({ inbox, name: () => os.hostname(), v1: needSharing().v1, log: (m) => console.log(m) })
+  engineApi ??= require('../engine-api/server.cjs').createEngineApi({ inbox, name: () => os.hostname(), v1: needSharing().v1, log: (m) => console.log(m) })
   if (!(s.remoteEnabled || s.shareEngine) || s.remoteBind === 'off') await engineApi.stop()
   else {
     const ts = s.remoteBind === 'tailscale' ? await tailscale.status() : null
@@ -665,12 +655,12 @@ async function applyEngineApi() {
   }
   platform.emit('remote:changed', null)
 }
-const { createNtfyRelay, validateServer, DEFAULT_SERVER } = require('./core/remote/ntfy.cjs')
+const ntfy = () => require('./core/remote/ntfy.cjs') // loaded when the relay is first used
 let ntfyRelay = null
 /** Starts or stops the relay listener to match the settings; call after any change to them or to the relay address. */
 function applyRelay() {
   const inbox = needRemote()
-  ntfyRelay ??= createNtfyRelay({
+  ntfyRelay ??= ntfy().createNtfyRelay({
     inbox,
     getConfig: () => ({ enabled: getSettings().remoteEnabled && getSettings().remoteRelay, ...inbox.relay.get() }),
     lastId: inbox.relay.lastId,
@@ -678,16 +668,16 @@ function applyRelay() {
   })
   ntfyRelay.apply()
 }
-ipcMain.handle('remote:relay', () => ({ ...needRemote().relay.get(), status: ntfyRelay?.status() ?? { state: 'off', error: '', server: '' }, defaultServer: DEFAULT_SERVER }))
+ipcMain.handle('remote:relay', () => ({ ...needRemote().relay.get(), status: ntfyRelay?.status() ?? { state: 'off', error: '', server: '' }, defaultServer: ntfy().DEFAULT_SERVER }))
 ipcMain.handle('remote:setRelay', (_e, server, token) => {
-  const clean = server ? validateServer(server) : ''
-  needRemote().relay.set({ server: clean === DEFAULT_SERVER ? '' : clean, token: String(token ?? '').slice(0, 200) })
+  const clean = server ? ntfy().validateServer(server) : ''
+  needRemote().relay.set({ server: clean === ntfy().DEFAULT_SERVER ? '' : clean, token: String(token ?? '').slice(0, 200) })
   applyRelay()
   return true
 })
 ipcMain.handle('remote:server', () => ({ ...(engineApi?.status() ?? { running: false, port: null, addresses: [], error: '' }), bind: getSettings().remoteBind }))
 // The pair link holds the secret: it only goes to this app's own window, to show as a QR code or be copied by the user.
-ipcMain.handle('remote:pairing', () => ({ link: buildPairLink({ secret: needRemote().secret(), relay: needRemote().relay.get().server || DEFAULT_SERVER, relayToken: needRemote().relay.get().token, direct: getSettings().remoteDirectUrl, name: os.hostname() }) }))
+ipcMain.handle('remote:pairing', () => ({ link: require('./core/remote/envelope.cjs').buildPairLink({ secret: needRemote().secret(), relay: needRemote().relay.get().server || ntfy().DEFAULT_SERVER, relayToken: needRemote().relay.get().token, direct: getSettings().remoteDirectUrl, name: os.hostname() }) }))
 ipcMain.handle('remote:resetPairing', () => {
   needRemote().resetPairing()
   applyRelay() // the topic changed with the secret
@@ -749,7 +739,7 @@ ipcMain.handle('share:pairLink', async () => {
   if (!getSettings().shareEngine) throw new Error('Turn on sharing first')
   const urls = await engineUrls()
   if (!urls.length) throw new Error('Choose who can connect (this computer, Tailscale or your network) first')
-  return { link: buildEnginePairLink({ baseUrl: urls[0], code: needSharing().devices.newPairCode(), name: os.hostname() }) }
+  return { link: require('../engine-api/pairlink.cjs').buildEnginePairLink({ baseUrl: urls[0], code: needSharing().devices.newPairCode(), name: os.hostname() }) }
 })
 ipcMain.handle('share:revoke', (_e, id) => {
   const ok = needSharing().devices.revoke(String(id))
@@ -981,7 +971,7 @@ ipcMain.handle('tasks:defaultDownloadDir', () => defaultDownloadDir())
 // @category: mcp/mcp-main
 let mcp = null
 function needMcp() {
-  mcp ??= createMcpServer({
+  mcp ??= require('./mcp.cjs').createMcpServer({
     userDataDir: platform.paths.userData,
     tasks,
     startHandlers,
@@ -1472,18 +1462,12 @@ app.whenReady().then(() => {
   trace('app ready')
   applyQueueLimits()
   startWatchFolder()
-  sweepStaleTempDirs()
-  trace('temp sweep done')
   loadHistory()
   trace('history loaded')
   startSubscriptions()
   // opnduck:// as a link handler (AppImage and dev builds register it at runtime; the packages also list it in their desktop entry).
   app.setAsDefaultProtocolClient('opnduck')
-  needRemote()
-  void applyEngineApi()
-  applyRelay()
   trace('subscriptions started')
-  void applyMcp()
   // A card runs in a sandboxed iframe on this scheme. Reserved paths (__frame.html, __frame.js, __app/*) are the
   // card page and the app's stylesheet; anything else is a file from the plugin's own folder.
   const pluginFrame = require('./core/plugin_frame.cjs')
@@ -1515,14 +1499,29 @@ app.whenReady().then(() => {
   })
   // A Mac needs an application menu, or Cmd+C, V, X, A, W and Q stop working in the window.
   if (process.platform === 'darwin') Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]))
-  createWindow()
+  const firstWindow = createWindow()
+  trace('window created')
+  // Nothing here is needed to paint the first screen: the temp sweep, the link server, the relay and the MCP server start
+  // once the page has loaded (or after 3 s at the latest), so they never compete with the renderer for the CPU.
+  let deferredDone = false
+  const deferredStartup = () => {
+    if (deferredDone) return
+    deferredDone = true
+    sweepStaleTempDirs()
+    needRemote()
+    void applyEngineApi()
+    applyRelay()
+    void applyMcp()
+    trace('deferred startup done')
+  }
+  firstWindow.webContents.once('did-finish-load', () => setImmediate(deferredStartup))
+  setTimeout(deferredStartup, 3000).unref()
   const launchLink = opnduckUrlIn(process.argv) // the app was started by an opnduck:// link
   if (launchLink) handleOpnduckUrl(launchLink)
   core.schedule.start()
   core.llama.startIfWanted() // in the background, only when the person asked for it
   void core.plugins.init() // after the window exists: a plugin's activate() must never delay startup
   applyTray()
-  trace('window created')
   // Warm the engine checks once the window is up, so the cards don't wait on a Python start.
   setTimeout(() => {
     void torchEngineReady()
