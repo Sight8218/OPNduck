@@ -55,3 +55,4 @@ dist-tui
 dist-server
 electron/plugin_frame/frame.js
 dist-extension
+dist-analyze

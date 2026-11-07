@@ -22,6 +22,8 @@
     "dist:linux": "npm run build && electron-builder --linux AppImage pacman",
     "dist:win": "npm run build && electron-builder --win nsis portable",
     "perf": "node scripts/perf-check.mjs",
+    "perf:build": "npm run build && electron-builder --linux --dir",
+    "analyze": "vite build --mode analyze && echo \"Open dist-analyze/stats.html\"",
     "dist": "npm run build && electron-builder --linux AppImage pacman --win nsis portable",
     "tui:build": "node scripts/build-tui.mjs",
     "tui": "node scripts/build-tui.mjs && node dist-tui/opnduck-tui.mjs",
@@ -127,6 +129,8 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router-dom": "^7.18.4",
+    "react-scan": "^0.5.7",
+    "rollup-plugin-visualizer": "^7.1.2",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.4"

@@ -22,6 +22,12 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
+// Dev only, and only when asked for (VITE_REACT_SCAN=1 npm run desktop:dev): highlights components as they re-render.
+// import.meta.env.DEV is false in a production build, so this whole branch (and react-scan) is removed from the bundle.
+if (import.meta.env.DEV && import.meta.env.VITE_REACT_SCAN) {
+  void import('react-scan').then(({ scan }) => scan({ enabled: true }))
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
