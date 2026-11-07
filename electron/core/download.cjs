@@ -268,7 +268,7 @@ function createDownload(ctx) {
           resolve({
             title: info.title ?? 'Playlist',
             count: entries.length,
-            thumbnailUrl: first?.thumbnails?.[first.thumbnails.length - 1]?.url ?? null,
+            thumbnailUrl: pickSmallThumbnail(first?.thumbnails, first?.thumbnails?.[first.thumbnails.length - 1]?.url ?? null),
           })
         } catch {
           resolve(null)
@@ -344,7 +344,7 @@ function createDownload(ctx) {
           resolve({
             title: spotify ? `${spotify.label} (YouTube match)` : (info.title ?? redactUrl(req.url)),
             approxSizeBytes: estimateSize(info, req),
-            thumbnailUrl: info.thumbnail ?? null,
+            thumbnailUrl: pickSmallThumbnail(info.thumbnails, info.thumbnail ?? null),
             ...extraInfo(info),
           })
         } catch {
@@ -807,4 +807,16 @@ function createDownload(ctx) {
   return { SPOTIFY_TRACK_RE, SPOTIFY_OTHER_RE, resolveSpotifyTrack, AUDIO_EXT, VIDEO_EXT, qualityLabel, subtitleArgs, embedArgs, formatArgs, YT_HOST_RE, CHANNEL_PATH_RE, classifyLink, listUrl, probePlaylist, probeInfo, extraInfo, LANG_RE, validateDownloadRequest, formatSize, bestAudioFormat, bestVideoFormat, estimateSize, probeEntries }
 }
 
-module.exports = { createDownload }
+/** The thumbnails are shown at 72x40 (Library) and 56x32 (Downloader), so about 2x that is plenty: the smallest one at least
+ *  160 px wide. yt-dlp's own `thumbnail` is the largest (often 1280x720), which the renderer would download and decode for
+ *  every row. Falls back to the biggest one under 160 px, then to `fallback`. */
+const THUMB_MIN_WIDTH = 160
+function pickSmallThumbnail(thumbnails, fallback = null) {
+  const list = (Array.isArray(thumbnails) ? thumbnails : []).filter((t) => t && typeof t.url === 'string' && /^https?:\/\//i.test(t.url) && Number(t.width) > 0)
+  const big = list.filter((t) => t.width >= THUMB_MIN_WIDTH).sort((a, b) => a.width - b.width)[0]
+  if (big) return big.url
+  const small = list.sort((a, b) => b.width - a.width)[0]
+  return small ? small.url : fallback
+}
+
+module.exports = { createDownload, pickSmallThumbnail }
