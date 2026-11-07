@@ -19,6 +19,7 @@
  * The downloader: yt-dlp downloads (video, audio, playlists, subtitles, Spotify-to-YouTube matching), link classification, size estimates and playlist probing.
  * No Electron: everything it needs comes in through `ctx` (see core/*.cjs).
  */
+const { stripLinkLogin } = require('./redact.cjs')
 const { spawn } = require('node:child_process')
 const fs = require('node:fs')
 const os = require('node:os')
@@ -722,7 +723,7 @@ function createDownload(ctx) {
       if (signal || (code !== 0 && !partial)) {
         updateTask(id, {
           status: 'error',
-          error: stderrTail.trim().split('\n').pop() || `yt-dlp exited with code ${code}`,
+          error: stripLinkLogin(stderrTail.trim().split('\n').pop() ?? '') || `yt-dlp exited with code ${code}`,
         })
         return
       }

@@ -23,6 +23,7 @@
  *
  * @param {{ platform: object, getSettings: () => object, onFinished: (state: object, req: object) => void }} deps
  */
+const { stripLinkLogin, stripLinkLoginDeep } = require('./redact.cjs')
 const { spawn } = require('node:child_process')
 const fs = require('node:fs')
 const path = require('node:path')
@@ -57,7 +58,7 @@ function createTaskEngine({ platform, getSettings, onFinished }) {
     const parts = (log.partial[stream] + String(chunk)).split(/\r?\n|\r/)
     log.partial[stream] = parts.pop() ?? ''
     for (const raw of parts) {
-      const line = raw.replace(/\s+$/, '').slice(0, 300)
+      const line = stripLinkLogin(raw.replace(/\s+$/, '')).slice(0, 300) // yt-dlp echoes the link it was given, login included
       if (!line || LOG_NOISE.test(line)) continue
       // yt-dlp's percent line updates in place: keep only the latest instead of hundreds of near-copies.
       const isPct = /^\[download\]\s+\d/.test(line)
@@ -145,7 +146,8 @@ function createTaskEngine({ platform, getSettings, onFinished }) {
       const finished = [...tasks.values()]
         .filter((t) => TERMINAL.includes(t.state.status) && t.channel)
         .slice(-MAX_HISTORY)
-        .map((t) => ({ state: t.state, channel: t.channel, req: t.req, finalPath: t.finalPath ?? null }))
+        // A login typed into a link is not written to disk ("Run again" on such a link asks for it again).
+        .map((t) => stripLinkLoginDeep({ state: t.state, channel: t.channel, req: t.req, finalPath: t.finalPath ?? null }))
       fs.mkdirSync(path.dirname(historyFile()), { recursive: true })
       // Write-then-rename so a crash mid-write can't leave a truncated history.json.
       const tmp = `${historyFile()}.tmp`
