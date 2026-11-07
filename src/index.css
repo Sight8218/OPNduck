@@ -719,3 +719,10 @@ body {
   .ai-glyph, .ai-thought i, .ai-ink, .ai-ellipsis i { animation: none !important; }
   .ai-ellipsis i { opacity: 0.7; }
 }
+
+/* Hidden in the tray (or minimized): nothing on screen should keep animating. See lib/windowVisible.ts. */
+html[data-window-hidden] *,
+html[data-window-hidden] *::before,
+html[data-window-hidden] *::after {
+  animation-play-state: paused !important;
+}

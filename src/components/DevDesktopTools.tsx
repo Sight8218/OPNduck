@@ -18,6 +18,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { host } from '../host'
+import { useWindowVisible } from '../lib/windowVisible'
 
 type Info = Record<string, Record<string, string | number | boolean>>
 type Metric = { pid: number; type: string; cpu: number; memMB: number }
@@ -46,6 +47,7 @@ function useCopy() {
 /** The desktop half of Developer Tools: app/tool info, live process metrics, logs, tasks, and quick actions. */
 export default function DevDesktopTools() {
   const dev = host.dev
+  const visible = useWindowVisible()
   const { copied, copy } = useCopy()
   const [info, setInfo] = useState<Info | null>(null)
   const [metrics, setMetrics] = useState<Metric[]>([])
@@ -64,7 +66,7 @@ export default function DevDesktopTools() {
   const loadTasks = useCallback(() => void dev?.tasks().then((t) => setTasksJson(JSON.stringify(t, null, 2))), [dev])
 
   useEffect(() => {
-    if (!dev) return
+    if (!dev || !visible) return
     loadInfo()
     const tick = () => {
       void dev.metrics().then(setMetrics)
@@ -74,7 +76,7 @@ export default function DevDesktopTools() {
     tick()
     const t = setInterval(tick, 2000)
     return () => clearInterval(t)
-  }, [dev, loadInfo])
+  }, [dev, loadInfo, visible])
 
   const loadIpc = () => void dev?.ipc().then((c) => setIpc(c.slice().reverse()))
   const loadSettings = () => void dev?.settings().then(setSettings)
