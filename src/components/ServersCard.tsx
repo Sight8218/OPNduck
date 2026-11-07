@@ -17,7 +17,6 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import QRCode from 'qrcode'
 import { host, type ServerEntry, type ServerStatus, type ShareState } from '../host'
 import { formatBytes } from '../lib/formatBytes'
 import GlassSelect from './GlassSelect'
@@ -104,7 +103,7 @@ export default function ServersCard() {
     setError('')
     try {
       const { link: l } = await host.servers.sharePairLink()
-      setPairQr({ link: l, qr: await QRCode.toDataURL(l, { margin: 1, width: 220, errorCorrectionLevel: 'M' }) })
+      setPairQr({ link: l, qr: await (await import('qrcode')).default.toDataURL(l, { margin: 1, width: 220, errorCorrectionLevel: 'M' }) })
     } catch (e) {
       setError(clean(e))
     }

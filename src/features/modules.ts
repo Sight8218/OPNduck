@@ -17,24 +17,25 @@
  */
 
 
+import { lazy } from 'react'
 import { registerFeatures } from './registry'
-import ConverterCard from './converter/ConverterCard'
-import DownloaderCard from './downloader/DownloaderCard'
-import InterpolationCard from './interpolate/InterpolationCard'
-import AudioAiCard from './audio-ai/AudioAiCard'
-import SubtitlesCard from './subtitles/SubtitlesCard'
-import ImageUpscalerCard from './upscaler/ImageUpscalerCard'
-import VideoUpscalerCard from './upscaler/VideoUpscalerCard'
-import CompressCard from './compress/CompressCard'
-import GifCard from './gif/GifCard'
-import JumpCutCard from './jumpcut/JumpCutCard'
-import RestoreCard from './restore/RestoreCard'
-import BeatFinderCard from './beats/BeatFinderCard'
-import GradeCard from './grade/GradeCard'
-import BgRemoveCard from './bgremove/BgRemoveCard'
-import DubCard from './dub/DubCard'
-import TaggerCard from './tagger/TaggerCard'
-import TrimCard from './trim/TrimCard'
+const ConverterCard = lazy(() => import('./converter/ConverterCard'))
+const DownloaderCard = lazy(() => import('./downloader/DownloaderCard'))
+const InterpolationCard = lazy(() => import('./interpolate/InterpolationCard'))
+const AudioAiCard = lazy(() => import('./audio-ai/AudioAiCard'))
+const SubtitlesCard = lazy(() => import('./subtitles/SubtitlesCard'))
+const ImageUpscalerCard = lazy(() => import('./upscaler/ImageUpscalerCard'))
+const VideoUpscalerCard = lazy(() => import('./upscaler/VideoUpscalerCard'))
+const CompressCard = lazy(() => import('./compress/CompressCard'))
+const GifCard = lazy(() => import('./gif/GifCard'))
+const JumpCutCard = lazy(() => import('./jumpcut/JumpCutCard'))
+const RestoreCard = lazy(() => import('./restore/RestoreCard'))
+const BeatFinderCard = lazy(() => import('./beats/BeatFinderCard'))
+const GradeCard = lazy(() => import('./grade/GradeCard'))
+const BgRemoveCard = lazy(() => import('./bgremove/BgRemoveCard'))
+const DubCard = lazy(() => import('./dub/DubCard'))
+const TaggerCard = lazy(() => import('./tagger/TaggerCard'))
+const TrimCard = lazy(() => import('./trim/TrimCard'))
 
 /**
  * Registers the core tool cards into the adaptive registry.
