@@ -21,7 +21,54 @@
  */
 const { spawn } = require('node:child_process')
 const fs = require('node:fs')
+const os = require('node:os')
 const path = require('node:path')
+
+/**
+ * Keeps Basic-auth credentials out of the process list. A URL like https://user:pass@host/x would
+ * otherwise be visible to every local account via the downloader's argument list. The credentials are
+ * moved into a private (0600, in a 0700 dir) yt-dlp config file as an Authorization header, and the URL
+ * handed to yt-dlp has them removed. `cleanup()` deletes the file; it is safe to call more than once.
+ */
+function protectUrlCredentials(rawUrl) {
+  const none = { url: rawUrl, args: [], cleanup() {} }
+  let u
+  try {
+    u = new URL(rawUrl)
+  } catch {
+    return none
+  }
+  if (!u.username && !u.password) return none
+  const user = decodeURIComponent(u.username)
+  const pass = decodeURIComponent(u.password)
+  u.username = ''
+  u.password = ''
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opnduck-auth-'))
+  fs.chmodSync(dir, 0o700)
+  const file = path.join(dir, 'auth.conf')
+  const token = Buffer.from(`${user}:${pass}`).toString('base64')
+  fs.writeFileSync(file, `--add-headers "Authorization:Basic ${token}"\n`, { mode: 0o600 })
+  return {
+    url: u.toString(),
+    args: ['--config-locations', file],
+    cleanup() {
+      fs.rmSync(dir, { recursive: true, force: true })
+    },
+  }
+}
+
+/** The link without credentials, for labels, logs and error text. */
+function redactUrl(rawUrl) {
+  try {
+    const u = new URL(rawUrl)
+    if (!u.username && !u.password) return rawUrl
+    u.username = ''
+    u.password = ''
+    return u.toString()
+  } catch {
+    return rawUrl
+  }
+}
 
 function createDownload(ctx) {
   const {
@@ -192,12 +239,16 @@ function createDownload(ctx) {
   function probePlaylist(url) {
     return new Promise((resolve) => {
       let child
+      const auth = protectUrlCredentials(url)
       try {
-        child = spawn(ytdlpCommand(), [...ytdlpBaseArgs(), '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', '5000', '--', url])
+        child = spawn(ytdlpCommand(), [...ytdlpBaseArgs(), ...auth.args, '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', '5000', '--', auth.url])
       } catch {
+        auth.cleanup()
         resolve(null)
         return
       }
+      child.on('close', auth.cleanup)
+      child.on('error', auth.cleanup)
       let out = ''
       // A channel can hold thousands of videos; never let a link check hang the UI.
       const timer = setTimeout(() => child.kill(), 45_000)
@@ -217,7 +268,7 @@ function createDownload(ctx) {
           resolve({
             title: info.title ?? 'Playlist',
             count: entries.length,
-            thumbnailUrl: first?.thumbnails?.[first.thumbnails.length - 1]?.url ?? null,
+            thumbnailUrl: pickSmallThumbnail(first?.thumbnails, first?.thumbnails?.[first.thumbnails.length - 1]?.url ?? null),
           })
         } catch {
           resolve(null)
@@ -264,14 +315,18 @@ function createDownload(ctx) {
     }
 
     const single = await new Promise((resolve) => {
-      const fallback = { title: req.url, approxSizeBytes: null, thumbnailUrl: null }
+      const fallback = { title: redactUrl(req.url), approxSizeBytes: null, thumbnailUrl: null }
       let child
+      const auth = protectUrlCredentials(effectiveUrl)
       try {
-        child = spawn(ytdlpCommand(), [...ytdlpBaseArgs(), '--dump-json', '--no-warnings', '--no-playlist', '--', effectiveUrl])
+        child = spawn(ytdlpCommand(), [...ytdlpBaseArgs(), ...auth.args, '--dump-json', '--no-warnings', '--no-playlist', '--', auth.url])
       } catch {
+        auth.cleanup()
         resolve(fallback)
         return
       }
+      child.on('close', auth.cleanup)
+      child.on('error', auth.cleanup)
       let out = ''
       // A dead proxy or a stuck cookie-keyring prompt must not leave a yt-dlp running per link edit.
       const timer = setTimeout(() => child.kill(), 60_000)
@@ -287,9 +342,9 @@ function createDownload(ctx) {
         try {
           const info = JSON.parse(out.trim().split('\n')[0])
           resolve({
-            title: spotify ? `${spotify.label} (YouTube match)` : (info.title ?? req.url),
+            title: spotify ? `${spotify.label} (YouTube match)` : (info.title ?? redactUrl(req.url)),
             approxSizeBytes: estimateSize(info, req),
-            thumbnailUrl: info.thumbnail ?? null,
+            thumbnailUrl: pickSmallThumbnail(info.thumbnails, info.thumbnail ?? null),
             ...extraInfo(info),
           })
         } catch {
@@ -426,7 +481,7 @@ function createDownload(ctx) {
         kind: 'download',
         status: 'queued',
         progress: 0,
-        label: req.url,
+        label: redactUrl(req.url),
         format: req.format,
         quality: qualityLabel(req),
         sizeBytes: Number.isFinite(req.approxSizeBytes) && req.approxSizeBytes >= 0 ? req.approxSizeBytes : null,
@@ -551,12 +606,17 @@ function createDownload(ctx) {
           '--',
           effectiveUrl,
         ]
+    // Credentials in the link go to yt-dlp through a private config file, never the argument list.
+    const auth = protectUrlCredentials(effectiveUrl)
+    args[args.length - 1] = auth.url
+    args.unshift(...auth.args)
 
     // Wait for a free download slot (the task shows as 'queued'); released when it finishes.
     await downloadPool.acquire()
     const slotEntry = tasks.get(id)
     if (!slotEntry || isCanceled(id)) {
       downloadPool.release()
+      auth.cleanup()
       return id
     }
     let slotReleased = false
@@ -570,8 +630,11 @@ function createDownload(ctx) {
     let child
     try {
       child = spawn(ytdlpCommand(), args)
+      child.on('close', auth.cleanup)
+      child.on('error', auth.cleanup)
       attachLog(child, id)
     } catch (err) {
+      auth.cleanup()
       updateTask(id, { status: 'error', error: `Failed to start yt-dlp: ${err.message}` })
       return id
     }
@@ -701,12 +764,16 @@ function createDownload(ctx) {
     const url = link.kind === 'only' ? listUrl(link, limit) : rawUrl
     return new Promise((resolve) => {
       let child
+      const auth = protectUrlCredentials(url)
       try {
-        child = spawn(ytdlpCommand(), [...ytdlpBaseArgs(), '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', String(limit), '--', url])
+        child = spawn(ytdlpCommand(), [...ytdlpBaseArgs(), ...auth.args, '--flat-playlist', '--dump-single-json', '--no-warnings', '--playlist-end', String(limit), '--', auth.url])
       } catch {
+        auth.cleanup()
         resolve(null)
         return
       }
+      child.on('close', auth.cleanup)
+      child.on('error', auth.cleanup)
       let out = ''
       const timer = setTimeout(() => child.kill(), 60_000)
       child.stdout.on('data', (c) => {
@@ -740,4 +807,16 @@ function createDownload(ctx) {
   return { SPOTIFY_TRACK_RE, SPOTIFY_OTHER_RE, resolveSpotifyTrack, AUDIO_EXT, VIDEO_EXT, qualityLabel, subtitleArgs, embedArgs, formatArgs, YT_HOST_RE, CHANNEL_PATH_RE, classifyLink, listUrl, probePlaylist, probeInfo, extraInfo, LANG_RE, validateDownloadRequest, formatSize, bestAudioFormat, bestVideoFormat, estimateSize, probeEntries }
 }
 
-module.exports = { createDownload }
+/** The thumbnails are shown at 72x40 (Library) and 56x32 (Downloader), so about 2x that is plenty: the smallest one at least
+ *  160 px wide. yt-dlp's own `thumbnail` is the largest (often 1280x720), which the renderer would download and decode for
+ *  every row. Falls back to the biggest one under 160 px, then to `fallback`. */
+const THUMB_MIN_WIDTH = 160
+function pickSmallThumbnail(thumbnails, fallback = null) {
+  const list = (Array.isArray(thumbnails) ? thumbnails : []).filter((t) => t && typeof t.url === 'string' && /^https?:\/\//i.test(t.url) && Number(t.width) > 0)
+  const big = list.filter((t) => t.width >= THUMB_MIN_WIDTH).sort((a, b) => a.width - b.width)[0]
+  if (big) return big.url
+  const small = list.sort((a, b) => b.width - a.width)[0]
+  return small ? small.url : fallback
+}
+
+module.exports = { createDownload, pickSmallThumbnail }

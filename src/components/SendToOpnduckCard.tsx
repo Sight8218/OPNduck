@@ -17,7 +17,6 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import QRCode from 'qrcode'
 import { host, type AppSettings, type RemoteRelay, type RemoteServer, type TailscaleStatus } from '../host'
 
 const FORMATS = ['MP4', 'MKV', 'WEBM', 'MOV', 'AVI', 'MP3', 'FLAC', 'WAV']
@@ -134,7 +133,7 @@ function DirectAndPairing({ settings, onChange }: { settings: AppSettings; onCha
     if (settings.remoteBind === 'tailscale') setTs(await host.remote.tailscale())
     const { link: l } = await host.remote.pairing()
     setLink(l)
-    setQr(l ? await QRCode.toDataURL(l, { margin: 1, width: 220, errorCorrectionLevel: 'M' }) : '')
+    setQr(l ? await (await import('qrcode')).default.toDataURL(l, { margin: 1, width: 220, errorCorrectionLevel: 'M' }) : '')
   }, [settings.remoteBind])
 
   useEffect(() => {

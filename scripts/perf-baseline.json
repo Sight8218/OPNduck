@@ -1,6 +1,8 @@
 {
-  "startupMs": 432,
-  "idleRamMB": 679,
-  "mainBundleKB": 480,
-  "installMB": 276
+  "startupMs": 417,
+  "idleRamMB": 849,
+  "trayRamMB": 715,
+  "idleCpuPct": 0,
+  "mainBundleKB": 470,
+  "installMB": 269
 }

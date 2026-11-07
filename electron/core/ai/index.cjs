@@ -26,6 +26,7 @@ const { createOpenAiProvider } = require('./providers/openai.cjs')
 const { createAnthropicProvider } = require('./providers/anthropic.cjs')
 const { createGeminiProvider } = require('./providers/gemini.cjs')
 const tools = require('./tools.cjs')
+const { createHelp } = require('./help.cjs')
 
 /** The cloud providers: the API family and the address. Model names are never listed here; the provider's own list is fetched. */
 const CLOUD = {
@@ -72,8 +73,9 @@ function addressOk(url, { allowPlain = false } = {}) {
  * @param {object} [deps.usage]  token counter (ai/usage.cjs); cloud use stops at the monthly limit in the settings
  * @param {object} [deps.local]  the bundled model manager (ai/llama.cjs); without it the `local` provider is unavailable
  * @param {typeof fetch} [deps.fetchFn]
+ * @param {{ promptBlock(q: string): string }} [deps.help]  searches OPNduck's own docs for the question (ai/help.cjs)
  */
-function createAi({ getSettings, keys, local = null, usage = null, fetchFn = fetch }) {
+function createAi({ getSettings, keys, local = null, usage = null, fetchFn = fetch, help = createHelp() }) {
   const cfg = () => getSettings().ai
 
   /** The provider the settings point at, or throws a readable message. */
@@ -199,7 +201,12 @@ function createAi({ getSettings, keys, local = null, usage = null, fetchFn = fet
    * `deps` are the lookups for readTool/propose. Returns { message, proposals, usage }.
    */
   async function agent({ messages, deps, system, signal, onEvent = () => {}, jsonSchema }) {
-    const history = [...(system ? [{ role: 'system', content: system }] : []), ...messages]
+    // The part of OPNduck's own docs that answers the latest question goes in for this turn only, so a small model reads
+    // the real text instead of guessing. It is never stored with the chat.
+    const asked = [...messages].reverse().find((m) => m.role === 'user')
+    const notes = typeof asked?.content === 'string' ? help.promptBlock(asked.content) : ''
+    const sys = [system, notes].filter(Boolean).join('\n\n')
+    const history = [...(sys ? [{ role: 'system', content: sys }] : []), ...messages]
     const defs = tools.definitions({ web: !!deps?.web })
     const proposals = []
     let calls = 0

@@ -18,6 +18,7 @@
 
 import { useEffect, useState } from 'react'
 import { useDevMode } from '../lib/devMode'
+import { useWindowVisible } from '../lib/windowVisible'
 
 const HUD_KEY = 'opnduck.devhud'
 const HUD_EVENT = 'opnduck:devhud'
@@ -45,6 +46,7 @@ export default function PerfHud() {
   const { devMode } = useDevMode()
   const [flag, setOn] = useState(isHudOn)
   const on = flag && devMode // the overlay is a dev-mode feature
+  const visible = useWindowVisible()
   const [stats, setStats] = useState({ fps: 0, heapMB: 0, nodes: 0, size: '' })
 
   useEffect(() => {
@@ -54,7 +56,7 @@ export default function PerfHud() {
   }, [])
 
   useEffect(() => {
-    if (!on) return
+    if (!on || !visible) return
     let frames = 0
     let raf = 0
     const count = () => {
@@ -76,7 +78,7 @@ export default function PerfHud() {
       cancelAnimationFrame(raf)
       clearInterval(timer)
     }
-  }, [on])
+  }, [on, visible])
 
   if (!on) return null
   return (

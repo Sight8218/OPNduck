@@ -22,6 +22,10 @@ are only ever sent to their own provider. Plain `http://` addresses are accepted
   and *proposes* jobs as cards. **Nothing starts until you press Run**, each job is checked again by OPNduck before it starts,
   and jobs it starts are tagged "via AI" in the Library. It can only use files you picked, attached or that are in the Library,
   makes at most 10 tool calls per request, and has no delete or shell tools.
+- **Questions about OPNduck itself** ("Can I download from Spotify?", "Is safe mode on by default?"): before the model
+  answers, OPNduck searches its own help (`docs/HELP.md` and the other docs, on this computer, no network) and gives the best
+  matching parts to the model for that question only, so it answers from the real text instead of guessing. Commands such as
+  "convert this to MKV" skip this and go straight to the tools.
 - **Spoken words** (Library): transcripts of your videos are made on this computer with Whisper (automatically whenever
   Subtitles runs, or with "Make searchable" on a finished video) and stored under the app's data folder. Search them from the
   Library ("Spoken words"), click a hit to open the trimmer at that moment. With a model set up you can also summarize a video,

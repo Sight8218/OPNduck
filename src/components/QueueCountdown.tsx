@@ -19,21 +19,23 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { host } from '../host'
+import { useWindowVisible } from '../lib/windowVisible'
 
 // @category: scheduling/countdown
 /** The 60 second countdown before the computer sleeps or shuts down after the queue finished, with a Cancel button. */
 export default function QueueCountdown() {
   const [data, setData] = useState<{ action: 'sleep' | 'shutdown'; endsAt: number } | null>(null)
   const [left, setLeft] = useState(0)
+  const visible = useWindowVisible()
 
   useEffect(() => host.schedule.onCountdown((d) => setData(d ? { action: d.action, endsAt: d.endsAt } : null)), [])
   useEffect(() => {
-    if (!data) return
+    if (!data || !visible) return // nobody is looking while the window is hidden; it ticks again (and catches up) when shown
     const tick = () => setLeft(Math.max(0, Math.ceil((data.endsAt - Date.now()) / 1000)))
     tick()
     const t = setInterval(tick, 500)
     return () => clearInterval(t)
-  }, [data])
+  }, [data, visible])
 
   if (!data) return null
   return createPortal(

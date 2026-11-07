@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { Suspense, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useFeatures } from '../features/useFeatures'
 import { FeatureIcon } from './featureIcons'
@@ -99,14 +99,14 @@ export default function AdaptiveCardGrid() {
           />
           {open ? (
             <div key={open.id} ref={cardBox} className="relative z-10 mx-auto w-full max-w-3xl" style={{ opacity: 0, pointerEvents: 'none' }}>
-              <open.render feature={open} />
+              <Suspense fallback={<div className="min-h-[240px]" />}><open.render feature={open} /></Suspense>
             </div>
           ) : null}
         </div>
       ) : open ? (
 
         <div key={open.id} className="pop-in mx-auto w-full max-w-3xl">
-          <open.render feature={open} />
+          <Suspense fallback={<div className="min-h-[240px]" />}><open.render feature={open} /></Suspense>
         </div>
       ) : (
         <p className="text-center text-sm text-[var(--text-dim)]">Pick a tool above.</p>
