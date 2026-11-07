@@ -31,16 +31,12 @@ export default function PixelField() {
     const dots = pixelScatter(COLS, ROWS, 1 + Math.floor(Math.random() * 2_000_000_000)) // a different scatter every launch
     return Array.from({ length: LAYERS }, (_, l) => dots.filter((_, i) => i % LAYERS === l))
   }, [])
+  // One <svg> per layer, each its own box: the browser slides a whole box on the GPU (smooth, no repaint). Animating the
+  // <g> groups inside a single svg repainted every rect on every frame. Each svg holds the tile twice (one above the other).
   return (
-    <svg
-      aria-hidden="true"
-      className="pixel-field"
-      viewBox={`0 0 ${COLS} ${ROWS}`}
-      preserveAspectRatio="xMidYMin slice"
-      shapeRendering="crispEdges"
-    >
+    <div aria-hidden="true" className="pixel-field">
       {layers.map((dots, l) => (
-        <g key={l} className={`pixel-layer pixel-layer-${l}`}>
+        <svg key={l} className={`pixel-layer pixel-layer-${l}`} viewBox={`0 ${-ROWS} ${COLS} ${ROWS * 2}`} preserveAspectRatio="xMidYMin slice" shapeRendering="crispEdges">
           {[0, -ROWS].map((offset) => (
             <g key={offset} transform={`translate(0 ${offset})`}>
               {dots.map((d, i) => (
@@ -48,8 +44,8 @@ export default function PixelField() {
               ))}
             </g>
           ))}
-        </g>
+        </svg>
       ))}
-    </svg>
+    </div>
   )
 }

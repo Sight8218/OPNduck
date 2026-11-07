@@ -15,7 +15,14 @@ export function useWindowVisible(): boolean {
 
 /** Marks <html data-window-hidden> while hidden; index.css pauses every CSS animation under it. Call once at startup. */
 export function trackWindowVisibility(): void {
-  const sync = () => document.documentElement.toggleAttribute('data-window-hidden', !isVisible())
+  const root = document.documentElement
+  const sync = () => {
+    root.toggleAttribute('data-window-hidden', !isVisible())
+    // Not the focused window: only the decorative background stops (index.css); progress bars etc. keep running.
+    root.toggleAttribute('data-window-blurred', !document.hasFocus())
+  }
   document.addEventListener('visibilitychange', sync)
+  window.addEventListener('focus', sync)
+  window.addEventListener('blur', sync)
   sync()
 }

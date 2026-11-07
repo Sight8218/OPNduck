@@ -581,22 +581,9 @@ body {
 /* Pixel scatter behind every page (see PixelField). It falls very slowly: a layer takes 2 to 4 minutes to cross the screen. */
 @keyframes pixel-fall {
   to {
-    transform: translateY(54px); /* one full tile (ROWS in PixelField) */
+    transform: translateY(var(--tile)); /* one full tile (ROWS in PixelField) */
   }
 }
-.pixel-layer {
-  /* The drift is only 2-4 px a second, so it advances in quarter-second steps (steps(duration x 4)) instead of
-     continuously: a smooth animation made the compositor redraw at 60 fps all day (~50% of a core at idle). */
-  animation: pixel-fall infinite;
-  will-change: transform;
-}
-.pixel-layer-0 { animation-duration: 250s; animation-timing-function: steps(1000); }
-.pixel-layer-1 { animation-duration: 175s; animation-timing-function: steps(700); }
-.pixel-layer-2 { animation-duration: 125s; animation-timing-function: steps(500); }
-@media (prefers-reduced-motion: reduce) {
-  .pixel-layer { animation: none; }
-}
-
 .pixel-field {
   position: fixed;
   top: 0;
@@ -605,9 +592,34 @@ body {
   height: min(760px, 100vh);
   z-index: 0;
   pointer-events: none;
+  overflow: hidden;
+  container-type: size; /* lets the layers size themselves in cqw/cqh below */
   fill: var(--accent);
   -webkit-mask-image: linear-gradient(#000 55%, transparent);
   mask-image: linear-gradient(#000 55%, transparent);
+}
+/* Each layer is a box twice as tall as one tile, sitting one tile above the top edge; sliding it down by one tile loops
+   with no seam. A tile is 107 x 54 units scaled to cover the field (the same "slice" fit the single svg used before). */
+.pixel-layer {
+  --tile: max(50.4673cqw, 100cqh);
+  position: absolute;
+  left: 0;
+  width: 100%;
+  top: calc(var(--tile) * -1);
+  height: calc(var(--tile) * 2);
+  animation: pixel-fall linear infinite;
+  will-change: transform; /* its own GPU layer: drawn once, then only moved */
+}
+.pixel-layer-0 { animation-duration: 250s; }
+.pixel-layer-1 { animation-duration: 175s; }
+.pixel-layer-2 { animation-duration: 125s; }
+/* A smooth 60 fps animation keeps a transparent window redrawing (~50% of a core), so the background only moves while
+   OPNduck is the focused window; it resumes where it stopped. See lib/windowVisible.ts. */
+html[data-window-blurred] .pixel-layer {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pixel-layer { animation: none; }
 }
 
 /* AI activity icon (Chat): one small animation for each thing the assistant does. */
