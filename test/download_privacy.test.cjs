@@ -20,6 +20,7 @@ const page = http.createServer((req, res) => {
   if (req.headers.authorization !== 'Basic ' + Buffer.from('bob:' + PW).toString('base64')) { res.writeHead(401, { 'www-authenticate': 'Basic realm=x' }); return res.end() }
   if (req.url === '/file.mp4') { res.writeHead(200, { 'content-type': 'video/mp4', 'content-length': mp4.length }); return res.end(req.method === 'HEAD' ? undefined : mp4) }
   if (req.url === '/redir') { res.writeHead(302, { location: `http://127.0.0.1:${other.address().port}/o.mp4` }); return res.end() }
+  if (req.url === '/nopage') { res.writeHead(200); return res.end(`<html><head><title>t</title></head><body><video src="http://127.0.0.1:${other.address().port}/o.mp4"></video></body></html>`) } // HTML page with no Content-Type
   res.writeHead(200, { 'content-type': 'text/html' }); res.end(`<html><head><title>t</title></head><body><video src="http://127.0.0.1:${other.address().port}/o.mp4"></video></body></html>`)
 })
 const leaks = []
@@ -39,7 +40,7 @@ const sample = () => { // every process: argv and environment
   const c = createCore({ platform, safeMode: true })
   const timer = setInterval(sample, 25)
   const results = {}
-  for (const [name, urlPath, user] of [['web page (refused)', '/page', 'bob'], ['direct file', '/file.mp4', 'bob'], ['redirect to other origin', '/redir', 'bob'], ['wrong password (error path)', '/page', 'bob']]) {
+  for (const [name, urlPath, user] of [['web page (refused)', '/page', 'bob'], ['direct file', '/file.mp4', 'bob'], ['redirect to other origin', '/redir', 'bob'], ['wrong password (error path)', '/page', 'bob'], ['page without Content-Type (refused)', '/nopage', 'bob']]) {
     const pw = name.startsWith('wrong') ? 'WrongPw' + PW : PW
     const url = `http://${user}:${pw}@127.0.0.1:${page.address().port}${urlPath}`
     const id = await c.startJob('tasks:start', { url, format: 'MP4', destination: path.join(dir, 'dl') })
@@ -57,8 +58,10 @@ const sample = () => { // every process: argv and environment
   // everything the app wrote anywhere, plus leftover temp folders
   const scan = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) scan(p); else { try { const t = fs.readFileSync(p, 'latin1'); if (t.includes(PW) || t.includes('WrongPw')) leaks.push('file ' + p.replace(dir, '<dir>')) } catch {} } } }
   scan(dir)
-  const leftover = fs.readdirSync(os.tmpdir()).filter((n) => n.startsWith('opnduck-auth-'))
-  assert.deepEqual(Object.values(results).filter((v)=>['done','error'].includes(v)), ['error','done','done','error'])
+  const leftoverNow = () => fs.readdirSync(os.tmpdir()).filter((n) => n.startsWith('opnduck-auth-'))
+  for (let i = 0; i < 50 && leftoverNow().length; i++) await new Promise((r) => setTimeout(r, 100)) // a task reports done a moment before its cleanup finishes; a real leftover stays
+  const leftover = leftoverNow()
+  assert.deepEqual(Object.values(results).filter((v)=>['done','error'].includes(v)), ['error','done','done','error','error'])
   assert.ok(seen.some((s) => s[0] === 'other'), 'the other origin was contacted')
   assert.deepEqual(seen.filter((s) => s[0] === 'other' && s[2]), [], 'the other origin received the login')
   assert.deepEqual(seen.filter((s) => s[0] === 'other' && s[3]), [], 'the other origin received a Referer carrying the login')
