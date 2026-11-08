@@ -60,6 +60,48 @@ function protectUrlCredentials(rawUrl) {
   }
 }
 
+const LOGIN_PAGE_MSG = 'A link with a login only works for a direct file link, not a web page. Open the file itself (…/video.mp4) or use a link without the login.'
+
+/**
+ * yt-dlp sends the link it was given, login included, as the Referer to any other origin a web page points at (its generic
+ * extractor does that, and no option overrides it). So a link with a login may only go to yt-dlp when it is a plain file.
+ * This looks at the link first (the login goes to that origin only, redirects to other origins carry nothing) and returns an
+ * error text when it is a web page, or null when it is fine, has no login, or can't be reached (yt-dlp then reports why).
+ */
+async function loginLinkProblem(rawUrl) {
+  let u
+  try {
+    u = new URL(rawUrl)
+  } catch {
+    return null
+  }
+  if (!u.username && !u.password) return null
+  const auth = 'Basic ' + Buffer.from(`${decodeURIComponent(u.username)}:${decodeURIComponent(u.password)}`).toString('base64')
+  const origin = u.origin
+  u.username = ''
+  u.password = ''
+  let next = u.toString()
+  try {
+    for (let hop = 0; hop < 6; hop++) {
+      const target = new URL(next)
+      const headers = target.origin === origin ? { authorization: auth } : {}
+      const res = await fetch(target, { method: 'GET', headers: { ...headers, range: 'bytes=0-0' }, redirect: 'manual', signal: AbortSignal.timeout(10_000) })
+      const loc = res.headers.get('location')
+      const type = (res.headers.get('content-type') || '').toLowerCase()
+      res.body?.cancel().catch(() => {})
+      if (res.status >= 300 && res.status < 400 && loc) {
+        next = new URL(loc, target).toString()
+        continue
+      }
+      if (res.status >= 400) return null
+      return /^(text\/|application\/(xhtml|xml|json|ld\+json))/.test(type) ? LOGIN_PAGE_MSG : null
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
 /** The link without credentials, for labels, logs and error text. */
 function redactUrl(rawUrl) {
   try {
@@ -292,6 +334,8 @@ function createDownload(ctx) {
     const spotify = await resolveSpotifyTrack(req.url)
     if (spotify?.error) return { title: spotify.error, ...empty }
     const effectiveUrl = spotify?.query ?? req.url
+    const loginProblem = await loginLinkProblem(effectiveUrl)
+    if (loginProblem) return { title: loginProblem, ...empty }
 
     const link = spotify ? classifyLink('') : classifyLink(req.url)
     const kind = link.kind
@@ -507,6 +551,11 @@ function createDownload(ctx) {
       return id
     }
     if (isCanceled(id)) return id // canceled while the Spotify lookup was running
+    const loginProblem = await loginLinkProblem(spotify?.query ?? req.url)
+    if (loginProblem) {
+      updateTask(id, { status: 'error', error: loginProblem })
+      return id
+    }
     if (spotify) {
       // Pick one concrete video (not just "search result #1") so "Run again" can skip it next time.
       const exclude = req.matchExclude ?? []
