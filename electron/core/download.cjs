@@ -61,12 +61,16 @@ function protectUrlCredentials(rawUrl) {
 }
 
 const LOGIN_PAGE_MSG = 'A link with a login only works for a direct file link, not a web page. Open the file itself (…/video.mp4) or use a link without the login.'
+const LOGIN_CHECK_MSG = "Couldn't check that this link with a login is a direct file (the server refused it, did not answer, or did not say it is a video/audio file). Check the login and the link, or use a link without the login."
+/** The only response types a link with a login may go to yt-dlp for. Anything else (a page, no Content-Type, an unknown type) is refused. */
+const DIRECT_FILE_TYPE = /^(video|audio)\/|^application\/(octet-stream|ogg|mp4|x-matroska)(;|$)/
 
 /**
  * yt-dlp sends the link it was given, login included, as the Referer to any other origin a web page points at (its generic
  * extractor does that, and no option overrides it). So a link with a login may only go to yt-dlp when it is a plain file.
  * This looks at the link first (the login goes to that origin only, redirects to other origins carry nothing) and returns an
- * error text when it is a web page, or null when it is fine, has no login, or can't be reached (yt-dlp then reports why).
+ * error text unless the response is positively a video/audio file (fails closed: a missing Content-Type, an error status or an
+ * unreachable server all refuse). Returns null only when it has no login or is a direct file.
  */
 async function loginLinkProblem(rawUrl) {
   let u
@@ -93,13 +97,14 @@ async function loginLinkProblem(rawUrl) {
         next = new URL(loc, target).toString()
         continue
       }
-      if (res.status >= 400) return null
-      return /^(text\/|application\/(xhtml|xml|json|ld\+json))/.test(type) ? LOGIN_PAGE_MSG : null
+      if (res.status >= 400) return LOGIN_CHECK_MSG
+      if (DIRECT_FILE_TYPE.test(type)) return null
+      return type ? LOGIN_PAGE_MSG : LOGIN_CHECK_MSG
     }
   } catch {
-    return null
+    return LOGIN_CHECK_MSG
   }
-  return null
+  return LOGIN_CHECK_MSG
 }
 
 /** The link without credentials, for labels, logs and error text. */
